@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug VST3 in Reaper",
+            "type": "cppvsdbg",  // Use "cppdbg" if you are on Linux/MacOS
+            "request": "launch",
+            "program": "E:/Programs/REAPER (x64)/reaper.exe",  // Path to Reaper
+            "internalConsoleOptions": "openOnSessionStart",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "integratedTerminal",  
+            //"preLaunchTask": "build-debug",
+        }
+    ]
+}
