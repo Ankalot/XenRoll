@@ -145,7 +145,12 @@ class CustomLookAndFeel : public juce::LookAndFeel_V4 {
 class MainViewport : public juce::Viewport {
   public:
     MainViewport(juce::Viewport *leftViewport, juce::Viewport *topViewport)
-        : leftViewport(leftViewport), topViewport(topViewport) {}
+        : leftViewport(leftViewport), topViewport(topViewport) {updateColors();}
+
+    void updateColors() {
+        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, Theme::bright);
+        getHorizontalScrollBar().setColour(juce::ScrollBar::thumbColourId, Theme::bright);
+    }
 
     void setCamOnTime(float playHeadTime, int bar_width_px) {
         auto *viewedComponent = getViewedComponent();
@@ -169,8 +174,6 @@ class MainViewport : public juce::Viewport {
         Viewport::visibleAreaChanged(newVisibleArea);
         leftViewport->setViewPosition(leftViewport->getViewPositionX(), newVisibleArea.getY());
         topViewport->setViewPosition(newVisibleArea.getX(), topViewport->getViewPositionY());
-        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, Theme::bright);
-        getHorizontalScrollBar().setColour(juce::ScrollBar::thumbColourId, Theme::bright);
     }
 };
 
@@ -313,6 +316,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
     void updateTheme() {
         Theme::setTheme(processorRef.params.themeType);
         customLF->updateColors();
+        mainViewport->updateColors();
+        pitchMemorySettingsPanel->updateColors();
         // without this sliders' textboxes wouldn't update
         juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
         juce::LookAndFeel::setDefaultLookAndFeel(customLF.get());
