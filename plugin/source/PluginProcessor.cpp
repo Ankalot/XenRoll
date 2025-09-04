@@ -267,6 +267,22 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
             if (isPlaying) {
                 for (int i = 0; i < notes.size(); ++i) {
                     const Note &note = notes[i];
+                    // Note off
+                    if ((note.time + note.duration >=
+                         playHeadTime) && /*currPlayedNotesTotalCents.contains(note.octave*1200+note.cents)*/
+                        (note.time + note.duration < playHeadTime + barsInBlock)) {
+                        const int noteInd = notesIndexes[i];
+                        juce::MidiMessage noteOff =
+                            juce::MidiMessage::noteOff(channelIndex + 1, noteInd);
+                        midiMessages.addEvent(
+                            noteOff,
+                            int(floor(numSamples * (note.time + note.duration - playHeadTime) /
+                                     barsInBlock)));
+                        currPlayedNotesTotalCents.erase(note.octave * 1200 + note.cents);
+                    }
+                }
+                for (int i = 0; i < notes.size(); ++i) {
+                    const Note &note = notes[i];
                     // Note on
                     if ((note.time >=
                          playHeadTime) && /*!currPlayedNotesTotalCents.contains(note.octave*1200+note.cents)*/
@@ -294,19 +310,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         (playHeadTime <= note.time + note.duration)) {
                         freqs[notesIndexes[i]] = getNoteFreq(note);
                         pluginInstanceManager->updateFreqs(freqs);
-                    }
-                    // Note off
-                    if ((note.time + note.duration >=
-                         playHeadTime) && /*currPlayedNotesTotalCents.contains(note.octave*1200+note.cents)*/
-                        (note.time + note.duration < playHeadTime + barsInBlock)) {
-                        const int noteInd = notesIndexes[i];
-                        juce::MidiMessage noteOff =
-                            juce::MidiMessage::noteOff(channelIndex + 1, noteInd);
-                        midiMessages.addEvent(
-                            noteOff,
-                            int(ceil(numSamples * (note.time + note.duration - playHeadTime) /
-                                     barsInBlock)));
-                        currPlayedNotesTotalCents.erase(note.octave * 1200 + note.cents);
                     }
                 }
             } else {
