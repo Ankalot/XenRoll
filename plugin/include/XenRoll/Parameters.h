@@ -81,6 +81,7 @@ class Parameters {
     float pitchMemoryTVvalForZeroHV = 0.2f; 
     float pitchMemoryTVaddInfluence = 0.3f;
     float pitchMemoryTVminNonzero = 0.0f;
+    bool pitchMemoryShowOnlyHarmonicity = false;
     // ==================================================
 
     void add_partials(int toneTotalCents, partialsVec partials) {

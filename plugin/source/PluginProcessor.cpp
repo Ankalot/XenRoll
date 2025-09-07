@@ -447,6 +447,9 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
         stream.writeFloat(note.velocity);
         stream.writeInt(note.bend);
     }
+
+    // Write other things
+    stream.writeBool(params.pitchMemoryShowOnlyHarmonicity);
 }
 
 void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeInBytes) {
@@ -536,6 +539,11 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         notes.push_back(note);
     }
     prepareNotes();
+
+    // Read other things
+    if (!stream.isExhausted()) {
+        params.pitchMemoryShowOnlyHarmonicity = stream.readBool();
+    }
 }
 
 void AudioPluginAudioProcessor::updateNotes(const std::vector<Note> &new_notes) {

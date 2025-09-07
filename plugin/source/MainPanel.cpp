@@ -166,7 +166,7 @@ void MainPanel::paint(juce::Graphics &g) {
     }
 
     // Pitch traces
-    if (params->showPitchesMemoryTraces) {
+    if (params->showPitchesMemoryTraces && !params->pitchMemoryShowOnlyHarmonicity) {
         const auto &pitchTraces = pitchMemoryResults.first;
 
         const int numPitches = pitchTraces.first.size();
