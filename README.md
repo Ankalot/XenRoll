@@ -15,3 +15,13 @@ Go to releases tab and download archive. There will be instructions inside.
 ## How to build from source?
 You will need JUCE, c++ compiler, Cmake, c++ boost library. You may have to make some adjustments to CMakeLists.txt. Use can use `*.bat` scripts.  
 To debug the plugin through VS Code and any DAW, configure the .vscode/launch.json file.
+
+## Examples
+
+
+https://github.com/user-attachments/assets/c6386abf-61fe-4658-8433-8bf898dbd065
+
+
+
+https://github.com/user-attachments/assets/ee1b5478-6e9c-4427-8278-5e52f2aa9c88
+
