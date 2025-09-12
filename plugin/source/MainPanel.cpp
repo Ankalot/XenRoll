@@ -240,7 +240,7 @@ void MainPanel::numBarsChanged() {
 void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
                                const juce::MouseWheelDetails &wheel) {
     if (event.mods.isAltDown()) {
-        notesHistory.push(notes);
+        //notesHistory.push(notes);
         int multiplier = 1;
         if (event.mods.isShiftDown()) {
             multiplier = 10;
