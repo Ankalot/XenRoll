@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 # Version is needed by JUCE.
-project(XenRoll VERSION 0.1.2)
+project(XenRoll VERSION 0.1.3)
 
 # Adding a directory with the library/application name as a subfolder of the
 # include folder is a good practice. It helps avoid name clashes later on.
@@ -48,6 +48,7 @@ set(SOURCE_FILES source/PluginEditor.cpp
                  source/LeftPanel.cpp
                  source/TopPanel.cpp
                  source/SettingsPanel.cpp
+                 source/InstancesMenu.cpp
                  source/Theme.cpp
                  source/PlatformUtils.cpp
                  source/PluginInstanceManager.cpp
@@ -73,6 +74,7 @@ set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h
                  ${INCLUDE_DIR}/VelocityPanel.h
                  ${INCLUDE_DIR}/SettingsPanel.h
                  ${INCLUDE_DIR}/SVGButton.h
+                 ${INCLUDE_DIR}/InstancesMenu.h
                  ${INCLUDE_DIR}/Theme.h
                  ${INCLUDE_DIR}/PlatformUtils.h
                  ${INCLUDE_DIR}/PluginInstanceManager.h
@@ -152,6 +154,8 @@ juce_add_binary_data(
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Export_partials.svg
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Brain_settings.svg
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Keys_harmonicity.svg
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Ghost_notes_keys.svg
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Ghost_notes_tab.svg
     HEADER_NAME BinaryData.h
 )
 

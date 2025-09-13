@@ -151,6 +151,30 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(keysHarmonicityButton.get());
 
+    ghostNotesKeysButton = std::make_unique<SVGButton>(
+        BinaryData::Ghost_notes_keys_svg, BinaryData::Ghost_notes_keys_svgSize, true,
+        processorRef.params.showGhostNotesKeys,
+        "Show keys of \"ghost\" notes (notes from other instances of XenRoll).");
+    ghostNotesKeysButton->onClick = [this]() {
+        processorRef.params.showGhostNotesKeys = !processorRef.params.showGhostNotesKeys;
+        mainPanel->remakeKeys();
+        mainPanel->repaint();
+    };
+    addAndMakeVisible(ghostNotesKeysButton.get());
+
+    instancesMenu =
+        std::make_unique<InstancesMenu>(processorRef.getChannelIndex(), &processorRef.params, this);
+    addAndMakeVisible(instancesMenu.get());
+    instancesMenu->setVisible(false);
+
+    ghostNotesTabButton = std::make_unique<SVGButton>(
+        BinaryData::Ghost_notes_tab_svg, BinaryData::Ghost_notes_tab_svgSize, false, false,
+        "Choose instances of XenRoll from which you want to see notes");
+    ghostNotesTabButton->onClick = [this]() {
+        this->instancesMenu->setVisible(!this->instancesMenu->isVisible());
+    };
+    addAndMakeVisible(ghostNotesTabButton.get());
+
     numSubdivsLabel = std::make_unique<juce::Label>();
     numSubdivsLabel->setText("SUBDIVS", juce::dontSendNotification);
     juce::Font currentFont = numSubdivsLabel->getFont();
@@ -347,6 +371,22 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
     // (Our component is opaque, so we must completely fill the background with a
     // solid colour)
     g.fillAll(Theme::darker);
+
+    const int width = getWidth();
+    const int height = getHeight();
+    const int leftView_height_px =
+        height - topPanel_height_px - 2 * bottom_gap_height_px - bottom_height_px - slider_width_px;
+    const int bottom_y =
+        topPanel_height_px + leftView_height_px + slider_width_px + bottom_gap_height_px;
+
+    juce::String text = midiChannelLabel->getText();
+    juce::Font font = midiChannelLabel->getFont();
+    int textWidth = juce::roundToInt(getTextWidth(text, font));
+    int bottom_x_pos = width - 15 * 4 - textWidth - 2 * bottom_height_px;
+
+    // Draw vertical separator line
+    g.setColour(Theme::darkest);
+    g.drawLine(bottom_x_pos, bottom_y, bottom_x_pos, bottom_y + bottom_height_px, Theme::wider);
 }
 
 void AudioPluginAudioProcessorEditor::resized() {
@@ -434,6 +474,14 @@ void AudioPluginAudioProcessorEditor::resized() {
     bottom_x_pos = width - 15 - textWidth;
     midiChannelLabel->setBounds(width - 15 - textWidth, bottom_y, textWidth, bottom_height_px);
     bottom_x_pos -= 15 + bottom_height_px;
+    ghostNotesKeysButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    bottom_x_pos -= 15 + bottom_height_px;
+    ghostNotesTabButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    bottom_x_pos -= 30 + bottom_height_px;
+
+    instancesMenu->setBounds(bottom_x_pos - 20, bottom_y - instancesMenu->getHeight() - 10,
+                             instancesMenu->getWidth(), instancesMenu->getHeight());
+
     dissonanceButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     bottom_x_pos -= 15 + bottom_height_px;
     pitchMemorySettingsButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px,
@@ -843,7 +891,7 @@ void AudioPluginAudioProcessorEditor::exportNotesFile() {
 
             // write notes
             outputStream.writeInt(notes.size());
-            for (const Note& note: notes) {
+            for (const Note &note : notes) {
                 outputStream.writeInt(note.octave);
                 outputStream.writeInt(note.cents);
                 outputStream.writeFloat(note.time);

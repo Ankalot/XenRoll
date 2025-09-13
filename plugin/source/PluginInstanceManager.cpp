@@ -11,6 +11,9 @@ PluginInstanceManager::PluginInstanceManager() {
         for (int i = 0; i < 16; ++i) {
             bip::named_mutex::remove(("XenRollMutexChannel" + std::to_string(i) + "Freq").c_str());
         }
+        for (int i = 0; i < 16; ++i) {
+            bip::named_mutex::remove(("XenRollMutexChannel" + std::to_string(i) + "Note").c_str());
+        }
         checkServerFlag = false;
         runServerFlag = false;
         isActive = false;
@@ -29,7 +32,7 @@ bool PluginInstanceManager::initSharedMemory() {
         perm.set_unrestricted();
 
         sharedMemory = std::make_unique<bip::managed_shared_memory>(
-            bip::open_or_create, "XenRollSharedMemory", 18 * 1024, nullptr, perm);
+            bip::open_or_create, "XenRollSharedMemory", (18 + 512) * 1024, nullptr, perm);
 
         channelsSheet = sharedMemory->find_or_construct<ChannelsSheet>("ChannelsSheet")();
 
@@ -62,6 +65,16 @@ void PluginInstanceManager::initInstance() {
     if (channelIndex == -1) {
         errorMessage = "No avaible midi channels";
         return;
+    }
+
+    for (int i = 0; i < 16; ++i) {
+        channelsNotes[i] = sharedMemory->find_or_construct<std::vector<Note>>(
+            ("Channel" + std::to_string(i) + "Notes").c_str())();
+        chNtMutex[i] = std::make_unique<bip::named_mutex>(
+            bip::open_or_create, ("XenRollMutexChannel" + std::to_string(i) + "Note").c_str());
+        if (i == channelIndex)
+            if (channelsNotes[i])
+                channelsNotes[i]->clear();
     }
 
     int serverIndex = channelsSheet->serverIndex;
@@ -173,6 +186,27 @@ void PluginInstanceManager::updateFreqs(const double freqs[128]) {
     }
 }
 
+void PluginInstanceManager::updateNotes(const std::vector<Note> &notes) {
+    if (isActive) {
+        bip::scoped_lock<bip::named_mutex> lock(*chNtMutex[channelIndex]);
+        std::vector<Note> *channelNotes = channelsNotes[channelIndex];
+        *channelNotes = notes;
+    }
+}
+
+std::vector<Note> PluginInstanceManager::getChannelsNotes(const std::set<int> chIndxs) {
+    std::vector<Note> chNotes = {};
+    for (const auto i : chIndxs) {
+        if (channelsSheet->instanceSlots[i]) {
+            bip::scoped_lock<bip::named_mutex> lock(*chNtMutex[i]);
+            if (channelsNotes[i] != nullptr) {
+                chNotes.insert(chNotes.end(), channelsNotes[i]->begin(), channelsNotes[i]->end());
+            }
+        }
+    }
+    return chNotes;
+}
+
 PluginInstanceManager::~PluginInstanceManager() {
     if (!isActive)
         return;
@@ -217,6 +251,9 @@ PluginInstanceManager::~PluginInstanceManager() {
     bip::named_mutex::remove("XenRollMutexChannelsSheet");
     for (int i = 0; i < 16; ++i) {
         bip::named_mutex::remove(("XenRollMutexChannel" + std::to_string(i) + "Freq").c_str());
+    }
+    for (int i = 0; i < 16; ++i) {
+        bip::named_mutex::remove(("XenRollMutexChannel" + std::to_string(i) + "Note").c_str());
     }
 }
 } // namespace audio_plugin

@@ -16,6 +16,7 @@
 #include "SettingsPanel.h"
 #include "Theme.h"
 #include "TopPanel.h"
+#include "InstancesMenu.h"
 #include "VelocityPanel.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -278,6 +279,11 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
 
     void hideVelocityPanel() { velocityPanel->setVisible(false); }
 
+    void updateGhostNotes() {
+        const auto ghostNotes = processorRef.getOtherInstancesNotes();
+        mainPanel->updateGhostNotes(ghostNotes);
+    }
+
     void timerCallback() {
         float newPlayHeadTime = processorRef.getPlayHeadTime();
         leftPanel.get()->setAllCurrPlayedNotesTotalCents(
@@ -290,6 +296,12 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
                 mainViewport->setCamOnTime(playHeadTime, bar_width_px);
             }
         }
+
+        if (ghostNotesTicker == 0) {
+            updateGhostNotes();
+        }
+        ghostNotesTicker++;
+        ghostNotesTicker = ghostNotesTicker % ghostNotesTimerTicks;
 
         bool pitchOverflow = processorRef.thereIsPitchOverflow();
         if (pitchOverflow) {
@@ -343,6 +355,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
 
     std::unique_ptr<juce::TooltipWindow> tooltipWindow;
 
+    std::unique_ptr<InstancesMenu> instancesMenu;
+
     std::unique_ptr<VelocityPanel> velocityPanel;
 
     std::unique_ptr<juce::FileChooser> importFileChooser, exportFileChooser;
@@ -357,11 +371,14 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
     std::unique_ptr<SVGButton> settingsButton, helpButton, timeSnapButton, keySnapButton,
         importButton, exportButton, camOnPlayHeadButton, turnOnAllZonesButton,
         turnOffAllZonesButton, dissonanceButton, pitchMemorySettingsButton, pitchMemoryButton,
-        keysHarmonicityButton;
+        keysHarmonicityButton, ghostNotesKeysButton, ghostNotesTabButton;
     std::unique_ptr<juce::Label> numSubdivsLabel, numBeatsLabel, numBarsLabel, midiChannelLabel;
     std::unique_ptr<IntegerInput> numSubdivsInput, numBeatsInput, numBarsInput;
 
-    const int timerMs = int(1000.0 / 60);
+    const int timerMs = static_cast<int>(1000.0 / 60);
+    const int ghostNotesUpdMs = 500;
+    const int ghostNotesTimerTicks = ghostNotesUpdMs/timerMs;
+    int ghostNotesTicker = 0;
     float playHeadTime = 0.0f;
 
     int octave_height_px = 300;

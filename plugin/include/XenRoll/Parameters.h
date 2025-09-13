@@ -8,6 +8,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 // total cents = 1200*octave + cents
+// Ghost notes = notes from other instances of xenroll
 
 namespace audio_plugin {
 class Parameters {
@@ -125,6 +126,8 @@ class Parameters {
     bool isCamFixedOnPlayHead = false;
     bool timeSnap = true;
     bool keySnap = false;
+    bool showGhostNotesKeys = true;
+    std::set<int> ghostNotesChannels = {};
     // ================== Intellectual ==================
     // Partials/dissonance
     std::atomic<bool> findPartialsMode = false;

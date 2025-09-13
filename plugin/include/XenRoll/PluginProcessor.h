@@ -47,6 +47,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     void setManuallyPlayedNotesTotalCents(const std::set<int> newManuallyPlayedNotesTotalCents);
 
     const std::vector<Note> &getNotes();
+    std::vector<Note> getOtherInstancesNotes();
     float getPlayHeadTime();
     std::tuple<float, int, int> getBpmNumDenom();
     std::set<int> getAllCurrPlayedNotesTotalCents();

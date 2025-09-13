@@ -277,7 +277,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         midiMessages.addEvent(
                             noteOff,
                             int(floor(numSamples * (note.time + note.duration - playHeadTime) /
-                                     barsInBlock)));
+                                      barsInBlock)));
                         currPlayedNotesTotalCents.erase(note.octave * 1200 + note.cents);
                     }
                 }
@@ -544,6 +544,9 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
     if (!stream.isExhausted()) {
         params.pitchMemoryShowOnlyHarmonicity = stream.readBool();
     }
+
+    // UPDATE NOTES IN INSTANCE MANAGER
+    pluginInstanceManager->updateNotes(notes);
 }
 
 void AudioPluginAudioProcessor::updateNotes(const std::vector<Note> &new_notes) {
@@ -551,6 +554,7 @@ void AudioPluginAudioProcessor::updateNotes(const std::vector<Note> &new_notes) 
     notes = new_notes;
     prepareNotes();
     suspendProcessing(false);
+    pluginInstanceManager->updateNotes(notes);
 }
 
 void AudioPluginAudioProcessor::rePrepareNotes() {
@@ -577,6 +581,10 @@ void AudioPluginAudioProcessor::setManuallyPlayedNotesTotalCents(
 }
 
 const std::vector<Note> &AudioPluginAudioProcessor::getNotes() { return notes; }
+
+std::vector<Note> AudioPluginAudioProcessor::getOtherInstancesNotes() {
+    return pluginInstanceManager->getChannelsNotes(params.ghostNotesChannels);
+}
 
 float AudioPluginAudioProcessor::getPlayHeadTime() { return float(playHeadTime); }
 

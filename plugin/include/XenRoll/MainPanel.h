@@ -35,6 +35,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void unselectAllNotes();
 
     void updateNotes(const std::vector<Note> &new_notes);
+    void updateGhostNotes(const std::vector<Note> &new_ghostNotes);
     void remakeKeys();
     void numBarsChanged();
     void setVelocitiesOfSelectedNotes(float vel);
@@ -74,6 +75,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     const int note_right_corner_width = 5;
     int needToUnselectAllNotesExcept = -1;
     float lastDuration = 1.0f;
+
+    std::vector<Note> ghostNotes;
 
     void updateLayout();
     juce::Path getNotePath(const Note &note);

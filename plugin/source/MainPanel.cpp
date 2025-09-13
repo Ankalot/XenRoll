@@ -115,11 +115,22 @@ void MainPanel::paint(juce::Graphics &g) {
                    float(playHeadTime * bar_width_px), float(clipY + clipHeight), Theme::narrower);
     }
 
-    // notes
     auto clipFloat = clip.toFloat();
-    int j = 0;
     juce::PathStrokeType strokeType(Theme::narrower);
     strokeType.setJointStyle(juce::PathStrokeType::mitered);
+
+    // ghost notes
+    for (const Note &note : ghostNotes) {
+        juce::Path notePath = getNotePath(note);
+        // is needed only when params->showPitchesMemoryTraces
+        if (notePath.getBounds().intersects(clipFloat)) {
+            g.setColour(Theme::darkest.interpolatedWith(Theme::darker, 0.5));
+            g.fillPath(notePath);
+        }
+    }
+
+    // notes
+    int j = 0;
     for (const Note &note : notes) {
         juce::Path notePath = getNotePath(note);
         // is needed only when params->showPitchesMemoryTraces
@@ -240,7 +251,7 @@ void MainPanel::numBarsChanged() {
 void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
                                const juce::MouseWheelDetails &wheel) {
     if (event.mods.isAltDown()) {
-        //notesHistory.push(notes);
+        // notesHistory.push(notes);
         int multiplier = 1;
         if (event.mods.isShiftDown()) {
             multiplier = 10;
@@ -320,7 +331,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         for (int i = int(notes.size()) - 1; i >= 0; --i) {
             juce::Path notePath = getNotePath(notes[i]);
             if (notePath.contains(point.toFloat())) {
-                float noteX2 =  (notes[i].time + notes[i].duration) * bar_width_px;
+                float noteX2 = (notes[i].time + notes[i].duration) * bar_width_px;
                 if (noteX2 - point.toFloat().getX() < note_right_corner_width) {
                     if (!event.mods.isShiftDown() && !notes[i].isSelected) {
                         unselectAllNotes();
@@ -585,7 +596,7 @@ void MainPanel::mouseMove(const juce::MouseEvent &event) {
     for (const auto &note : notes) {
         juce::Path notePath = getNotePath(note);
         if (notePath.contains(point)) {
-            float noteX2 =  (note.time + note.duration) * bar_width_px;
+            float noteX2 = (note.time + note.duration) * bar_width_px;
             if (noteX2 - point.getX() < note_right_corner_width)
                 isOverNoteResize = true;
             else
@@ -610,6 +621,13 @@ void MainPanel::deleteNote(int i) {
         if (notes[j].cents == note_cents)
             num_notes_cents_i++;
     }
+    
+    if (params->showGhostNotesKeys) {
+        for (int j = 0; j < ghostNotes.size(); ++j) {
+            if (ghostNotes[j].cents == note_cents)
+                num_notes_cents_i++;
+        }
+    }
 
     notes.erase(notes.begin() + i);
 
@@ -625,6 +643,13 @@ void MainPanel::remakeKeys() {
     for (const Note &note : notes) {
         if (params->zones.isNoteInActiveZone(note)) {
             newKeys.insert(note.cents);
+        }
+    }
+    if (params->showGhostNotesKeys) {
+        for (const Note &note : ghostNotes) {
+            if (params->zones.isNoteInActiveZone(note)) {
+                newKeys.insert(note.cents);
+            }
         }
     }
     keys = std::move(newKeys);
@@ -1006,7 +1031,8 @@ juce::Path MainPanel::getNotePath(const Note &note) {
     } else {
         // make hexagon
         if (dy > 0) {
-            float z = height*(sqrt(width*width + dy*dy - 2*height*dy) - width)/(dy - 2*height);
+            float z = height * (sqrt(width * width + dy * dy - 2 * height * dy) - width) /
+                      (dy - 2 * height);
             path.startNewSubPath(x1, y1 - height / 2);
             path.lineTo(x2 - z, y2 - height / 2);
             path.lineTo(x2, y2 - height / 2);
@@ -1016,7 +1042,8 @@ juce::Path MainPanel::getNotePath(const Note &note) {
             path.closeSubPath();
         } else {
             dy = -dy;
-            float z = height*(sqrt(width*width + dy*dy - 2*height*dy) - width)/(dy - 2*height);
+            float z = height * (sqrt(width * width + dy * dy - 2 * height * dy) - width) /
+                      (dy - 2 * height);
             path.startNewSubPath(x1, y1 - height / 2);
             path.lineTo(x1 + z, y1 - height / 2);
             path.lineTo(x2, y2 - height / 2);
@@ -1071,6 +1098,16 @@ void MainPanel::setPlayHeadTime(float newPlayHeadTime) {
 void MainPanel::updateNotes(const std::vector<Note> &new_notes) {
     notes = new_notes;
     remakeKeys();
+    repaint();
+}
+
+void MainPanel::updateGhostNotes(const std::vector<Note> &new_ghostNotes) {
+    if (ghostNotes == new_ghostNotes)
+        return;
+    ghostNotes = new_ghostNotes;
+    if (params->showGhostNotesKeys) {
+        remakeKeys();
+    }
     repaint();
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Note.h"
 #include "PlatformUtils.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #pragma warning(push, 0) // Disable all warnings for boost
@@ -22,7 +23,7 @@ struct ChannelsSheet {
     bool instanceSlots[16]{false};
     // we need pids because instance can crash and don't set instanceSlots[i] = false
     // It's that most likely everyone will be in the same process, then it turns out
-    //    that the crash will be noticeable only when the DAV crashes, but it's okay.
+    //    that the crash will be noticeable only when the DAW crashes, but it's okay.
     os_things::process_id pids[16]{0};
 };
 
@@ -43,6 +44,8 @@ class PluginInstanceManager {
     ~PluginInstanceManager();
 
     void updateFreqs(const double freqs[128]);
+    void updateNotes(const std::vector<Note> &notes);
+    std::vector<Note> getChannelsNotes(const std::set<int> chIndxs);
     bool getIsActive() const { return isActive; }
     int getChannelIndex() { return channelIndex; }
     std::string getErrorMessage() { return errorMessage; }
@@ -66,6 +69,9 @@ class PluginInstanceManager {
 
     ChannelFreqs *channelsFreqs[16]{nullptr};
     std::unique_ptr<bip::named_mutex> chFqMutex[16];
+
+    std::vector<Note> *channelsNotes[16]{nullptr};
+    std::unique_ptr<bip::named_mutex> chNtMutex[16];
 
     std::thread checkServerThread, runServerThread;
     std::atomic<bool> checkServerFlag, runServerFlag;
