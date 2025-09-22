@@ -39,6 +39,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void remakeKeys();
     void numBarsChanged();
     void setVelocitiesOfSelectedNotes(float vel);
+    std::pair<int, int> findNearestKey(int cents, int octave);
 
     void updatePitchMemoryResults(const PitchMemoryResults &newPitchMemoryResults);
 
@@ -82,6 +83,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     juce::Path getNotePath(const Note &note);
     void deleteNote(int i);
     bool thereAreSelectedNotes();
+    int getNumOfSelectedNotes();
     // if invalid message returns -1
     int getCentsFromMessage();
     float timeToSnappedTime(float time);
@@ -94,6 +96,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     int totalCentsToY(int totalCents);
 
     float dtime = 0.0f;
+    int dcents = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainPanel)
 };

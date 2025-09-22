@@ -423,6 +423,26 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
 
 template <typename T> int sgn(T val) { return (T(0) < val) - (val < T(0)); }
 
+std::pair<int, int> MainPanel::findNearestKey(int cents, int octave) {
+    int minDist = 10000;
+    int nearestCents;
+    int nearestOctave = octave;
+    for (const int key : keys) {
+        if (std::abs(cents - key) < minDist) {
+            minDist = std::abs(cents - key);
+            nearestCents = key;
+        }
+    }
+    if (std::abs(1200 + *keys.begin() - cents) < minDist) {
+        nearestOctave += 1;
+        nearestCents = *keys.begin();
+    } else if (std::abs(*keys.rbegin() - 1200 - cents) < minDist) {
+        nearestOctave -= 1;
+        nearestCents = *keys.rbegin();
+    }
+    return std::make_pair(nearestCents, nearestOctave);
+}
+
 void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     // Convert to parent (viewport) coordinates
     auto currentPos = getParentComponent()->getLocalPoint(this, event.getPosition());
@@ -486,9 +506,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         float delta_time = float(delta.getX()) / bar_width_px;
         dtime += delta_time;
         int delta_cents = (int)round(-delta.getY() * 1200.0 / octave_height_px);
+        dcents += delta_cents;
         bool moved = false;
-        if (params->keySnap)
-            delta_cents = 0;
+        int numOfSelectedNotes = getNumOfSelectedNotes();
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected) {
                 if (notes[i].time + delta_time > 0 &&
@@ -504,27 +524,48 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                         notes[i].time += delta_time;
                     }
                 }
-                int new_cents = notes[i].cents + delta_cents;
+                int new_cents = notes[i].cents;
                 int new_octave = notes[i].octave;
-                if (new_cents >= 1200) {
-                    new_octave += 1;
-                    new_cents = new_cents % 1200;
-                }
-                if (new_cents < 0) {
-                    new_octave -= 1;
-                    new_cents = 1200 + new_cents;
+                if (params->keySnap) {
+                    if (numOfSelectedNotes == 1) {
+                        new_cents += dcents;
+                        if (new_cents >= 1200) {
+                            new_octave += 1;
+                            new_cents = new_cents % 1200;
+                        }
+                        if (new_cents < 0) {
+                            new_octave -= 1;
+                            new_cents = 1200 + new_cents;
+                        }
+                        std::tie(new_cents, new_octave) = findNearestKey(new_cents, new_octave);
+                        dcents -= (new_octave * 1200 + new_cents - notes[i].octave * 1200 -
+                                   notes[i].cents);
+                    }
+                } else {
+                    new_cents += delta_cents;
+                    if (new_cents >= 1200) {
+                        new_octave += 1;
+                        new_cents = new_cents % 1200;
+                    }
+                    if (new_cents < 0) {
+                        new_octave -= 1;
+                        new_cents = 1200 + new_cents;
+                    }
                 }
                 if (new_octave >= 0 && new_octave < params->num_octaves) {
-                    notes[i].octave = new_octave;
-                    notes[i].cents = new_cents;
+                    if ((new_cents != notes[i].cents) || (new_octave != notes[i].octave)) {
+                        moved = true;
+                        remakeKeys();
+                        notes[i].octave = new_octave;
+                        notes[i].cents = new_cents;
+                    }
                 }
             }
         }
         if (abs(dtime) >= 1.0f / (params->num_beats * params->num_subdivs)) {
             dtime = dtime - float(sgn(dtime)) / (params->num_beats * params->num_subdivs);
         }
-        remakeKeys();
-        if (!params->keySnap || moved)
+        if (moved)
             editor->updateNotes(notes);
         repaint();
     }
@@ -561,6 +602,7 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
     isMoving = false;
     wasMoving = false;
     dtime = 0.0f;
+    dcents = 0;
     setMouseCursor(juce::MouseCursor::NormalCursor);
 
     if (needToUnselectAllNotesExcept != -1) {
@@ -1009,6 +1051,16 @@ bool MainPanel::thereAreSelectedNotes() {
         }
     }
     return false;
+}
+
+int MainPanel::getNumOfSelectedNotes() {
+    int num = 0;
+    for (const Note &note : notes) {
+        if (note.isSelected) {
+            num++;
+        }
+    }
+    return num;
 }
 
 juce::Path MainPanel::getNotePath(const Note &note) {
