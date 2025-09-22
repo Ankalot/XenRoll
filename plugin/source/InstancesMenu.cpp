@@ -56,4 +56,13 @@ namespace audio_plugin {
             }
         }
     }
+
+    void InstancesMenu::updateColors() {
+        titleLabel->setColour(juce::Label::backgroundColourId, Theme::darker);
+        for (int i = 0; i < 16; ++i) {
+            if (i != chIndex) {
+                channelsLabels[i]->setColour(juce::Label::backgroundColourId, Theme::darker);
+            }
+        }
+    }
 }

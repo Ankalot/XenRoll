@@ -330,6 +330,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
         customLF->updateColors();
         mainViewport->updateColors();
         pitchMemorySettingsPanel->updateColors();
+        instancesMenu->updateColors();
         // without this sliders' textboxes wouldn't update
         juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
         juce::LookAndFeel::setDefaultLookAndFeel(customLF.get());
