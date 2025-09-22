@@ -555,9 +555,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                 if (new_octave >= 0 && new_octave < params->num_octaves) {
                     if ((new_cents != notes[i].cents) || (new_octave != notes[i].octave)) {
                         moved = true;
-                        remakeKeys();
                         notes[i].octave = new_octave;
                         notes[i].cents = new_cents;
+                        remakeKeys();
                     }
                 }
             }
