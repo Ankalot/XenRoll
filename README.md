@@ -6,7 +6,7 @@
 * This plugin has a unique pitch memory model, which helps to understand tonality, stability, and consonance, knowledge of music theory is not necessary.  
 * You can import and export tracks
 * You can have several independent instances of this plugin in single project.
-* This plugin is a MTS-ESP master and for it to work, the synthesizer must be an MTS-ESP client (e.g. Serum, Serum 2).
+* This plugin is a MTS-ESP master and for it to work, the synthesizer must be an MTS-ESP client (e.g. Serum, Serum 2; DISABLE MPE TO MAKE THEM WORK CORRECTLY!).
 
 ## How to get it?
 So far there is only a VST3 version for Windows.  
