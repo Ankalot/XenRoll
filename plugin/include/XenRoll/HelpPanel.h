@@ -55,8 +55,7 @@ class HelpPanel : public juce::Component {
              {"SCROLL", "Time zoom in/out"},
              {"SCROLL + CTRL", "Pitch zoom in/out"},
              {"SCROLL + ALT", "Bend selected notes"},
-             {"SCROLL + ALT + SHIFT", "Bend selected notes faster"}},             
-            0.2f);
+             {"SCROLL + ALT + SHIFT", "Bend selected notes faster"}});
 
         bounds.removeFromTop(20);
 
@@ -82,14 +81,14 @@ class HelpPanel : public juce::Component {
                    {"UP", "Raise selected notes by 1 cent (or by 1 key in snap mode)"},
                    {"DOWN", "Lower selected notes by 1 cent (or by 1 key in snap mode)"},
                    {"SHIFT + UP", "Raise selected notes up an octave"},
-                   {"SHIFT + DOWN", "Lower selected notes by an octave"}},
-                  0.2f);
+                   {"SHIFT + DOWN", "Lower selected notes by an octave"}});
     }
 
   private:
+    int firstColumnWidth = 300;
+
     void drawTable(juce::Graphics &g, juce::Rectangle<int> bounds,
-                   const std::vector<std::pair<juce::String, juce::String>> &rows,
-                   float firstColumnWidthProportion = 0.4f) {
+                   const std::vector<std::pair<juce::String, juce::String>> &rows) {
         g.setColour(Theme::brighter.withAlpha(0.2f));
         g.fillRect(bounds);
 
@@ -97,7 +96,6 @@ class HelpPanel : public juce::Component {
         g.setFont(Theme::small_);
 
         int rowHeight = bounds.getHeight() / juce::jmax(1, (int)rows.size());
-        int firstColumnWidth = int(bounds.getWidth() * firstColumnWidthProportion);
 
         for (size_t i = 0; i < rows.size(); ++i) {
             auto rowBounds = bounds.removeFromTop(rowHeight);
