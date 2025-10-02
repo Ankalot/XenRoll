@@ -42,6 +42,7 @@ class HelpPanel : public juce::Component {
              {"LCLICK + LEFT PANEL WITH KEYS", "Play a key. You also can hold down it; move it"},
              {"LCLICK + DRAG RIGHT SIDE OF NOTE", "Resize note (change its duration)"},
              {"LCLICK + DRAG NOTE", "Drag selected note(-s)"},
+             {"LCLICK + SHIFT + DRAG NOTE", "Drag selected note(-s) but slowly vertically"},
              {"LCLICK + NOTE", "Select a note"},
              {"LCLICK + SHIFT + NOTE", "Select a note without deselecting others"},
              {"LCLICK + TOP TIME PANEL", "Turn on zone"},

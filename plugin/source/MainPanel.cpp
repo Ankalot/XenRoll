@@ -506,6 +506,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         float delta_time = float(delta.getX()) / bar_width_px;
         dtime += delta_time;
         int delta_cents = (int)round(-delta.getY() * 1200.0 / octave_height_px);
+        if (event.mods.isShiftDown()) {
+            delta_cents = juce::roundFloatToInt(delta_cents*vertMoveSlowCoef);
+        }
         dcents += delta_cents;
         bool moved = false;
         int numOfSelectedNotes = getNumOfSelectedNotes();

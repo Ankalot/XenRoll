@@ -76,6 +76,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     const int note_right_corner_width = 5;
     int needToUnselectAllNotesExcept = -1;
     float lastDuration = 1.0f;
+    float vertMoveSlowCoef = 0.2f;
 
     std::vector<Note> ghostNotes;
 
