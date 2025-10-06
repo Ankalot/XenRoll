@@ -450,6 +450,7 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
 
     // Write other things
     stream.writeBool(params.pitchMemoryShowOnlyHarmonicity);
+    stream.writeBool(params.playDraggedNotes);
 }
 
 void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeInBytes) {
@@ -543,6 +544,9 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
     // Read other things
     if (!stream.isExhausted()) {
         params.pitchMemoryShowOnlyHarmonicity = stream.readBool();
+    }
+    if (!stream.isExhausted()) {
+        params.playDraggedNotes = stream.readBool();
     }
 
     // UPDATE NOTES IN INSTANCE MANAGER

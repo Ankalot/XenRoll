@@ -27,6 +27,9 @@ class SettingsPanel : public juce::Component {
     std::unique_ptr<juce::Label> themeTypeLabel;
     std::unique_ptr<juce::ComboBox> themeTypeCombo;
 
+    std::unique_ptr<juce::Label> playDraggedNotesLabel;
+    std::unique_ptr<juce::ToggleButton> playDraggedNotesCheckbox;
+
     const int padding = 15;
     const int rowHeight = 32;
     const int labelWidth = 350;

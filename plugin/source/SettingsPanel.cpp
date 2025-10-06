@@ -70,6 +70,21 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
         editor->updateTheme();
     };
     addAndMakeVisible(themeTypeCombo.get());
+
+    playDraggedNotesLabel = std::make_unique<juce::Label>();
+    playDraggedNotesLabel->setText("Play notes when you drag them:", juce::dontSendNotification);
+    playDraggedNotesLabel->setFont(currentFont);
+    addAndMakeVisible(playDraggedNotesLabel.get());
+
+    playDraggedNotesCheckbox = std::make_unique<juce::ToggleButton>();
+    playDraggedNotesLabel->attachToComponent(playDraggedNotesCheckbox.get(), true);
+    playDraggedNotesCheckbox->setToggleState(params->playDraggedNotes,
+                                                juce::dontSendNotification);
+    playDraggedNotesCheckbox->onStateChange = [this, params]() {
+        params->playDraggedNotes = playDraggedNotesCheckbox->getToggleState();
+    };
+    playDraggedNotesCheckbox->setSize(rowHeight, rowHeight);
+    addAndMakeVisible(playDraggedNotesCheckbox.get());
 }
 
 void SettingsPanel::resized() {
@@ -94,6 +109,11 @@ void SettingsPanel::resized() {
     auto themeRow = area.removeFromTop(rowHeight+padding);
     themeTypeLabel->setBounds(themeRow.removeFromLeft(labelWidth));
     themeTypeCombo->setBounds(themeRow);
+
+    // Play dragged notes
+    auto playRow = area.removeFromTop(rowHeight+padding);
+    playDraggedNotesLabel->setBounds(playRow.removeFromLeft(labelWidth));
+    playDraggedNotesCheckbox->setBounds(playRow);
 }
 
 void SettingsPanel::paint(juce::Graphics &g) { g.fillAll(Theme::darker); }

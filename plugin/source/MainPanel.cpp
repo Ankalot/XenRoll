@@ -356,6 +356,14 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                     notes[i].isSelected = true;
                     repaint();
                 }
+                if (params->playDraggedNotes) {
+                    for (const Note& note: notes) {
+                        if (note.isSelected) {
+                            manuallyPlayedKeysTotalCents.insert(note.cents + note.octave * 1200);
+                        }
+                    }
+                    editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
+                }
                 return;
             }
         }
@@ -512,6 +520,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         dcents += delta_cents;
         bool moved = false;
         int numOfSelectedNotes = getNumOfSelectedNotes();
+        bool updatedManuallyPlayedKeys = false;
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected) {
                 if (notes[i].time + delta_time > 0 &&
@@ -557,6 +566,11 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                 }
                 if (new_octave >= 0 && new_octave < params->num_octaves) {
                     if ((new_cents != notes[i].cents) || (new_octave != notes[i].octave)) {
+                        if (params->playDraggedNotes) {
+                            manuallyPlayedKeysTotalCents.erase(notes[i].cents + notes[i].octave*1200);
+                            manuallyPlayedKeysTotalCents.insert(new_cents + new_octave*1200);
+                            updatedManuallyPlayedKeys = true;
+                        }
                         moved = true;
                         notes[i].octave = new_octave;
                         notes[i].cents = new_cents;
@@ -570,6 +584,8 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         }
         if (moved)
             editor->updateNotes(notes);
+        if (updatedManuallyPlayedKeys)
+            editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
         repaint();
     }
 
@@ -599,6 +615,15 @@ bool MainPanel::doesPathIntersectRect(const juce::Path &parallelogram,
 }
 
 void MainPanel::mouseUp(const juce::MouseEvent &event) {
+    if (isMoving && params->playDraggedNotes) {
+        for (const Note& note: notes) {
+            if (note.isSelected) {
+                manuallyPlayedKeysTotalCents.erase(note.cents + note.octave * 1200);
+            }
+        }
+        editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
+    }
+
     isDragging = false;
     wasResizing = false;
     isResizing = false;

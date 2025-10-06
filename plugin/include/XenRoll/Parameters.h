@@ -70,6 +70,7 @@ class Parameters {
     float noteRectHeightCoef = 0.04f;
     Zones zones;
     Theme::ThemeType themeType = Theme::ThemeType::Gray;
+    bool playDraggedNotes = true;
     // ================== Intellectual ==================
     // Partials/dissonance
     std::atomic<int> findPartialsFFTSize = 8192;
