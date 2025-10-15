@@ -13,11 +13,9 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                          ),
       manPlNotesTotCentsHistory(128), params() {
     // INSTANCES SYNC
-    pluginInstanceManager = std::make_unique<PluginInstanceManager>();
+    pluginInstanceManager = std::make_unique<PluginInstanceManager>(params.channelIndex);
     isActive = pluginInstanceManager->getIsActive();
-    if (isActive) {
-        channelIndex = pluginInstanceManager->getChannelIndex();
-    }
+    params.channelIndex = pluginInstanceManager->getChannelIndex();
 
     // PARTIALS FINDING
     threadPool = std::make_unique<juce::ThreadPool>(1);
@@ -253,8 +251,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 for (const int totalCents : manuallyPlayedNotesTotalCents) {
                     if (manuallyPlayedNotesAreNew[i]) {
                         int freqInd = manuallyPlayedNotesIndexes[i];
-                        juce::MidiMessage noteOn =
-                            juce::MidiMessage::noteOn(channelIndex + 1, freqInd, 100.0f / 127);
+                        juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
+                            params.channelIndex + 1, freqInd, 100.0f / 127);
                         midiMessages.addEvent(noteOn, 0);
                         currPlayedNotesIndexes.insert(freqInd);
                     }
@@ -273,7 +271,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         (note.time + note.duration < playHeadTime + barsInBlock)) {
                         const int noteInd = notesIndexes[i];
                         juce::MidiMessage noteOff =
-                            juce::MidiMessage::noteOff(channelIndex + 1, noteInd);
+                            juce::MidiMessage::noteOff(params.channelIndex + 1, noteInd);
                         midiMessages.addEvent(
                             noteOff,
                             int(floor(numSamples * (note.time + note.duration - playHeadTime) /
@@ -294,8 +292,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                             beforeBendTotalCents[noteInd] = -1;
                             pluginInstanceManager->updateFreqs(freqs);
                         }
-                        juce::MidiMessage noteOn =
-                            juce::MidiMessage::noteOn(channelIndex + 1, noteInd, note.velocity);
+                        juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
+                            params.channelIndex + 1, noteInd, note.velocity);
                         midiMessages.addEvent(
                             noteOn,
                             int(ceil(numSamples * (note.time - playHeadTime) / barsInBlock)));
@@ -359,7 +357,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 if (thereStillExistsThisNote) {
                     ++it;
                 } else {
-                    juce::MidiMessage noteOff = juce::MidiMessage::noteOff(channelIndex + 1, ind);
+                    juce::MidiMessage noteOff =
+                        juce::MidiMessage::noteOff(params.channelIndex + 1, ind);
                     midiMessages.addEvent(noteOff, 1);
                     int totalCents;
                     if (beforeBendTotalCents[ind] != -1) {
@@ -451,6 +450,7 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
     // Write other things
     stream.writeBool(params.pitchMemoryShowOnlyHarmonicity);
     stream.writeBool(params.playDraggedNotes);
+    stream.writeInt(params.channelIndex);
 }
 
 void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeInBytes) {
@@ -547,6 +547,9 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
     }
     if (!stream.isExhausted()) {
         params.playDraggedNotes = stream.readBool();
+    }
+    if (!stream.isExhausted()) {
+        params.channelIndex = stream.readInt();
     }
 
     // UPDATE NOTES IN INSTANCE MANAGER

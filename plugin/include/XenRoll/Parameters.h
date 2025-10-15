@@ -71,6 +71,7 @@ class Parameters {
     Zones zones;
     Theme::ThemeType themeType = Theme::ThemeType::Gray;
     bool playDraggedNotes = true;
+    int channelIndex = -1; // -1 means uninited state, normal range 0-15
     // ================== Intellectual ==================
     // Partials/dissonance
     std::atomic<int> findPartialsFFTSize = 8192;

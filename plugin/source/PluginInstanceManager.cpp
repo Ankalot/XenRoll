@@ -1,8 +1,9 @@
 #include "XenRoll/PluginInstanceManager.h"
 
 namespace audio_plugin {
-PluginInstanceManager::PluginInstanceManager() {
-    auto future = std::async(std::launch::async, [this]() { initAll(); });
+PluginInstanceManager::PluginInstanceManager(int desiredChannelIndex) {
+    auto future = std::async(std::launch::async,
+                             [this, desiredChannelIndex]() { initAll(desiredChannelIndex); });
 
     if (future.wait_for(std::chrono::milliseconds(initTimeoutTime)) != std::future_status::ready) {
         errorMessage = "Failed to init, deadlock occured";
@@ -20,9 +21,9 @@ PluginInstanceManager::PluginInstanceManager() {
     }
 }
 
-void PluginInstanceManager::initAll() {
+void PluginInstanceManager::initAll(int desiredChannelIndex) {
     if (initSharedMemory()) {
-        initInstance();
+        initInstance(desiredChannelIndex);
     }
 }
 
@@ -49,16 +50,24 @@ bool PluginInstanceManager::initSharedMemory() {
     }
 }
 
-void PluginInstanceManager::initInstance() {
+void PluginInstanceManager::initInstance(int desiredChannelIndex) {
     bip::scoped_lock<bip::named_mutex> lock(*chShMutex);
 
-    for (int i = 0; i < 16; ++i) {
-        if (!os_things::is_process_active(channelsSheet->pids[i]) ||
-            !channelsSheet->instanceSlots[i]) {
-            channelsSheet->instanceSlots[i] = true;
-            channelsSheet->pids[i] = os_things::get_current_pid();
-            channelIndex = i;
-            break;
+    if ((desiredChannelIndex != -1) &&
+        (!os_things::is_process_active(channelsSheet->pids[desiredChannelIndex]) ||
+         !channelsSheet->instanceSlots[desiredChannelIndex])) {
+        channelsSheet->instanceSlots[desiredChannelIndex] = true;
+        channelsSheet->pids[desiredChannelIndex] = os_things::get_current_pid();
+        channelIndex = desiredChannelIndex;
+    } else {
+        for (int i = 0; i < 16; ++i) {
+            if (!os_things::is_process_active(channelsSheet->pids[i]) ||
+                !channelsSheet->instanceSlots[i]) {
+                channelsSheet->instanceSlots[i] = true;
+                channelsSheet->pids[i] = os_things::get_current_pid();
+                channelIndex = i;
+                break;
+            }
         }
     }
 

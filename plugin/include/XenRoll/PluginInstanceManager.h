@@ -40,7 +40,7 @@ struct ChannelFreqs {
 
 class PluginInstanceManager {
   public:
-    PluginInstanceManager();
+    PluginInstanceManager(int desiredChannelIndex);
     ~PluginInstanceManager();
 
     void updateFreqs(const double freqs[128]);
@@ -51,9 +51,9 @@ class PluginInstanceManager {
     std::string getErrorMessage() { return errorMessage; }
 
   private:
-    void initAll();
+    void initAll(int desiredChannelIndex);
     bool initSharedMemory();
-    void initInstance();
+    void initInstance(int desiredChannelIndex);
 
     void becomeClient();
     void becomeServer();

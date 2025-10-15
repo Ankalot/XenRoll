@@ -58,12 +58,10 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     Parameters params;
 
     bool getIsActive() { return isActive; }
-    int getChannelIndex() { return channelIndex; }
 
   private:
     // ====================================== INSTANCES SYNC ======================================
     std::unique_ptr<PluginInstanceManager> pluginInstanceManager;
-    int channelIndex = 0; // 0-15
     bool isActive = false;
     // ============================================================================================
 

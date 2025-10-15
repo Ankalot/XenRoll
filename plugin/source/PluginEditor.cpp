@@ -163,7 +163,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(ghostNotesKeysButton.get());
 
     instancesMenu =
-        std::make_unique<InstancesMenu>(processorRef.getChannelIndex(), &processorRef.params, this);
+        std::make_unique<InstancesMenu>(processorRef.params.channelIndex, &processorRef.params, this);
     addAndMakeVisible(instancesMenu.get());
     instancesMenu->setVisible(false);
 
@@ -224,7 +224,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     bool isActive = processorRef.getIsActive();
     juce::String midiChannelText = "MIDI CHANNEL: ";
     if (isActive) {
-        midiChannelText += juce::String(processorRef.getChannelIndex() + 1);
+        midiChannelText += juce::String(processorRef.params.channelIndex + 1);
     } else {
         midiChannelText += "-";
     }
