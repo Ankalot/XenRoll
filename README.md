@@ -21,7 +21,7 @@ Go to the releases tab and download the archive. There will be instructions insi
 List of synths that definitely work with Xenroll:  
 * Serum  
 * Serum 2 (with disabled MPE!)  
-* Surge XT
+* Surge XT (disable MPE, disable 2&3 thing in Menu->Midi settings)
  
 List of samplers that definitely work with Xenroll:  
 * Shortcircuit XT (don't forget to set corresponding midi channel) 
