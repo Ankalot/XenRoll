@@ -1,9 +1,8 @@
 #include "XenRoll/PluginInstanceManager.h"
 
 namespace audio_plugin {
-PluginInstanceManager::PluginInstanceManager(int desiredChannelIndex) {
-    auto future = std::async(std::launch::async,
-                             [this, desiredChannelIndex]() { initAll(desiredChannelIndex); });
+PluginInstanceManager::PluginInstanceManager() {
+    auto future = std::async(std::launch::async, [this]() { initAll(); });
 
     if (future.wait_for(std::chrono::milliseconds(initTimeoutTime)) != std::future_status::ready) {
         errorMessage = "Failed to init, deadlock occured";
@@ -21,9 +20,9 @@ PluginInstanceManager::PluginInstanceManager(int desiredChannelIndex) {
     }
 }
 
-void PluginInstanceManager::initAll(int desiredChannelIndex) {
+void PluginInstanceManager::initAll() {
     if (initSharedMemory()) {
-        initInstance(desiredChannelIndex);
+        initInstance();
     }
 }
 
@@ -50,24 +49,16 @@ bool PluginInstanceManager::initSharedMemory() {
     }
 }
 
-void PluginInstanceManager::initInstance(int desiredChannelIndex) {
+void PluginInstanceManager::initInstance() {
     bip::scoped_lock<bip::named_mutex> lock(*chShMutex);
 
-    if ((desiredChannelIndex != -1) &&
-        (!os_things::is_process_active(channelsSheet->pids[desiredChannelIndex]) ||
-         !channelsSheet->instanceSlots[desiredChannelIndex])) {
-        channelsSheet->instanceSlots[desiredChannelIndex] = true;
-        channelsSheet->pids[desiredChannelIndex] = os_things::get_current_pid();
-        channelIndex = desiredChannelIndex;
-    } else {
-        for (int i = 0; i < 16; ++i) {
-            if (!os_things::is_process_active(channelsSheet->pids[i]) ||
-                !channelsSheet->instanceSlots[i]) {
-                channelsSheet->instanceSlots[i] = true;
-                channelsSheet->pids[i] = os_things::get_current_pid();
-                channelIndex = i;
-                break;
-            }
+    for (int i = 0; i < 16; ++i) {
+        if (!os_things::is_process_active(channelsSheet->pids[i]) ||
+            !channelsSheet->instanceSlots[i]) {
+            channelsSheet->instanceSlots[i] = true;
+            channelsSheet->pids[i] = os_things::get_current_pid();
+            channelIndex = i;
+            break;
         }
     }
 
@@ -201,6 +192,39 @@ void PluginInstanceManager::updateNotes(const std::vector<Note> &notes) {
         std::vector<Note> *channelNotes = channelsNotes[channelIndex];
         *channelNotes = notes;
     }
+}
+
+void PluginInstanceManager::changeChannelIndex(int desChInd) {
+    bip::scoped_lock<bip::named_mutex> lock1(*chShMutex);
+
+    // if desired channel is free our current channel will become abandoned
+    if (!os_things::is_process_active(channelsSheet->pids[desChInd]) ||
+            !channelsSheet->instanceSlots[desChInd]) {
+        channelsSheet->instanceSlots[channelIndex] = false;
+        channelsSheet->pids[channelIndex] = 0;
+
+        bip::scoped_lock<bip::named_mutex> lock2(*chFqMutex[channelIndex]);
+        channelsFreqs[channelIndex]->serverAction = -1;
+
+        // because it can be not created by server yet
+        chFqMutex[desChInd] = std::make_unique<bip::named_mutex>(
+            bip::open_or_create,
+            ("XenRollMutexChannel" + std::to_string(desChInd) + "Freq").c_str());
+        bip::scoped_lock<bip::named_mutex> lock3(*chFqMutex[desChInd]);
+        // because it can be not created by server yet
+        channelsFreqs[desChInd] = sharedMemory->find_or_construct<ChannelFreqs>(
+            ("Channel" + std::to_string(desChInd) + "Freqs").c_str())();
+        channelsFreqs[desChInd]->serverAction = 1;
+    }
+
+    if (isServer) {
+        channelsSheet->serverIndex = desChInd;
+    }
+
+    channelsSheet->instanceSlots[desChInd] = true;
+    channelsSheet->pids[desChInd] = os_things::get_current_pid();
+
+    channelIndex = desChInd;
 }
 
 std::vector<Note> PluginInstanceManager::getChannelsNotes(const std::set<int> chIndxs) {

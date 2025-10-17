@@ -40,20 +40,24 @@ struct ChannelFreqs {
 
 class PluginInstanceManager {
   public:
-    PluginInstanceManager(int desiredChannelIndex);
+    PluginInstanceManager();
     ~PluginInstanceManager();
 
     void updateFreqs(const double freqs[128]);
     void updateNotes(const std::vector<Note> &notes);
+    // It may take up channel already occupied, but in theory, this won't happen after all instance 
+    //    initializations are complete.
+    // Also it doesn't care about notes info (doesn't move/swap it)
+    void changeChannelIndex(int desChInd);
     std::vector<Note> getChannelsNotes(const std::set<int> chIndxs);
     bool getIsActive() const { return isActive; }
     int getChannelIndex() { return channelIndex; }
     std::string getErrorMessage() { return errorMessage; }
 
   private:
-    void initAll(int desiredChannelIndex);
+    void initAll();
     bool initSharedMemory();
-    void initInstance(int desiredChannelIndex);
+    void initInstance();
 
     void becomeClient();
     void becomeServer();

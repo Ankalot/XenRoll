@@ -12,6 +12,12 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 #endif
                          ),
       manPlNotesTotCentsHistory(128), params() {
+
+    // INSTANCES SYNC
+    pluginInstanceManager = std::make_unique<PluginInstanceManager>();
+    isActive = pluginInstanceManager->getIsActive();
+    params.channelIndex = pluginInstanceManager->getChannelIndex();
+
     // PARTIALS FINDING
     threadPool = std::make_unique<juce::ThreadPool>(1);
     partialsFinder = std::make_shared<PartialsFinder>();
@@ -543,21 +549,16 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         params.playDraggedNotes = stream.readBool();
     }
     if (!stream.isExhausted()) {
-        params.channelIndex = stream.readInt();
-    }
-
-    // INSTANCES SYNC
-    if (!isActive) {
-        pluginInstanceManager = std::make_unique<PluginInstanceManager>(params.channelIndex);
-        isActive = pluginInstanceManager->getIsActive();
-        params.channelIndex = pluginInstanceManager->getChannelIndex();
+        int desiredChannelIndex = stream.readInt();
+        if ((desiredChannelIndex != params.channelIndex) && (desiredChannelIndex != -1)) {
+            pluginInstanceManager->changeChannelIndex(desiredChannelIndex);
+            params.channelIndex = pluginInstanceManager->getChannelIndex();
+        }
     }
 
     // UPDATE NOTES
-    if (isActive) {
-        prepareNotes();
-        pluginInstanceManager->updateNotes(notes);
-    }
+    prepareNotes();
+    pluginInstanceManager->updateNotes(notes);
 }
 
 void AudioPluginAudioProcessor::updateNotes(const std::vector<Note> &new_notes) {
