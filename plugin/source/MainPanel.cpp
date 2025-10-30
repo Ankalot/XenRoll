@@ -906,6 +906,9 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
 
     // raising or lowering selected notes by a cent (or by a key in key snap mode)
     if (key == juce::KeyPress::upKey) {
+        if (!thereAreSelectedNotes()) {
+            return false;
+        }
         notesHistory.push(notes);
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected) {
@@ -939,6 +942,9 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         return true;
     }
     if (key == juce::KeyPress::downKey) {
+        if (!thereAreSelectedNotes()) {
+            return false;
+        }
         notesHistory.push(notes);
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected) {
