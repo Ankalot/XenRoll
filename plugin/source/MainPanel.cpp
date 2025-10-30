@@ -400,7 +400,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             std::tie(octave, cents) = centsToKeysCents(octave, cents);
         }
         notesHistory.push(notes);
-        notes.push_back({octave, cents, time, false, duration, 100.0f / 127});
+        notes.push_back({octave, cents, time, false, duration, lastVelocity});
         if (params->zones.isNoteInActiveZone(*(notes.rbegin()))) {
             auto [_, inserted] = keys.insert(cents);
             if (inserted) {
@@ -1197,6 +1197,7 @@ void MainPanel::setVelocitiesOfSelectedNotes(float vel) {
             note.velocity = vel;
         }
     }
+    lastVelocity = vel;
     editor->updateNotes(notes);
     repaint();
 }
