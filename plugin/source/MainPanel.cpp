@@ -904,6 +904,54 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         return true;
     }
 
+    // moving notes horizontally
+    if ((key == juce::KeyPress::rightKey) || 
+        (key == juce::KeyPress(juce::KeyPress::rightKey, juce::ModifierKeys::shiftModifier, 0))) {
+        if (!thereAreSelectedNotes()) {
+            return false;
+        }
+        float dMoveTime = 1.0f/(params->num_beats*params->num_subdivs);
+        if (key.getModifiers().isShiftDown()) {
+            dMoveTime = 1.0f;
+        }
+        int numBars = params->get_num_bars();
+        notesHistory.push(notes);
+        for (int i = 0; i < notes.size(); ++i) {
+            if (notes[i].isSelected) {
+                if (notes[i].time + notes[i].duration + dMoveTime <= numBars) {
+                    notes[i].time += dMoveTime;
+                }
+            }
+        }
+        remakeKeys(); // because notes can enter/leave time active/disabled zones
+        editor->updateNotes(notes);
+        repaint();
+        return true;
+    }
+    if ((key == juce::KeyPress::leftKey) || 
+        (key == juce::KeyPress(juce::KeyPress::leftKey, juce::ModifierKeys::shiftModifier, 0))) {
+        if (!thereAreSelectedNotes()) {
+            return false;
+        }
+        float dMoveTime = 1.0f/(params->num_beats*params->num_subdivs);
+        if (key.getModifiers().isShiftDown()) {
+            dMoveTime = 1.0f;
+        }
+        int numBars = params->get_num_bars();
+        notesHistory.push(notes);
+        for (int i = 0; i < notes.size(); ++i) {
+            if (notes[i].isSelected) {
+                if (notes[i].time - dMoveTime >= 0) {
+                    notes[i].time -= dMoveTime;
+                }
+            }
+        }
+        remakeKeys(); // because notes can enter/leave active/disabled time zones
+        editor->updateNotes(notes);
+        repaint();
+        return true;
+    }
+
     // raising or lowering selected notes by a cent (or by a key in key snap mode)
     if (key == juce::KeyPress::upKey) {
         if (!thereAreSelectedNotes()) {

@@ -82,7 +82,11 @@ class HelpPanel : public juce::Component {
                    {"UP", "Raise selected notes by 1 cent (or by 1 key in snap mode)"},
                    {"DOWN", "Lower selected notes by 1 cent (or by 1 key in snap mode)"},
                    {"SHIFT + UP", "Raise selected notes up an octave"},
-                   {"SHIFT + DOWN", "Lower selected notes by an octave"}});
+                   {"SHIFT + DOWN", "Lower selected notes by an octave"},
+                   {"RIGHT", "Move selected notes by 1 subdiv to the right"},
+                   {"LEFT", "Move selected notes by 1 subdiv to the left"},
+                   {"SHIFT + RIGHT", "Move selected notes by 1 bar to the right"},
+                   {"SHIFT + LEFT", "Move selected notes by 1 bar to the left"}});
     }
 
   private:
