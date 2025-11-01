@@ -478,14 +478,14 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         float delta_duration = float(delta.getX()) / bar_width_px;
         dtime += delta_duration;
         bool resized = false;
+        float dt = 1.0f / (params->num_beats * params->num_subdivs);
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected && (notes[i].duration + delta_duration > 1.0 / 256)) {
                 if (params->timeSnap) {
-                    if (abs(dtime) >= 1.0f / (params->num_beats * params->num_subdivs)) {
+                    if (abs(dtime) >= dt) {
                         notes[i].duration =
-                            std::max(notes[i].duration + float(sgn(dtime)) / (params->num_beats *
-                                                                              params->num_subdivs),
-                                     1.0f / (params->num_beats * params->num_subdivs));
+                            std::max(notes[i].duration + sgn(dtime)*floor(abs(dtime)/dt)*dt,
+                                     dt);
                         resized = true;
                     }
                 } else {
@@ -495,8 +495,8 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                 lastDuration = notes[i].duration;
             }
         }
-        if (abs(dtime) >= 1.0f / (params->num_beats * params->num_subdivs)) {
-            dtime = dtime - float(sgn(dtime)) / (params->num_beats * params->num_subdivs);
+        if (abs(dtime) >= dt) {
+            dtime = dtime - sgn(dtime)*floor(abs(dtime)/dt)*dt;
         }
         if (resized)
             remakeKeys();
@@ -521,14 +521,14 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         bool moved = false;
         int numOfSelectedNotes = getNumOfSelectedNotes();
         bool updatedManuallyPlayedKeys = false;
+        float dt = 1.0f / (params->num_beats * params->num_subdivs);
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected) {
                 if (notes[i].time + delta_time > 0 &&
                     notes[i].time + notes[i].duration + delta_time < params->get_num_bars()) {
                     if (params->timeSnap) {
-                        if (abs(dtime) >= 1.0f / (params->num_beats * params->num_subdivs)) {
-                            notes[i].time +=
-                                float(sgn(dtime)) / (params->num_beats * params->num_subdivs);
+                        if (abs(dtime) >= dt) {
+                            notes[i].time += sgn(dtime)*floor(abs(dtime)/dt)*dt;
                             moved = true;
                         }
                     } else {
@@ -579,8 +579,8 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                 }
             }
         }
-        if (abs(dtime) >= 1.0f / (params->num_beats * params->num_subdivs)) {
-            dtime = dtime - float(sgn(dtime)) / (params->num_beats * params->num_subdivs);
+        if (abs(dtime) >= dt) {
+            dtime = dtime - sgn(dtime)*floor(abs(dtime)/dt)*dt;
         }
         if (moved)
             editor->updateNotes(notes);
