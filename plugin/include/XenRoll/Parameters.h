@@ -13,11 +13,16 @@
 namespace audio_plugin {
 class Parameters {
   public:
+    enum GenNewKeysTactics { DiverseIntervals = 1, Random = 2 };
+    static const juce::Array<juce::String> getGenNewKeysTacticsNames() {
+        return {"+diverse intervals", "random"};
+    }
+
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants ~~~~~~~~~~~~~~~~~~~~~~~~~~~
     static constexpr int num_octaves = 10;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Minimum values ~~~~~~~~~~~~~~~~~~~~~~~~
-    static constexpr int min_editorWidth = 1200;
+    static constexpr int min_editorWidth = 1300;
     static constexpr int min_editorHeight = 600;
     static constexpr int min_num_bars = 1;
     static constexpr int min_num_beats = 1;
@@ -25,6 +30,9 @@ class Parameters {
     static constexpr int min_start_octave = 0;
     static constexpr double min_A4Freq = 400.0;
     static constexpr float min_noteRectHeightCoef = 0.02f;
+    static constexpr int min_num_new_notes = 1;
+    static constexpr int min_minDistExistNewKeys = 10;
+    static constexpr int min_minDistBetweenNewKeys = 10;
     // ================== Intellectual ==================
     // Partials/dissonance
     static constexpr int min_plotPartialsTotalCents = 0;
@@ -47,6 +55,9 @@ class Parameters {
     static constexpr int max_start_octave = 9;
     static constexpr double max_A4Freq = 484.0;
     static constexpr float max_noteRectHeightCoef = 0.1f;
+    static constexpr int max_num_new_notes = 10;
+    static constexpr int max_minDistExistNewKeys = 100;
+    static constexpr int max_minDistBetweenNewKeys = 100;
     // ================== Intellectual ==================
     // Partials/dissonance
     static constexpr int max_plotPartialsTotalCents = num_octaves * 1200 - 1;
@@ -129,6 +140,11 @@ class Parameters {
     bool timeSnap = true;
     bool keySnap = false;
     bool showGhostNotesKeys = true;
+    bool generateNewKeys = false;
+    int numNewGenKeys = 3;
+    int minDistExistNewKeys = 20;
+    int minDistBetweenNewKeys = 40;
+    GenNewKeysTactics genNewKeysTactics = GenNewKeysTactics::DiverseIntervals;
     std::set<int> ghostNotesChannels = {};
     // ================== Intellectual ==================
     // Partials/dissonance

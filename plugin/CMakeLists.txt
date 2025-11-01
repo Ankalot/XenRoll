@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 # Version is needed by JUCE.
-project(XenRoll VERSION 0.1.6)
+project(XenRoll VERSION 0.2.0)
 
 # Adding a directory with the library/application name as a subfolder of the
 # include folder is a good practice. It helps avoid name clashes later on.
@@ -57,6 +57,7 @@ set(SOURCE_FILES source/PluginEditor.cpp
                  source/PartialsFinder.cpp
                  source/PitchMemory.cpp
                  source/PitchMemorySettingsPanel.cpp
+                 source/GenNewKeysMenu.cpp
                  ${MTS_ESP_DIR}/libMTSMaster.cpp)
 # Optional; includes header files in the project file tree in Visual Studio
 set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h 
@@ -86,6 +87,7 @@ set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h
                  ${INCLUDE_DIR}/AccumulatingBuffer.h
                  ${INCLUDE_DIR}/PitchMemorySettingsPanel.h
                  ${INCLUDE_DIR}/PitchMemory.h
+                 ${INCLUDE_DIR}/GenNewKeysMenu.h
                  ${MTS_ESP_DIR}/libMTSMaster.h)
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
 
@@ -156,6 +158,7 @@ juce_add_binary_data(
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Keys_harmonicity.svg
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Ghost_notes_keys.svg
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Ghost_notes_tab.svg
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Generate_new_keys.svg
     HEADER_NAME BinaryData.h
 )
 

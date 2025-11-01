@@ -17,6 +17,7 @@
 #include "Theme.h"
 #include "TopPanel.h"
 #include "InstancesMenu.h"
+#include "GenNewKeysMenu.h"
 #include "VelocityPanel.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -143,6 +144,84 @@ class CustomLookAndFeel : public juce::LookAndFeel_V4 {
     const int padding_y = 2;
 };
 
+class SmallLookAndFeel : public juce::LookAndFeel_V4 {
+  public:
+    SmallLookAndFeel() {
+        cambriaMathTypeface = juce::Typeface::createSystemTypefaceFor(
+            BinaryData::CambriaMath_ttf, BinaryData::CambriaMath_ttfSize);
+        setDefaultSansSerifTypeface(cambriaMathTypeface);
+        updateColors();
+    }
+
+    void updateColors() {
+        // Default colors for Tooltip
+        setColour(juce::TooltipWindow::backgroundColourId, Theme::darkest);
+        setColour(juce::TooltipWindow::outlineColourId, Theme::brightest);
+        setColour(juce::TooltipWindow::textColourId, Theme::brightest);
+
+        // Default colors for Label
+        setColour(juce::Label::textColourId, Theme::brightest);
+        setColour(juce::Label::backgroundColourId, Theme::darker);
+
+        // Default colors for TextEditor
+        setColour(juce::TextEditor::textColourId, Theme::brightest);
+        setColour(juce::TextEditor::backgroundColourId, Theme::darkest);
+        setColour(juce::TextEditor::outlineColourId, Theme::darkest);
+
+        // Default colors for ComboBox
+        setColour(juce::ComboBox::backgroundColourId, Theme::darkest);
+        setColour(juce::ComboBox::textColourId, Theme::brightest);
+        setColour(juce::ComboBox::outlineColourId, Theme::darkest);
+        setColour(juce::ComboBox::buttonColourId, Theme::darkest);
+        setColour(juce::ComboBox::arrowColourId, Theme::brighter);
+        setColour(juce::ComboBox::focusedOutlineColourId, Theme::brighter);
+
+        setColour(juce::PopupMenu::backgroundColourId, Theme::darkest);
+        setColour(juce::PopupMenu::textColourId, Theme::brightest);
+        setColour(juce::PopupMenu::headerTextColourId, Theme::brightest);
+        setColour(juce::PopupMenu::highlightedTextColourId, Theme::brightest);
+        setColour(juce::PopupMenu::highlightedBackgroundColourId, Theme::dark);
+
+        // Default colors for Slider
+        setColour(juce::Slider::backgroundColourId, Theme::darkest);
+        setColour(juce::Slider::thumbColourId, Theme::brighter);
+        setColour(juce::Slider::trackColourId, Theme::darkest);
+        setColour(juce::Slider::textBoxTextColourId, Theme::brightest);
+        setColour(juce::Slider::textBoxBackgroundColourId, Theme::darkest);
+        setColour(juce::Slider::textBoxOutlineColourId, Theme::darkest);
+
+        // Default colors for TextButton
+        setColour(juce::TextButton::buttonColourId, Theme::bright);
+        setColour(juce::TextButton::textColourOffId, Theme::darkest);
+
+        // Default colors for AlertWindow
+        setColour(juce::AlertWindow::backgroundColourId, Theme::darkest);
+        setColour(juce::AlertWindow::textColourId, Theme::brightest);
+        setColour(juce::AlertWindow::outlineColourId, Theme::darkest);
+    }
+
+    juce::Typeface::Ptr getTypefaceForFont(const juce::Font &) override {
+        return cambriaMathTypeface;
+    }
+
+    juce::Label *createSliderTextBox(juce::Slider &slider) override {
+        auto *label = LookAndFeel_V4::createSliderTextBox(slider);
+        label->setFont(label->getFont().withHeight(Theme::small_));
+        return label;
+    }
+
+    juce::Font getComboBoxFont(juce::ComboBox &c) override {
+        return LookAndFeel_V4::getComboBoxFont(c).withHeight(Theme::small_);
+    }
+
+    juce::Font getPopupMenuFont() override {
+        return LookAndFeel_V4::getPopupMenuFont().withHeight(Theme::small_);
+    }
+
+  private:
+    juce::Typeface::Ptr cambriaMathTypeface;
+};
+
 class MainViewport : public juce::Viewport {
   public:
     MainViewport(juce::Viewport *leftViewport, juce::Viewport *topViewport)
@@ -206,6 +285,11 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
         mainPanel->remakeKeys();
         mainPanel->repaint();
         updatePitchMemory();
+    }
+
+    void genNewKeysParamsChanged() {
+        mainPanel->remakeKeys();
+        mainPanel->repaint();
     }
 
     void hideMessage() { popup->timerCallback(); }
@@ -328,14 +412,18 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
     void updateTheme() {
         Theme::setTheme(processorRef.params.themeType);
         customLF->updateColors();
+        smallLF.updateColors();
         mainViewport->updateColors();
         pitchMemorySettingsPanel->updateColors();
         instancesMenu->updateColors();
+        genNewKeysMenu->updateColors();
         // without this sliders' textboxes wouldn't update
         juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
         juce::LookAndFeel::setDefaultLookAndFeel(customLF.get());
         repaint();
     }
+
+    SmallLookAndFeel smallLF;
 
   private:
     AudioPluginAudioProcessor &processorRef;
@@ -357,6 +445,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
     std::unique_ptr<juce::TooltipWindow> tooltipWindow;
 
     std::unique_ptr<InstancesMenu> instancesMenu;
+    std::unique_ptr<GenNewKeysMenu> genNewKeysMenu;
 
     std::unique_ptr<VelocityPanel> velocityPanel;
 
@@ -372,7 +461,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
     std::unique_ptr<SVGButton> settingsButton, helpButton, timeSnapButton, keySnapButton,
         importButton, exportButton, camOnPlayHeadButton, turnOnAllZonesButton,
         turnOffAllZonesButton, dissonanceButton, pitchMemorySettingsButton, pitchMemoryButton,
-        keysHarmonicityButton, ghostNotesKeysButton, ghostNotesTabButton;
+        keysHarmonicityButton, ghostNotesKeysButton, ghostNotesTabButton, generateNewKeysButton;
     std::unique_ptr<juce::Label> numSubdivsLabel, numBeatsLabel, numBarsLabel, midiChannelLabel;
     std::unique_ptr<IntegerInput> numSubdivsInput, numBeatsInput, numBarsInput;
 

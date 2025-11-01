@@ -47,7 +47,7 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
 
     void resized() override { repaint(); }
 
-    std::function<void()> onClick;
+    std::function<bool(const juce::MouseEvent &me)> onClick;
     
     juce::String getTooltip() override { return tooltipText; }
 
@@ -60,11 +60,13 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
         repaint();
     }
 
-    void mouseDown(const juce::MouseEvent &) override {
+    void mouseDown(const juce::MouseEvent &me) override {
         if (onClick) {
-            onClick();
-            active = !active;
-            repaint();
+            bool changeState = onClick(me);
+            if (changeState) {
+                active = !active;
+                repaint();
+            }
         }
     }
 

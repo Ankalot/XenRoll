@@ -71,9 +71,24 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     // new should be added at the end (with push_back) (don't remember why lol)
     std::vector<Note> notes;
     std::set<int> keys;
+    std::array<bool, 1200> keyIsGenNew;
+    // ==================== Needed for generating new keys ====================
+    void generateNewKeys();
+    // === For Parameters::GenNewKeysTactics::Random ===
+    std::array<bool, 1200> pickableKeys;
+    // === For Parameters::GenNewKeysTactics::DiverseIntervals  ===
+    std::array<bool, 1200> intervalsWere;
+    std::array<int, 1200> intervalsDist; // metric for intervals
+    // Possible new keys: 0, 10, 20, ..., 1180, 1190
+    // This is calculated from intervalsDist. final weight = combination of
+    //     intervalsDist and keysDist
+    std::array<int, 120> possibleNewKeysWeights;
+    // ========================================================================
     std::vector<Note> copiedNotes;
     CircularStack<std::vector<Note>> notesHistory{20};
     const int note_right_corner_width = 5;
+    const int numDashLengths = 2;
+    const float dashLengths[2] = {45, 15};
     int needToUnselectAllNotesExcept = -1;
     float lastDuration = 1.0f;
     float lastVelocity = 100.0f/127;

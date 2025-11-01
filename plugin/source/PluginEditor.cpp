@@ -85,7 +85,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         BinaryData::Brain_settings_svg, BinaryData::Brain_settings_svgSize, false);
     addAndMakeVisible(pitchMemorySettingsButton.get());
 
-    settingsButton->onClick = [this]() {
+    settingsButton->onClick = [this](const juce::MouseEvent &me) {
         settingsPanel->setVisible(!settingsPanel->isVisible());
 
         helpViewport->setVisible(false);
@@ -93,8 +93,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         pitchMemorySettingsPanel->setVisible(false);
 
         hideVelocityPanel();
+        return false;
     };
-    helpButton->onClick = [this]() {
+    helpButton->onClick = [this](const juce::MouseEvent &me) {
         helpViewport->setVisible(!helpViewport->isVisible());
 
         settingsPanel->setVisible(false);
@@ -102,8 +103,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         pitchMemorySettingsPanel->setVisible(false);
 
         hideVelocityPanel();
+        return false;
     };
-    dissonanceButton->onClick = [this]() {
+    dissonanceButton->onClick = [this](const juce::MouseEvent &me) {
         dissonancePanel->setVisible(!dissonancePanel->isVisible());
 
         helpViewport->setVisible(false);
@@ -111,8 +113,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         pitchMemorySettingsPanel->setVisible(false);
 
         hideVelocityPanel();
+        return false;
     };
-    pitchMemorySettingsButton->onClick = [this]() {
+    pitchMemorySettingsButton->onClick = [this](const juce::MouseEvent &me) {
         pitchMemorySettingsPanel->setVisible(!pitchMemorySettingsPanel->isVisible());
 
         settingsPanel->setVisible(false);
@@ -120,19 +123,21 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         dissonancePanel->setVisible(false);
 
         hideVelocityPanel();
+        return false;
     };
 
     pitchMemoryButton =
         std::make_unique<SVGButton>(BinaryData::Brain_svg, BinaryData::Brain_svgSize, true,
                                     processorRef.params.showPitchesMemoryTraces,
                                     "Show pitch memory traces & notes' harmonicity");
-    pitchMemoryButton->onClick = [this]() {
+    pitchMemoryButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.showPitchesMemoryTraces = !processorRef.params.showPitchesMemoryTraces;
         if (processorRef.params.showPitchesMemoryTraces) {
             updatePitchMemory();
         } else {
             mainPanel->repaint();
         }
+        return true;
     };
     addAndMakeVisible(pitchMemoryButton.get());
 
@@ -141,13 +146,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         processorRef.params.showKeysHarmonicity,
         "Show harmonicity of keys (in the context of the end of the track) in an octave, an octave "
         "above and an octave below of all notes.");
-    keysHarmonicityButton->onClick = [this]() {
+    keysHarmonicityButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.showKeysHarmonicity = !processorRef.params.showKeysHarmonicity;
         if (processorRef.params.showKeysHarmonicity) {
             updatePitchMemory();
         } else {
             leftPanel->repaint();
         }
+        return true;
     };
     addAndMakeVisible(keysHarmonicityButton.get());
 
@@ -155,23 +161,25 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         BinaryData::Ghost_notes_keys_svg, BinaryData::Ghost_notes_keys_svgSize, true,
         processorRef.params.showGhostNotesKeys,
         "Show keys of \"ghost\" notes (notes from other instances of XenRoll).");
-    ghostNotesKeysButton->onClick = [this]() {
+    ghostNotesKeysButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.showGhostNotesKeys = !processorRef.params.showGhostNotesKeys;
         mainPanel->remakeKeys();
         mainPanel->repaint();
+        return true;
     };
     addAndMakeVisible(ghostNotesKeysButton.get());
 
-    instancesMenu =
-        std::make_unique<InstancesMenu>(processorRef.params.channelIndex, &processorRef.params, this);
+    instancesMenu = std::make_unique<InstancesMenu>(processorRef.params.channelIndex,
+                                                    &processorRef.params, this);
     addAndMakeVisible(instancesMenu.get());
     instancesMenu->setVisible(false);
 
     ghostNotesTabButton = std::make_unique<SVGButton>(
         BinaryData::Ghost_notes_tab_svg, BinaryData::Ghost_notes_tab_svgSize, false, false,
         "Choose instances of XenRoll from which you want to see notes");
-    ghostNotesTabButton->onClick = [this]() {
+    ghostNotesTabButton->onClick = [this](const juce::MouseEvent &me) {
         this->instancesMenu->setVisible(!this->instancesMenu->isVisible());
+        return false;
     };
     addAndMakeVisible(ghostNotesTabButton.get());
 
@@ -237,49 +245,54 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     camOnPlayHeadButton = std::make_unique<SVGButton>(
         BinaryData::Fix_cam_svg, BinaryData::Fix_cam_svgSize, true,
         processorRef.params.isCamFixedOnPlayHead, "Fix the camera to the playback head");
-    camOnPlayHeadButton->onClick = [this]() {
+    camOnPlayHeadButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.isCamFixedOnPlayHead = !processorRef.params.isCamFixedOnPlayHead;
+        return true;
     };
     addAndMakeVisible(camOnPlayHeadButton.get());
 
     turnOnAllZonesButton = std::make_unique<SVGButton>(
         BinaryData::Zones_on_svg, BinaryData::Zones_on_svgSize, false, false, "Turn on all zones");
-    turnOnAllZonesButton->onClick = [this]() {
+    turnOnAllZonesButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.zones.turnOnAllZones();
         zonesChanged();
         topPanel->repaint();
+        return false;
     };
     addAndMakeVisible(turnOnAllZonesButton.get());
 
     turnOffAllZonesButton =
         std::make_unique<SVGButton>(BinaryData::Zones_off_svg, BinaryData::Zones_off_svgSize, false,
                                     false, "Turn off all zones");
-    turnOffAllZonesButton->onClick = [this]() {
+    turnOffAllZonesButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.zones.turnOffAllZones();
         zonesChanged();
         topPanel->repaint();
+        return false;
     };
     addAndMakeVisible(turnOffAllZonesButton.get());
 
     timeSnapButton =
         std::make_unique<SVGButton>(BinaryData::Snap_time_svg, BinaryData::Snap_time_svgSize, true,
                                     processorRef.params.timeSnap, "Snap notes horizontally");
-    timeSnapButton->onClick = [this]() {
+    timeSnapButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.timeSnap = !processorRef.params.timeSnap;
+        return true;
     };
     addAndMakeVisible(timeSnapButton.get());
 
     keySnapButton =
         std::make_unique<SVGButton>(BinaryData::Snap_keys_svg, BinaryData::Snap_keys_svgSize, true,
                                     processorRef.params.keySnap, "Snap notes vertically");
-    keySnapButton->onClick = [this]() {
+    keySnapButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.keySnap = !processorRef.params.keySnap;
+        return true;
     };
     addAndMakeVisible(keySnapButton.get());
 
     importButton = std::make_unique<SVGButton>(BinaryData::Import_svg, BinaryData::Import_svgSize,
                                                false, false, "Import");
-    importButton->onClick = [this]() {
+    importButton->onClick = [this](const juce::MouseEvent &me) {
         auto *alert = new juce::AlertWindow("Import notes", "Choose an option",
                                             juce::MessageBoxIconType::NoIcon);
 
@@ -297,12 +310,13 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
                                    alert->setVisible(false);
                                }),
                                true);
+        return false;
     };
     addAndMakeVisible(importButton.get());
 
     exportButton = std::make_unique<SVGButton>(BinaryData::Export_svg, BinaryData::Export_svgSize,
                                                false, false, "Export");
-    exportButton->onClick = [this]() {
+    exportButton->onClick = [this](const juce::MouseEvent &me) {
         auto *alert = new juce::AlertWindow("Export notes", "Choose an option",
                                             juce::MessageBoxIconType::NoIcon);
 
@@ -320,8 +334,29 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
                                    alert->setVisible(false);
                                }),
                                true);
+        return false;
     };
     addAndMakeVisible(exportButton.get());
+
+    genNewKeysMenu = std::make_unique<GenNewKeysMenu>(&processorRef.params, this);
+    addAndMakeVisible(genNewKeysMenu.get());
+    genNewKeysMenu->setVisible(false);
+
+    generateNewKeysButton = std::make_unique<SVGButton>(
+        BinaryData::Generate_new_keys_svg, BinaryData::Generate_new_keys_svgSize, true,
+        processorRef.params.generateNewKeys,
+        "Generate new keys \n (RMB to open settings)");
+    generateNewKeysButton->onClick = [this](const juce::MouseEvent &me) {
+        if (me.mods.isLeftButtonDown()) {
+            this->processorRef.params.generateNewKeys = !this->processorRef.params.generateNewKeys;
+            this->genNewKeysParamsChanged();
+        } else if (me.mods.isRightButtonDown()) {
+            this->genNewKeysMenu->setVisible(!this->genNewKeysMenu->isVisible());
+            return false;
+        }
+        return true;
+    };
+    addAndMakeVisible(generateNewKeysButton.get());
 
     popup = std::make_unique<PopupMessage>(3000, 0.7f);
     addChildComponent(popup.get());
@@ -384,8 +419,10 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
     int textWidth = juce::roundToInt(getTextWidth(text, font));
     int bottom_x_pos = width - 15 * 4 - textWidth - 2 * bottom_height_px;
 
-    // Draw vertical separator line
+    // Draw vertical separator lines
     g.setColour(Theme::darkest);
+    g.drawLine(bottom_x_pos, bottom_y, bottom_x_pos, bottom_y + bottom_height_px, Theme::wider);
+    bottom_x_pos -= bottom_height_px * 4 + 15 * 5;
     g.drawLine(bottom_x_pos, bottom_y, bottom_x_pos, bottom_y + bottom_height_px, Theme::wider);
 }
 
@@ -490,6 +527,12 @@ void AudioPluginAudioProcessorEditor::resized() {
     pitchMemoryButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     bottom_x_pos -= 15 + bottom_height_px;
     keysHarmonicityButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    bottom_x_pos -= 30 + bottom_height_px;
+
+    generateNewKeysButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    bottom_x_pos -= 15 + bottom_height_px;
+    genNewKeysMenu->setBounds(bottom_x_pos - 64, bottom_y - genNewKeysMenu->getHeight() - 10,
+                              genNewKeysMenu->getWidth(), genNewKeysMenu->getHeight());
 
     velocityPanel->setBounds(leftPanel_width_px + (topView_width_px - velocity_width_px) / 2,
                              topPanel_height_px + leftView_height_px - velocity_height_px -

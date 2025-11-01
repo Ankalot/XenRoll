@@ -1,5 +1,6 @@
 #include "XenRoll/PluginEditor.h" // must be first!
 #include "XenRoll/MainPanel.h"    // must be second!
+#include <random>
 
 namespace audio_plugin {
 MainPanel::MainPanel(int octave_height_px, int bar_width_px,
@@ -101,8 +102,13 @@ void MainPanel::paint(juce::Graphics &g) {
     for (const int &key : keys) {
         for (int j = octave_i_start; j < octave_i_end; ++j) {
             float yPos = (j + 1.0f - float(key) / 1200) * octave_height_px;
-            g.drawLine(0.0f, yPos, float(params->get_num_bars() * bar_width_px), yPos,
-                       Theme::narrow);
+            auto line =
+                juce::Line<float>(0.0f, yPos, float(params->get_num_bars() * bar_width_px), yPos);
+            if (params->generateNewKeys && keyIsGenNew[key]) {
+                g.drawDashedLine(line, dashLengths, numDashLengths, Theme::narrow);
+            } else {
+                g.drawLine(line, Theme::narrow);
+            }
         }
     }
 
@@ -357,7 +363,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                     repaint();
                 }
                 if (params->playDraggedNotes) {
-                    for (const Note& note: notes) {
+                    for (const Note &note : notes) {
                         if (note.isSelected) {
                             manuallyPlayedKeysTotalCents.insert(note.cents + note.octave * 1200);
                         }
@@ -403,7 +409,11 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         notes.push_back({octave, cents, time, false, duration, lastVelocity});
         if (params->zones.isNoteInActiveZone(*(notes.rbegin()))) {
             auto [_, inserted] = keys.insert(cents);
-            if (inserted) {
+            if (inserted || keyIsGenNew[cents]) {
+                keyIsGenNew[cents] = false;
+                if (params->generateNewKeys) {
+                    generateNewKeys();
+                }
                 editor->updateKeys(keys);
             }
         }
@@ -515,7 +525,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         dtime += delta_time;
         int delta_cents = (int)round(-delta.getY() * 1200.0 / octave_height_px);
         if (event.mods.isShiftDown()) {
-            delta_cents = juce::roundFloatToInt(delta_cents*vertMoveSlowCoef);
+            delta_cents = juce::roundFloatToInt(delta_cents * vertMoveSlowCoef);
         }
         dcents += delta_cents;
         bool moved = false;
@@ -567,8 +577,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                 if (new_octave >= 0 && new_octave < params->num_octaves) {
                     if ((new_cents != notes[i].cents) || (new_octave != notes[i].octave)) {
                         if (params->playDraggedNotes) {
-                            manuallyPlayedKeysTotalCents.erase(notes[i].cents + notes[i].octave*1200);
-                            manuallyPlayedKeysTotalCents.insert(new_cents + new_octave*1200);
+                            manuallyPlayedKeysTotalCents.erase(notes[i].cents +
+                                                               notes[i].octave * 1200);
+                            manuallyPlayedKeysTotalCents.insert(new_cents + new_octave * 1200);
                             updatedManuallyPlayedKeys = true;
                         }
                         moved = true;
@@ -582,8 +593,10 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         if (abs(dtime) >= dt) {
             dtime = dtime - sgn(dtime)*floor(abs(dtime)/dt)*dt;
         }
-        if (moved)
+        if (moved) {
+            remakeKeys();
             editor->updateNotes(notes);
+        }
         if (updatedManuallyPlayedKeys)
             editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
         repaint();
@@ -616,7 +629,7 @@ bool MainPanel::doesPathIntersectRect(const juce::Path &parallelogram,
 
 void MainPanel::mouseUp(const juce::MouseEvent &event) {
     if (isMoving && params->playDraggedNotes) {
-        for (const Note& note: notes) {
+        for (const Note &note : notes) {
             if (note.isSelected) {
                 manuallyPlayedKeysTotalCents.erase(note.cents + note.octave * 1200);
             }
@@ -688,10 +701,10 @@ void MainPanel::deleteNote(int i) {
 
     int num_notes_cents_i = 0;
     for (int j = 0; j < notes.size(); ++j) {
-        if (notes[j].cents == note_cents)
+        if ((notes[j].cents == note_cents) && (params->zones.isNoteInActiveZone(notes[j])))
             num_notes_cents_i++;
     }
-    
+
     if (params->showGhostNotesKeys) {
         for (int j = 0; j < ghostNotes.size(); ++j) {
             if (ghostNotes[j].cents == note_cents)
@@ -703,26 +716,190 @@ void MainPanel::deleteNote(int i) {
 
     if (num_notes_cents_i == 1) {
         if (keys.erase(note_cents) > 0) {
+            if (params->generateNewKeys) {
+                generateNewKeys();
+            }
             editor->updateKeys(keys);
         }
     }
 }
 
+void MainPanel::generateNewKeys() {
+    // Remove previously generated keys
+    auto it = keys.begin();
+    while (it != keys.end()) {
+        if (keyIsGenNew[*it]) {
+            it = keys.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    if (params->genNewKeysTactics == Parameters::GenNewKeysTactics::Random) {
+        pickableKeys.fill(true);
+        // Get rid of new possible keys that are too close to existing ones
+        for (auto it = keys.begin(); it != keys.end(); ++it) {
+            int ind = *it - params->minDistExistNewKeys + 1;
+            int endInd = *it + params->minDistExistNewKeys - 1;
+            while (ind <= endInd) {
+                if (ind < 0) {
+                    pickableKeys[1200 + ind] = false;
+                } else if (ind >= 1200) {
+                    pickableKeys[ind - 1200] = false;
+                } else {
+                    pickableKeys[ind] = false;
+                }
+                ind++;
+            }
+        }
+        // Find new keys
+        for (int i = 0; i < params->numNewGenKeys; ++i) {
+            // Find random candidate
+            int numPickableKeys = std::count(pickableKeys.begin(), pickableKeys.end(), true);
+            if (numPickableKeys == 0)
+                break;
+
+            static std::random_device rd;
+            static std::mt19937 gen(rd());
+            std::uniform_int_distribution<int> dist(0, numPickableKeys - 1);
+            int randInd = dist(gen);
+
+            int count = 0;
+            int newGenKey;
+            for (int i = 0; i < 1200; ++i) {
+                if (pickableKeys[i]) {
+                    if (count == randInd) {
+                        newGenKey = i;
+                        break;
+                    }
+                    ++count;
+                }
+            }
+
+            // Get rid of new possible keys that are too close to this one
+            int ind = newGenKey - params->minDistExistNewKeys + 1;
+            int endInd = newGenKey + params->minDistExistNewKeys - 1;
+            while (ind <= endInd) {
+                if (ind < 0) {
+                    pickableKeys[1200 + ind] = false;
+                } else if (ind >= 1200) {
+                    pickableKeys[ind - 1200] = false;
+                } else {
+                    pickableKeys[ind] = false;
+                }
+                ind++;
+            }
+            // Add key
+            keys.insert(newGenKey);
+            keyIsGenNew[newGenKey] = true;
+        }
+    } else if (params->genNewKeysTactics == Parameters::GenNewKeysTactics::DiverseIntervals) {
+        // Init metric on intervals
+        intervalsWere.fill(false);
+        intervalsDist.fill(100000);
+        for (auto it1 = keys.begin(); it1 != keys.end(); ++it1) {
+            auto it2 = it1;
+            ++it2;
+            for (; it2 != keys.end(); ++it2) {
+                int interval1 = (*it2 - *it1) % 1200;
+                int interval2 = 1200 - interval1;
+                if (!intervalsWere[interval1]) {
+                    for (int i = 0; i < 1200; ++i) {
+                        intervalsDist[i] = std::min(intervalsDist[i], abs(interval1 - i));
+                    }
+                    intervalsWere[interval1] = true;
+                }
+                if (!intervalsWere[interval2]) {
+                    for (int i = 0; i < 1200; ++i) {
+                        // not very effective
+                        intervalsDist[i] = std::min(intervalsDist[i], abs(interval2 - i));
+                    }
+                    intervalsWere[interval2] = true;
+                }
+            }
+        }
+
+        // Find interval weights of each possible new key
+        for (int i = 0; i < 120; ++i) {
+            possibleNewKeysWeights[i] = 1;
+            for (auto it = keys.begin(); it != keys.end(); ++it) {
+                int interval1 = abs(*it - i * 10) % 1200;
+                possibleNewKeysWeights[i] += intervalsDist[interval1];
+                int interval2 = 1200 - interval1;
+                if (interval2 != 1200)
+                    possibleNewKeysWeights[i] += intervalsDist[interval2];
+            }
+        }
+
+        // Get rid of new possible keys that are too close to existing ones
+        for (auto it = keys.begin(); it != keys.end(); ++it) {
+            int ind = int(ceil((*it - params->minDistExistNewKeys + 1) / 10.0));
+            int endInd = (*it + params->minDistExistNewKeys - 1) / 10;
+            while (ind <= endInd) {
+                if (ind < 0) {
+                    possibleNewKeysWeights[120 + ind] = -1;
+                } else if (ind >= 120) {
+                    possibleNewKeysWeights[ind - 120] = -1;
+                } else {
+                    possibleNewKeysWeights[ind] = -1;
+                }
+                ind++;
+            }
+        }
+
+        // Find new keys
+        for (int i = 0; i < params->numNewGenKeys; ++i) {
+            // Find best candidate
+            int bestInd = 0;
+            float bestWeight = (possibleNewKeysWeights[0]);
+            for (int j = 1; j < 120; ++j) {
+                float weight = (possibleNewKeysWeights[j]);
+                if (weight > bestWeight) {
+                    bestWeight = weight;
+                    bestInd = j;
+                }
+            }
+            int newGenKey = 10 * bestInd;
+            // Get rid of new possible keys that are too close to this one
+            int ind = int(ceil((newGenKey - params->minDistBetweenNewKeys + 1) / 10.0));
+            int endInd = (newGenKey + params->minDistBetweenNewKeys - 1) / 10;
+            while (ind <= endInd) {
+                if (ind < 0) {
+                    possibleNewKeysWeights[120 + ind] = -1;
+                } else if (ind >= 120) {
+                    possibleNewKeysWeights[ind - 120] = -1;
+                } else {
+                    possibleNewKeysWeights[ind] = -1;
+                }
+                ind++;
+            }
+            // Add key
+            keys.insert(newGenKey);
+            keyIsGenNew[newGenKey] = true;
+        }
+    }
+}
+
 void MainPanel::remakeKeys() {
-    std::set<int> newKeys;
+    keys.clear();
+    keyIsGenNew.fill(false);
     for (const Note &note : notes) {
         if (params->zones.isNoteInActiveZone(note)) {
-            newKeys.insert(note.cents);
+            keys.insert(note.cents);
         }
     }
     if (params->showGhostNotesKeys) {
         for (const Note &note : ghostNotes) {
             if (params->zones.isNoteInActiveZone(note)) {
-                newKeys.insert(note.cents);
+                keys.insert(note.cents);
             }
         }
     }
-    keys = std::move(newKeys);
+
+    if (params->generateNewKeys) {
+        generateNewKeys();
+    }
+
     editor->updateKeys(keys);
 }
 
@@ -784,6 +961,10 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             notes.push_back(copiedNotes[i]);
             int cents = copiedNotes[i].cents;
             keys.insert(cents);
+            keyIsGenNew[cents] = false;
+        }
+        if (params->generateNewKeys) {
+            generateNewKeys();
         }
         editor->updateKeys(keys);
         editor->showMessage(juce::String(copiedNotes.size()) + " note" +
@@ -905,12 +1086,12 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     }
 
     // moving notes horizontally
-    if ((key == juce::KeyPress::rightKey) || 
+    if ((key == juce::KeyPress::rightKey) ||
         (key == juce::KeyPress(juce::KeyPress::rightKey, juce::ModifierKeys::shiftModifier, 0))) {
         if (!thereAreSelectedNotes()) {
             return false;
         }
-        float dMoveTime = 1.0f/(params->num_beats*params->num_subdivs);
+        float dMoveTime = 1.0f / (params->num_beats * params->num_subdivs);
         if (key.getModifiers().isShiftDown()) {
             dMoveTime = 1.0f;
         }
@@ -928,12 +1109,12 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         repaint();
         return true;
     }
-    if ((key == juce::KeyPress::leftKey) || 
+    if ((key == juce::KeyPress::leftKey) ||
         (key == juce::KeyPress(juce::KeyPress::leftKey, juce::ModifierKeys::shiftModifier, 0))) {
         if (!thereAreSelectedNotes()) {
             return false;
         }
-        float dMoveTime = 1.0f/(params->num_beats*params->num_subdivs);
+        float dMoveTime = 1.0f / (params->num_beats * params->num_subdivs);
         if (key.getModifiers().isShiftDown()) {
             dMoveTime = 1.0f;
         }

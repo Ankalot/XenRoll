@@ -25,9 +25,10 @@ DissonancePanel::DissonancePanel(Parameters *params,
         std::string("Plot partials for all pitches. If some pitch has no partials calculated, ") +
             "it will use the transposed partials of the closest recorded pitch");
     addAndMakeVisible(plotPartialsInterpButton.get());
-    plotPartialsInterpButton->onClick = [this, params]() {
+    plotPartialsInterpButton->onClick = [this, params](const juce::MouseEvent &me) {
         params->plotPartialsInterp = !params->plotPartialsInterp;
         partialsPlot->setInterpMode(params->plotPartialsInterp);
+        return true;
     };
 
     plotPartialsOctaveInput = std::make_unique<IntegerInput>(params->plotPartialsTotalCents / 1200,
@@ -74,7 +75,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
         BinaryData::Broom_svg, BinaryData::Broom_svgSize, false, false,
         std::string("Remove partials of tone with specified octave and cents"));
     addAndMakeVisible(removePartialsButton.get());
-    removePartialsButton->onClick = [this, params]() {
+    removePartialsButton->onClick = [this, params](const juce::MouseEvent &me) {
         bool removed = params->remove_partials(params->plotPartialsTotalCents);
         if (removed) {
             partialsVec partials = {};
@@ -87,13 +88,14 @@ DissonancePanel::DissonancePanel(Parameters *params,
             partialsPlot->updateTonesPartials();
             dissonancePlot->updateDissonanceCurve();
         }
+        return false;
     };
 
     trashButton =
         std::make_unique<SVGButton>(BinaryData::Trash_svg, BinaryData::Trash_svgSize, false, false,
                                     std::string("Delete partials from all tones"));
     addAndMakeVisible(trashButton.get());
-    trashButton->onClick = [this, params]() {
+    trashButton->onClick = [this, params](const juce::MouseEvent &me) {
         juce::NativeMessageBox::showOkCancelBox(
             juce::AlertWindow::WarningIcon, "Delete All Partials?",
             "This will permanently remove all partials data from every tone.", this,
@@ -105,6 +107,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
                     dissonancePlot->updateDissonanceCurve();
                 }
             }));
+        return false;
     };
 
     importPartialsButton = std::make_unique<SVGButton>(
@@ -115,7 +118,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
                     "and 1.0 amplitude (linear)\n"
                     "totalCents = octave*1200 + cents; 4oct 900¢ = A4 note.\n"));
     addAndMakeVisible(importPartialsButton.get());
-    importPartialsButton->onClick = [this, params]() {
+    importPartialsButton->onClick = [this, params](const juce::MouseEvent &me) {
         partialsFileChooser.get()->launchAsync(
             juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
             [this](const juce::FileChooser &fc) {
@@ -208,6 +211,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
                 this->partialsPlot->updateTonesPartials();
                 this->dissonancePlot->updateDissonanceCurve();
             });
+        return false;
     };
 
     exportPartialsButton = std::make_unique<SVGButton>(
@@ -215,7 +219,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
         std::string("Export partials to a .txt file"));
     addAndMakeVisible(exportPartialsButton.get());
     params->get_tonesPartials();
-    exportPartialsButton->onClick = [this, params]() {
+    exportPartialsButton->onClick = [this, params](const juce::MouseEvent &me) {
         partialsFileChooser.get()->launchAsync(
             juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
             [allPartials = params->get_tonesPartials()](const juce::FileChooser &fc) {
@@ -261,6 +265,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
 
                 outputStream.flush();
             });
+        return false;
     };
 
     // Create components that control dissonance plot
@@ -350,7 +355,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
         std::make_unique<SVGButton>(BinaryData::Refresh_svg, BinaryData::Refresh_svgSize, false,
                                     false, std::string("Refresh plots"));
     addAndMakeVisible(refreshButton.get());
-    refreshButton->onClick = [this, params]() {
+    refreshButton->onClick = [this, params](const juce::MouseEvent &me) {
         partialsVec partials = {};
         int partialsTotalCents = 5700;
         if (!params->get_tonesPartials().empty()) {
@@ -360,6 +365,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
         this->dissonanceMeter->setPartials(partials, partialsTotalCents);
         partialsPlot->updateTonesPartials();
         dissonancePlot->updateDissonanceCurve();
+        return false;
     };
 
     switchFindPartialsModeButton = std::make_unique<SVGButton>(
@@ -376,8 +382,9 @@ DissonancePanel::DissonancePanel(Parameters *params,
             "For example, if there are no partials or very few of them, then start by reducing dB "
             "threadshold.\n");
     addAndMakeVisible(switchFindPartialsModeButton.get());
-    switchFindPartialsModeButton->onClick = [this, params]() {
+    switchFindPartialsModeButton->onClick = [this, params](const juce::MouseEvent &me) {
         params->findPartialsMode.store(!params->findPartialsMode.load());
+        return true;
     };
 
     dBThresholdLabel = std::make_unique<juce::Label>();
