@@ -40,7 +40,7 @@ PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters *params,
 
     showOnlyHarmonicityLabel = std::make_unique<juce::Label>();
     showOnlyHarmonicityLabel->setFont(currentFont);
-    showOnlyHarmonicityLabel->setText("Show only notes' harmonicity",
+    showOnlyHarmonicityLabel->setText("Don't show traces (show only harmonicity)",
                                juce::dontSendNotification);
     addAndMakeVisible(showOnlyHarmonicityLabel.get());
 

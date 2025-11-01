@@ -5,7 +5,7 @@ namespace audio_plugin {
 TopPanel::TopPanel(int bar_width_px, const int topPanel_height_px,
                    AudioPluginAudioProcessorEditor *editor, Parameters *params)
     : bar_width_px(bar_width_px), topPanel_height_px(topPanel_height_px), editor(editor),
-      params(params) {
+      params(params), init_bar_width_px(bar_width_px) {
     setMouseCursor(juce::MouseCursor::PointingHandCursor);
     this->setSize(params->get_num_bars() * bar_width_px, topPanel_height_px);
 }
@@ -92,22 +92,21 @@ void TopPanel::paint(juce::Graphics &g) {
     // Zones points
     g.setColour(Theme::darkest);
     juce::Path trianglePath;
+    const float zpw = adaptSize(zonePoint_collision_width_px);
     for (int i = 1; i < zp.size() - 1; ++i) {
         int zp_px = juce::roundToInt(zp[i] * bar_width_px);
         if ((zp_px >= clipX) && (zp_px <= clipX + clipWidth)) {
             trianglePath.startNewSubPath(float(zp_px),
                                          topPanel_height_px - zonePoint_collision_width_px);
-            trianglePath.lineTo(zp_px - zonePoint_collision_width_px / 2,
-                                float(topPanel_height_px));
-            trianglePath.lineTo(zp_px + zonePoint_collision_width_px / 2,
-                                float(topPanel_height_px));
+            trianglePath.lineTo(zp_px - zpw / 2, float(topPanel_height_px));
+            trianglePath.lineTo(zp_px + zpw / 2, float(topPanel_height_px));
             trianglePath.lineTo(float(zp_px), topPanel_height_px - zonePoint_collision_width_px);
             trianglePath.closeSubPath();
             g.fillPath(trianglePath);
 
             trianglePath.startNewSubPath(float(zp_px), zonePoint_collision_width_px);
-            trianglePath.lineTo(zp_px - zonePoint_collision_width_px / 2, 0.0f);
-            trianglePath.lineTo(zp_px + zonePoint_collision_width_px / 2, 0.0f);
+            trianglePath.lineTo(zp_px - zpw / 2, 0.0f);
+            trianglePath.lineTo(zp_px + zpw / 2, 0.0f);
             trianglePath.lineTo(float(zp_px), zonePoint_collision_width_px);
             trianglePath.closeSubPath();
             g.fillPath(trianglePath);
@@ -122,14 +121,16 @@ void TopPanel::paint(juce::Graphics &g) {
     int bar_i_end = std::min((clipX + clipWidth) / bar_width_px + 1, params->get_num_bars());
     for (int i = bar_i_start; i <= bar_i_end; ++i) {
         float xPos = float(i * bar_width_px);
-        g.drawLine(xPos, 0.0f, xPos, float(topPanel_height_px), Theme::wide);
+        g.drawLine(xPos, 0.0f, xPos, float(topPanel_height_px), adaptSize(Theme::wide));
     }
 
     // Bar number
-    g.setFont(Theme::big);
+    g.setFont(adaptFont(Theme::big));
     for (int i = bar_i_start; i < bar_i_end; ++i) {
         int xPos = i * bar_width_px;
-        g.drawText(juce::String(i + 1), juce::Rectangle<int>(xPos + 5, 0, 40, topPanel_height_px),
+        g.drawText(juce::String(i + 1),
+                   juce::Rectangle<int>(xPos + adaptSize(10.0f), 0, bar_width_px - adaptSize(10.0f),
+                                        topPanel_height_px),
                    juce::Justification::centredLeft, false);
     }
 

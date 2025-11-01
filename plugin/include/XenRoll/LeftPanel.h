@@ -19,6 +19,20 @@ class LeftPanel : public juce::Component {
         repaint();
     }
 
+    float adaptSize(float inputThickness) {
+        return inputThickness * std::min(1.0f, octave_height_px * 1.0f / init_octave_height_px);
+    }
+
+    float adaptFont(float inputThickness) {
+        return inputThickness * std::min(1.0f, (octave_height_px + init_octave_height_px) * 0.5f /
+                                                   init_octave_height_px);
+    }
+
+    float adaptKeyHeight(float inputThickness) {
+        return inputThickness * std::min(1.0f, (octave_height_px + 0.5f * init_octave_height_px) *
+                                                   (2.0f / 3) / init_octave_height_px);
+    }
+
     void paint(juce::Graphics &g) override {
         g.fillAll(Theme::bright);
 
@@ -36,7 +50,8 @@ class LeftPanel : public juce::Component {
                 }
                 if (keyIsPlaying) {
                     g.fillRoundedRectangle(
-                        juce::Rectangle<float>(0.0f, yPos - 10, float(leftPanel_width_px), 20.0f),
+                        juce::Rectangle<float>(0.0f, yPos - adaptKeyHeight(10.0f),
+                                               float(leftPanel_width_px), adaptKeyHeight(20.0f)),
                         4.0f);
                 }
             }
@@ -46,39 +61,43 @@ class LeftPanel : public juce::Component {
         g.setColour(Theme::darkest);
         for (int i = 0; i <= params->num_octaves; ++i) {
             float yPos = float(i * octave_height_px);
-            g.drawLine(0, yPos, (float)leftPanel_width_px, yPos, Theme::wide);
+            g.drawLine(0, yPos, 40, yPos, adaptSize(Theme::wide));
+            g.drawLine((float)leftPanel_width_px - 20, yPos, (float)leftPanel_width_px, yPos,
+                       adaptSize(Theme::wide));
         }
 
         // keys
-        g.setFont(Theme::medium);
+        g.setFont(adaptFont(Theme::medium));
         for (int i = 0; i < params->num_octaves; ++i) {
             int j = 0;
             for (const int &key : keys) {
                 float yPos = (i + 1.0f - float(key) / 1200) * octave_height_px;
                 g.setColour(Theme::darkest);
                 g.drawLine(leftPanel_width_px - 20.0f, yPos, float(leftPanel_width_px), yPos,
-                           Theme::narrow);
+                           adaptSize(Theme::narrow));
                 if (params->showKeysHarmonicity) {
-                    const int totalCents = key + 1200*(params->num_octaves - i - 1);
+                    const int totalCents = key + 1200 * (params->num_octaves - i - 1);
                     if (keysHarmonicity.contains(totalCents)) {
                         const float keyHarm = keysHarmonicity[totalCents];
                         if (keyHarm > 0) {
-                            g.setColour(Theme::midHarmony.interpolatedWith(Theme::maxHarmony, keyHarm));
+                            g.setColour(
+                                Theme::midHarmony.interpolatedWith(Theme::maxHarmony, keyHarm));
                         } else {
-                            g.setColour(Theme::midHarmony.interpolatedWith(Theme::minHarmony, -keyHarm));
+                            g.setColour(
+                                Theme::midHarmony.interpolatedWith(Theme::minHarmony, -keyHarm));
                         }
                     }
                 }
                 g.drawText(juce::String(key),
-                           juce::Rectangle<int>(leftPanel_width_px - 106 + 42 * ((j + 1) % 2),
-                                                (int)yPos - 10, 80, 20),
-                           juce::Justification::left, false);
+                           juce::Rectangle<int>(leftPanel_width_px - 145 + 42 * ((j + 1) % 2),
+                                                (int)yPos - 9, 80, 20),
+                           juce::Justification::right, false);
                 j++;
             }
         }
 
         // octaves labels
-        g.setFont(Theme::big);
+        g.setFont(adaptFont(Theme::big));
         for (int i = 0; i < params->num_octaves; ++i) {
             float yPos = float(i * octave_height_px);
             juce::Graphics::ScopedSaveState state(g);
@@ -114,6 +133,7 @@ class LeftPanel : public juce::Component {
 
   private:
     const int leftPanel_width_px;
+    int init_octave_height_px;
     int octave_height_px;
     std::set<int> keys;
 

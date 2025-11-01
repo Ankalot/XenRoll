@@ -46,6 +46,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
   private:
     float playHeadTime;
     const int max_bar_width_px = 1000;
+    int init_octave_height_px, init_bar_width_px;
     int octave_height_px, bar_width_px;
     bool isDragging = false;
     bool isResizing = false;
@@ -96,6 +97,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     std::vector<Note> ghostNotes;
 
+    float adaptHor(float inputThickness);
+    float adaptVert(float inputThickness);
     void updateLayout();
     juce::Path getNotePath(const Note &note);
     void deleteNote(int i);

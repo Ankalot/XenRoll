@@ -6,7 +6,7 @@ namespace audio_plugin {
 MainPanel::MainPanel(int octave_height_px, int bar_width_px,
                      AudioPluginAudioProcessorEditor *editor, Parameters *params)
     : octave_height_px(octave_height_px), bar_width_px(bar_width_px), editor(editor),
-      params(params) {
+      params(params), init_octave_height_px(octave_height_px), init_bar_width_px(bar_width_px) {
     this->setSize(params->get_num_bars() * bar_width_px, params->num_octaves * octave_height_px);
     setInterceptsMouseClicks(true, true);
 
@@ -55,6 +55,14 @@ void MainPanel::drawOutlinedText(juce::Graphics &g, const juce::String &text,
     g.fillPath(textPath);
 }
 
+float MainPanel::adaptHor(float inputThickness) {
+    return  inputThickness*std::min(1.0f, octave_height_px*1.0f/init_octave_height_px);
+}
+
+float MainPanel::adaptVert(float inputThickness) {
+    return  inputThickness*std::min(1.0f, bar_width_px*1.0f/init_bar_width_px);
+}
+
 void MainPanel::paint(juce::Graphics &g) {
     // We paint only visible area
 
@@ -75,26 +83,26 @@ void MainPanel::paint(juce::Graphics &g) {
     int octave_i_end = std::min((clipY + clipHeight) / octave_height_px + 1, params->num_octaves);
     for (int i = octave_i_start; i <= octave_i_end; ++i) {
         float yPos = float(i * octave_height_px);
-        g.drawLine(float(clipX), yPos, float(clipX + clipWidth), yPos, Theme::wide);
+        g.drawLine(float(clipX), yPos, float(clipX + clipWidth), yPos, adaptHor(Theme::wide));
     }
     // bars
     int bar_i_start = clipX / bar_width_px;
     int bar_i_end = std::min((clipX + clipWidth) / bar_width_px + 1, params->get_num_bars());
     for (int i = bar_i_start; i <= bar_i_end; ++i) {
         float xPos = float(i * bar_width_px);
-        g.drawLine(xPos, 0.0f, xPos, float(octave_height_px * params->num_octaves), Theme::wide);
+        g.drawLine(xPos, 0.0f, xPos, float(octave_height_px * params->num_octaves), adaptVert(Theme::wide));
     }
     // beats and subdivisions
     for (int i = bar_i_start; i < bar_i_end; ++i) {
         for (int j = 0; j < params->num_beats; ++j) {
             float xPos = (i + float(j) / params->num_beats) * bar_width_px;
             g.drawLine(xPos, 0.0f, xPos, float(octave_height_px * params->num_octaves),
-                       Theme::narrow);
+                       adaptVert(Theme::narrow));
             for (int k = 1; k < params->num_subdivs; ++k) {
                 float xPosSub =
                     xPos + float(k) / (params->num_subdivs * params->num_beats) * bar_width_px;
                 g.drawLine(xPosSub, 0.0f, xPosSub, float(octave_height_px * params->num_octaves),
-                           Theme::narrower);
+                           adaptVert(Theme::narrower));
             }
         }
     }
@@ -105,9 +113,9 @@ void MainPanel::paint(juce::Graphics &g) {
             auto line =
                 juce::Line<float>(0.0f, yPos, float(params->get_num_bars() * bar_width_px), yPos);
             if (params->generateNewKeys && keyIsGenNew[key]) {
-                g.drawDashedLine(line, dashLengths, numDashLengths, Theme::narrow);
+                g.drawDashedLine(line, dashLengths, numDashLengths, adaptHor(Theme::narrow));
             } else {
-                g.drawLine(line, Theme::narrow);
+                g.drawLine(line, adaptHor(Theme::narrow));
             }
         }
     }
@@ -210,7 +218,7 @@ void MainPanel::paint(juce::Graphics &g) {
                     if ((posY >= clipY) && (posY <= clipY + clipHeight)) {
                         const juce::uint8 brightness = juce::roundToInt(255 * traceValue);
                         g.setColour(juce::Colour::fromRGB(brightness, brightness, brightness));
-                        g.drawLine(posXstart, posY, posXend, posY, Theme::wider);
+                        g.drawLine(posXstart, posY, posXend, posY, adaptHor(Theme::wider));
                     }
                 }
             }
@@ -289,14 +297,14 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
     if (event.mods.isCtrlDown()) {
         octave_height_px = static_cast<int>(round(octave_height_px * stretchFactor));
         int min_octave_height_px =
-            static_cast<int>(round(viewport->getHeight() / params->num_octaves)) + 1;
+            static_cast<int>(round(viewport->getHeight() / params->num_octaves));
         octave_height_px =
             juce::jlimit(min_octave_height_px, 15 * min_octave_height_px, octave_height_px);
         editor->changeOctaveHeightPx(octave_height_px);
     } else {
         bar_width_px = static_cast<int>(round(bar_width_px * stretchFactor));
         int min_bar_width_px =
-            static_cast<int>(round(viewport->getWidth() / params->get_num_bars())) + 1;
+            static_cast<int>(round(viewport->getWidth() / params->get_num_bars()));
         bar_width_px = juce::jlimit(min_bar_width_px, max_bar_width_px, bar_width_px);
         editor->changeBeatWidthPx(bar_width_px);
     }

@@ -5,7 +5,7 @@ namespace audio_plugin {
 LeftPanel::LeftPanel(int octave_height_px, int leftPanel_width_px,
                      AudioPluginAudioProcessorEditor *editor, Parameters *params)
     : octave_height_px(octave_height_px), leftPanel_width_px(leftPanel_width_px), editor(editor),
-      params(params) {
+      params(params), init_octave_height_px(octave_height_px) {
     this->setSize(leftPanel_width_px, params->num_octaves * octave_height_px);
     setWantsKeyboardFocus(false);
 }

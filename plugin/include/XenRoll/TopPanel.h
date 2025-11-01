@@ -30,6 +30,15 @@ class TopPanel : public juce::Component {
 
     void mouseDown(const juce::MouseEvent &event) override;
 
+    float adaptSize(float inputThickness) {
+        return inputThickness * std::min(1.0f, bar_width_px * 1.0f / init_bar_width_px);
+    }
+
+    float adaptFont(float inputThickness) {
+        return inputThickness * std::min(1.0f, (bar_width_px + 1.5f * init_bar_width_px) * (0.4f) /
+                                                   init_bar_width_px);
+    }
+
     void paint(juce::Graphics &g) override;
 
   private:
@@ -37,6 +46,7 @@ class TopPanel : public juce::Component {
     Parameters *params;
 
     const int topPanel_height_px;
+    int init_bar_width_px;
     int bar_width_px;
     float playHeadTime = 0.0f;
 
