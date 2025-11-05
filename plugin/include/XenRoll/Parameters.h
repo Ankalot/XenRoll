@@ -139,6 +139,7 @@ class Parameters {
     bool isCamFixedOnPlayHead = false;
     bool timeSnap = true;
     bool keySnap = false;
+    bool hideCents = false;
     bool showGhostNotesKeys = true;
     bool generateNewKeys = false;
     int numNewGenKeys = 3;

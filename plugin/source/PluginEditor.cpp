@@ -290,6 +290,17 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(keySnapButton.get());
 
+    hideCentsButton = std::make_unique<SVGButton>(
+        BinaryData::Hide_cents_svg, BinaryData::Hide_cents_svgSize, true,
+        processorRef.params.hideCents, "The less you know, the better you compose.");
+    hideCentsButton->onClick = [this](const juce::MouseEvent &me) {
+        processorRef.params.hideCents = !processorRef.params.hideCents;
+        this->leftPanel->repaint();
+        this->mainPanel->repaint();
+        return true;
+    };
+    addAndMakeVisible(hideCentsButton.get());
+
     importButton = std::make_unique<SVGButton>(BinaryData::Import_svg, BinaryData::Import_svgSize,
                                                false, false, "Import");
     importButton->onClick = [this](const juce::MouseEvent &me) {
@@ -344,8 +355,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     generateNewKeysButton = std::make_unique<SVGButton>(
         BinaryData::Generate_new_keys_svg, BinaryData::Generate_new_keys_svgSize, true,
-        processorRef.params.generateNewKeys,
-        "Generate new keys \n (RMB to open settings)");
+        processorRef.params.generateNewKeys, "Generate new keys \n (RMB to open settings)");
     generateNewKeysButton->onClick = [this](const juce::MouseEvent &me) {
         if (me.mods.isLeftButtonDown()) {
             this->processorRef.params.generateNewKeys = !this->processorRef.params.generateNewKeys;
@@ -500,6 +510,8 @@ void AudioPluginAudioProcessorEditor::resized() {
     timeSnapButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     bottom_x_pos += bottom_height_px + 15;
     keySnapButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    bottom_x_pos += bottom_height_px + 15;
+    hideCentsButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     bottom_x_pos += bottom_height_px + 15;
     importButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     bottom_x_pos += bottom_height_px + 15;

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 # Version is needed by JUCE.
-project(XenRoll VERSION 0.2.0)
+project(XenRoll VERSION 0.2.1)
 
 # Adding a directory with the library/application name as a subfolder of the
 # include folder is a good practice. It helps avoid name clashes later on.
@@ -159,6 +159,7 @@ juce_add_binary_data(
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Ghost_notes_keys.svg
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Ghost_notes_tab.svg
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Generate_new_keys.svg
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Hide_cents.svg
     HEADER_NAME BinaryData.h
 )
 

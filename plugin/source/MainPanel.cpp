@@ -179,13 +179,15 @@ void MainPanel::paint(juce::Graphics &g) {
         }
     }
     // note bend text
-    for (const Note &note : notes) {
-        juce::Path notePath = getNotePath(note);
-        if (notePath.getBounds().intersects(clipFloat)) {
-            if ((note.bend != 0) && note.isSelected) {
-                juce::String bendText =
-                    juce::String::formatted("%s%d", (note.bend > 0 ? "+" : "-"), abs(note.bend));
-                drawOutlinedText(g, bendText, notePath.getBounds(), bendFont, Theme::wide);
+    if (!params->hideCents) {
+        for (const Note &note : notes) {
+            juce::Path notePath = getNotePath(note);
+            if (notePath.getBounds().intersects(clipFloat)) {
+                if ((note.bend != 0) && note.isSelected) {
+                    juce::String bendText =
+                        juce::String::formatted("%s%d", (note.bend > 0 ? "+" : "-"), abs(note.bend));
+                    drawOutlinedText(g, bendText, notePath.getBounds(), bendFont, Theme::wide);
+                }
             }
         }
     }
@@ -773,7 +775,7 @@ void MainPanel::generateNewKeys() {
             int randInd = dist(gen);
 
             int count = 0;
-            int newGenKey;
+            int newGenKey = 0;
             for (int i = 0; i < 1200; ++i) {
                 if (pickableKeys[i]) {
                     if (count == randInd) {

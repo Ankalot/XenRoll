@@ -461,7 +461,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
     std::unique_ptr<SVGButton> settingsButton, helpButton, timeSnapButton, keySnapButton,
         importButton, exportButton, camOnPlayHeadButton, turnOnAllZonesButton,
         turnOffAllZonesButton, dissonanceButton, pitchMemorySettingsButton, pitchMemoryButton,
-        keysHarmonicityButton, ghostNotesKeysButton, ghostNotesTabButton, generateNewKeysButton;
+        keysHarmonicityButton, ghostNotesKeysButton, ghostNotesTabButton, generateNewKeysButton,
+        hideCentsButton;
     std::unique_ptr<juce::Label> numSubdivsLabel, numBeatsLabel, numBarsLabel, midiChannelLabel;
     std::unique_ptr<IntegerInput> numSubdivsInput, numBeatsInput, numBarsInput;
 

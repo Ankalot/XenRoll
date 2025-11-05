@@ -68,6 +68,7 @@ class LeftPanel : public juce::Component {
 
         // keys
         g.setFont(adaptFont(Theme::medium));
+        juce::String keyText = juce::String::fromUTF8("⤬⤬⤬");
         for (int i = 0; i < params->num_octaves; ++i) {
             int j = 0;
             for (const int &key : keys) {
@@ -88,7 +89,10 @@ class LeftPanel : public juce::Component {
                         }
                     }
                 }
-                g.drawText(juce::String(key),
+                if (!params->hideCents) {
+                    keyText = juce::String(key);
+                }
+                g.drawText(keyText,
                            juce::Rectangle<int>(leftPanel_width_px - 145 + 42 * ((j + 1) % 2),
                                                 (int)yPos - 9, 80, 20),
                            juce::Justification::right, false);
