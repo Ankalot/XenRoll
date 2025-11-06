@@ -13,8 +13,6 @@ class InstancesMenu : public juce::Component {
 
     ~InstancesMenu() override {};
 
-    void updateColors();
-
     void paint(juce::Graphics &g) override {
         g.fillAll(Theme::darker);
         g.setColour(Theme::darkest);

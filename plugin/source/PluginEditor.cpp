@@ -188,7 +188,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     juce::Font currentFont = numSubdivsLabel->getFont();
     currentFont.setHeight(Theme::big);
     numSubdivsLabel->setFont(currentFont);
-    numSubdivsLabel->setColour(juce::Label::textColourId, Theme::brightest);
     addAndMakeVisible(numSubdivsLabel.get());
     numSubdivsInput = std::make_unique<IntegerInput>(processorRef.params.num_subdivs,
                                                      processorRef.params.min_num_subdivs,
@@ -202,7 +201,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     numBeatsLabel = std::make_unique<juce::Label>();
     numBeatsLabel->setText("BEATS", juce::dontSendNotification);
     numBeatsLabel->setFont(currentFont);
-    numBeatsLabel->setColour(juce::Label::textColourId, Theme::brightest);
     addAndMakeVisible(numBeatsLabel.get());
     numBeatsInput = std::make_unique<IntegerInput>(processorRef.params.num_beats,
                                                    processorRef.params.min_num_beats,
@@ -216,7 +214,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     numBarsLabel = std::make_unique<juce::Label>();
     numBarsLabel->setText("BARS", juce::dontSendNotification);
     numBarsLabel->setFont(currentFont);
-    numBarsLabel->setColour(juce::Label::textColourId, Theme::brightest);
     addAndMakeVisible(numBarsLabel.get());
     numBarsInput = std::make_unique<IntegerInput>(processorRef.params.get_num_bars(),
                                                   processorRef.params.min_num_bars,
@@ -239,7 +236,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     midiChannelLabel->setText(midiChannelText, juce::dontSendNotification);
     currentFont.setHeight(Theme::medium);
     midiChannelLabel->setFont(currentFont);
-    midiChannelLabel->setColour(juce::Label::textColourId, Theme::brightest);
     addAndMakeVisible(midiChannelLabel.get());
 
     camOnPlayHeadButton = std::make_unique<SVGButton>(

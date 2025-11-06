@@ -116,18 +116,4 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEdit
     const int totalHeight = y + vertPadding;
     setSize(width, totalHeight);
 }
-
-void GenNewKeysMenu::updateColors() {
-    numNewKeysLabel->setColour(juce::Label::backgroundColourId, Theme::darker);
-    numNewKeysSlider->setColour(juce::Label::backgroundColourId, Theme::darker);
-
-    genNewKeysTacticsLabel->setColour(juce::Label::backgroundColourId, Theme::darker);
-    genNewKeysTacticsCombo->setColour(juce::Label::backgroundColourId, Theme::darker);
-
-    minDistExistNewKeysLabel->setColour(juce::Label::backgroundColourId, Theme::darker);
-    minDistExistNewKeysSlider->setColour(juce::Label::backgroundColourId, Theme::darker);
-
-    minDistBetweenNewKeysLabel->setColour(juce::Label::backgroundColourId, Theme::darker);
-    minDistBetweenNewKeysSlider->setColour(juce::Label::backgroundColourId, Theme::darker);
-}
 } // namespace audio_plugin

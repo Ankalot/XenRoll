@@ -76,6 +76,11 @@ class CustomLookAndFeel : public juce::LookAndFeel_V4 {
         setColour(juce::AlertWindow::backgroundColourId, Theme::darkest);
         setColour(juce::AlertWindow::textColourId, Theme::brightest);
         setColour(juce::AlertWindow::outlineColourId, Theme::darkest);
+
+        // Default colors for ToggleButton
+        setColour(juce::ToggleButton::tickColourId, Theme::brightest);
+        setColour(juce::ToggleButton::textColourId, Theme::brightest);
+        setColour(juce::ToggleButton::tickDisabledColourId, Theme::brighter);
     }
 
     juce::Typeface::Ptr getTypefaceForFont(const juce::Font &) override {
@@ -198,6 +203,11 @@ class SmallLookAndFeel : public juce::LookAndFeel_V4 {
         setColour(juce::AlertWindow::backgroundColourId, Theme::darkest);
         setColour(juce::AlertWindow::textColourId, Theme::brightest);
         setColour(juce::AlertWindow::outlineColourId, Theme::darkest);
+
+        // Default colors for ToggleButton
+        setColour(juce::ToggleButton::tickColourId, Theme::brightest);
+        setColour(juce::ToggleButton::textColourId, Theme::brightest);
+        setColour(juce::ToggleButton::tickDisabledColourId, Theme::brighter);        
     }
 
     juce::Typeface::Ptr getTypefaceForFont(const juce::Font &) override {
@@ -415,12 +425,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
         smallLF.updateColors();
         mainViewport->updateColors();
         pitchMemorySettingsPanel->updateColors();
-        instancesMenu->updateColors();
-        genNewKeysMenu->updateColors();
-        // without this sliders' textboxes wouldn't update
-        juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
-        juce::LookAndFeel::setDefaultLookAndFeel(customLF.get());
-        repaint();
+        sendLookAndFeelChange();
     }
 
     SmallLookAndFeel smallLF;

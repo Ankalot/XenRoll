@@ -42,6 +42,10 @@ class IntegerInput : public juce::Component {
 
     void resized() override { editor.setBounds(getLocalBounds()); }
 
+    void lookAndFeelChanged() override {
+        editor.applyColourToAllText(Theme::brightest);
+    }
+
     int getValue() const { return lastValidValue; }
 
     void setValue(int newValue) {

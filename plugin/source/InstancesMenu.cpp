@@ -10,7 +10,6 @@ namespace audio_plugin {
 
         // Setup title
         titleLabel = std::make_unique<juce::Label>();
-        titleLabel->setColour(juce::Label::backgroundColourId, Theme::darker);
         titleLabel->setText("View notes from instances", juce::dontSendNotification);
         juce::Font currentFont = titleLabel->getFont();
         currentFont.setHeight(Theme::small_);
@@ -24,7 +23,6 @@ namespace audio_plugin {
                 channelsLabels[i] = std::make_unique<juce::Label>();
                 channelsLabels[i]->setText("MIDI Channel " + juce::String(i + 1),
                                            juce::dontSendNotification);
-                channelsLabels[i]->setColour(juce::Label::backgroundColourId, Theme::darker);
                 channelsLabels[i]->setFont(currentFont);
                 addAndMakeVisible(channelsLabels[i].get());
 
@@ -53,15 +51,6 @@ namespace audio_plugin {
                 channelsLabels[i]->setBounds(10, yPos, 160, rowHeight);
                 channelsCheckboxes[i]->setBounds(160, yPos, 30, rowHeight);
                 ind++;
-            }
-        }
-    }
-
-    void InstancesMenu::updateColors() {
-        titleLabel->setColour(juce::Label::backgroundColourId, Theme::darker);
-        for (int i = 0; i < 16; ++i) {
-            if (i != chIndex) {
-                channelsLabels[i]->setColour(juce::Label::backgroundColourId, Theme::darker);
             }
         }
     }
