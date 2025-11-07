@@ -79,7 +79,7 @@ class PluginInstanceManager {
     std::unique_ptr<bip::named_mutex> chNtMutex[16];
 
     std::thread checkServerThread, runServerThread;
-    std::atomic<bool> checkServerFlag = false, runServerFlag = false;
+    std::atomic<bool> checkServerFlag, runServerFlag;
     const int checkServerDeltaTime = 500; // in ms
     const int runServerDeltaTime = 10;    // in ms
 

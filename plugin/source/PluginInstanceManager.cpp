@@ -2,18 +2,25 @@
 
 namespace audio_plugin {
 PluginInstanceManager::PluginInstanceManager() {
-    initAll();
+    auto future = std::async(std::launch::async, [this]() { initAll(); });
+
+    if (future.wait_for(std::chrono::milliseconds(initTimeoutTime)) != std::future_status::ready) {
+        errorMessage = "Failed to init, deadlock occured";
+        bip::shared_memory_object::remove("XenRollSharedMemory");
+        bip::named_mutex::remove("XenRollMutexChannelsSheet");
+        for (int i = 0; i < 16; ++i) {
+            bip::named_mutex::remove(("XenRollMutexChannel" + std::to_string(i) + "Freq").c_str());
+        }
+        for (int i = 0; i < 16; ++i) {
+            bip::named_mutex::remove(("XenRollMutexChannel" + std::to_string(i) + "Note").c_str());
+        }
+        checkServerFlag = false;
+        runServerFlag = false;
+        isActive = false;
+    }
 }
 
 void PluginInstanceManager::initAll() {
-    bip::shared_memory_object::remove("XenRollSharedMemory");
-    bip::named_mutex::remove("XenRollMutexChannelsSheet");
-    for (int i = 0; i < 16; ++i) {
-        bip::named_mutex::remove(("XenRollMutexChannel" + std::to_string(i) + "Freq").c_str());
-    }
-    for (int i = 0; i < 16; ++i) {
-        bip::named_mutex::remove(("XenRollMutexChannel" + std::to_string(i) + "Note").c_str());
-    }
     if (initSharedMemory()) {
         initInstance();
     }
@@ -61,15 +68,13 @@ void PluginInstanceManager::initInstance() {
     }
 
     for (int i = 0; i < 16; ++i) {
-        std::string channelName = "Channel" + std::to_string(i) + "Notes";
-        channelsNotes[i] =
-            sharedMemory->find_or_construct<std::vector<Note>>(channelName.c_str())();
+        channelsNotes[i] = sharedMemory->find_or_construct<std::vector<Note>>(
+            ("Channel" + std::to_string(i) + "Notes").c_str())();
         chNtMutex[i] = std::make_unique<bip::named_mutex>(
             bip::open_or_create, ("XenRollMutexChannel" + std::to_string(i) + "Note").c_str());
-        if ((i == channelIndex) && channelsNotes[i]) {
-            std::lock_guard<bip::named_mutex> lock(*chNtMutex[i]);
-            channelsNotes[i]->clear();
-        }
+        if (i == channelIndex)
+            if (channelsNotes[i])
+                channelsNotes[i]->clear();
     }
 
     int serverIndex = channelsSheet->serverIndex;
@@ -203,7 +208,7 @@ void PluginInstanceManager::changeChannelIndex(int desChInd) {
 
     // if desired channel is free our current channel will become abandoned
     if (!os_things::is_process_active(channelsSheet->pids[desChInd]) ||
-        !channelsSheet->instanceSlots[desChInd]) {
+            !channelsSheet->instanceSlots[desChInd]) {
         channelsSheet->instanceSlots[channelIndex] = false;
         channelsSheet->pids[channelIndex] = 0;
 
