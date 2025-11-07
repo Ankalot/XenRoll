@@ -306,6 +306,10 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
 
     const juce::String &getTextFromMessage() { return popup->getText(); }
 
+    std::tuple<float, int, int> getBpmNumDenom() {
+        return processorRef.getBpmNumDenom();
+    }
+
     void updateNotes(const std::vector<Note> &new_notes) {
         processorRef.updateNotes(new_notes);
         updatePitchMemory();

@@ -6,6 +6,7 @@
 #include "Theme.h"
 #include <algorithm>
 #include <deque>
+#include <mutex>
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace audio_plugin {
@@ -60,6 +61,10 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     juce::Rectangle<int> selectionRect;
     AudioPluginAudioProcessorEditor *editor;
     Parameters *params;
+
+    // is needed when placing a note with params->playDraggedNotes
+    std::map<int, int> placedNoteKeyCounter;
+    std::mutex mptcMtx;
 
     juce::Font bendFont;
 

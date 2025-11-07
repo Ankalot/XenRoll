@@ -36,7 +36,8 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     a4FreqSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     a4FreqSlider->onDragEnd = [this, params, editor]() {
         params->A4Freq.store(a4FreqSlider->getValue());
-        editor->A4freqChanged();    };
+        editor->A4freqChanged();
+    };
     addAndMakeVisible(a4FreqSlider.get());
 
     heightCoefLabel = std::make_unique<juce::Label>();
@@ -72,14 +73,14 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     addAndMakeVisible(themeTypeCombo.get());
 
     playDraggedNotesLabel = std::make_unique<juce::Label>();
-    playDraggedNotesLabel->setText("Play notes when you drag them:", juce::dontSendNotification);
+    playDraggedNotesLabel->setText("Play notes when you place/drag them:",
+                                   juce::dontSendNotification);
     playDraggedNotesLabel->setFont(currentFont);
     addAndMakeVisible(playDraggedNotesLabel.get());
 
     playDraggedNotesCheckbox = std::make_unique<juce::ToggleButton>();
     playDraggedNotesLabel->attachToComponent(playDraggedNotesCheckbox.get(), true);
-    playDraggedNotesCheckbox->setToggleState(params->playDraggedNotes,
-                                                juce::dontSendNotification);
+    playDraggedNotesCheckbox->setToggleState(params->playDraggedNotes, juce::dontSendNotification);
     playDraggedNotesCheckbox->onStateChange = [this, params]() {
         params->playDraggedNotes = playDraggedNotesCheckbox->getToggleState();
     };
@@ -91,27 +92,27 @@ void SettingsPanel::resized() {
     auto area = getLocalBounds().reduced(padding);
 
     // Starting octave
-    auto octaveRow = area.removeFromTop(rowHeight+padding);
+    auto octaveRow = area.removeFromTop(rowHeight + padding);
     startingOctaveLabel->setBounds(octaveRow.removeFromLeft(labelWidth));
     startingOctaveCombo->setBounds(octaveRow);
 
     // A4 frequency
-    auto freqRow = area.removeFromTop(rowHeight+padding);
+    auto freqRow = area.removeFromTop(rowHeight + padding);
     a4FreqLabel->setBounds(freqRow.removeFromLeft(labelWidth));
     a4FreqSlider->setBounds(freqRow);
 
     // Height coefficient
-    auto heightRow = area.removeFromTop(rowHeight+padding);
+    auto heightRow = area.removeFromTop(rowHeight + padding);
     heightCoefLabel->setBounds(heightRow.removeFromLeft(labelWidth));
     heightCoefSlider->setBounds(heightRow);
 
     // Color theme
-    auto themeRow = area.removeFromTop(rowHeight+padding);
+    auto themeRow = area.removeFromTop(rowHeight + padding);
     themeTypeLabel->setBounds(themeRow.removeFromLeft(labelWidth));
     themeTypeCombo->setBounds(themeRow);
 
     // Play dragged notes
-    auto playRow = area.removeFromTop(rowHeight+padding);
+    auto playRow = area.removeFromTop(rowHeight + padding);
     playDraggedNotesLabel->setBounds(playRow.removeFromLeft(labelWidth));
     playDraggedNotesCheckbox->setBounds(playRow);
 }
