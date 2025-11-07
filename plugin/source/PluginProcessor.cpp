@@ -589,6 +589,7 @@ void AudioPluginAudioProcessor::setManuallyPlayedNotesTotalCents(
     manuallyPlayedNotesTotalCents = newManuallyPlayedNotesTotalCents;
     startedPlayingManuallyPressedNotes = false;
     prepareNotes();
+    pluginInstanceManager->waitChannelUpdate();
     suspendProcessing(false);
 }
 

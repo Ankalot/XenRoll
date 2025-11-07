@@ -34,7 +34,7 @@ struct ChannelFreqs {
     int serverAction = 0;
     // needToUpdate = true   -  MTS_SetMultiChannelNoteTunings(freqs, midichannel)
     // needToUpdate = false  -  nothing
-    bool needToUpdate = false;
+    std::atomic<bool> needToUpdate{false};
     double freqs[128]{0.0};
 };
 
@@ -43,6 +43,7 @@ class PluginInstanceManager {
     PluginInstanceManager();
     ~PluginInstanceManager();
 
+    void waitChannelUpdate();
     void updateFreqs(const double freqs[128]);
     void updateNotes(const std::vector<Note> &notes);
     // It may take up channel already occupied, but in theory, this won't happen after all instance 
