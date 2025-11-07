@@ -43,6 +43,8 @@ class PluginInstanceManager {
     PluginInstanceManager();
     ~PluginInstanceManager();
 
+    void performEmergencyCleanup();
+
     void waitChannelUpdate();
     void updateFreqs(const double freqs[128]);
     void updateNotes(const std::vector<Note> &notes);
@@ -57,7 +59,7 @@ class PluginInstanceManager {
 
   private:
     void initAll();
-    bool initSharedMemory();
+    void initSharedMemory();
     void initInstance();
 
     void becomeClient();
@@ -67,6 +69,7 @@ class PluginInstanceManager {
     void runServer();
 
     const int initTimeoutTime = 2000; // in ms
+    const int lockTimeoutTime = 500; // in ms
 
     std::unique_ptr<bip::managed_shared_memory> sharedMemory;
     std::unique_ptr<bip::named_mutex> chShMutex;
@@ -79,13 +82,13 @@ class PluginInstanceManager {
     std::unique_ptr<bip::named_mutex> chNtMutex[16];
 
     std::thread checkServerThread, runServerThread;
-    std::atomic<bool> checkServerFlag, runServerFlag;
+    std::atomic<bool> checkServerFlag{false}, runServerFlag{false};
     const int checkServerDeltaTime = 500; // in ms
     const int runServerDeltaTime = 10;    // in ms
 
     int channelIndex = -1; // 0-15 range
-    bool isActive = false;
-    bool isServer = false;
+    std::atomic<bool> isActive{false};
+    std::atomic<bool> isServer{false};
     std::string errorMessage = "";
 };
 } // namespace audio_plugin
