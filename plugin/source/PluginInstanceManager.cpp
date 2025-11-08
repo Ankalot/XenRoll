@@ -158,7 +158,7 @@ void PluginInstanceManager::becomeServer() {
                     "Unable to acquire mutex lock within timeout - possible deadlock");
             }
             channelsFreqs[i]->serverAction = 1;
-            channelsFreqs[i]->needToUpdate.store(true);
+            channelsFreqs[i]->needToUpdate.store(true, std::memory_order_release);
         }
     }
 
@@ -191,7 +191,7 @@ void PluginInstanceManager::runServer() {
                 bip::scoped_lock<bip::named_mutex> lock(*chFqMutex[i]);
                 if (channelsFreqs[i]->serverAction == -1) {
                     MTS_SetMultiChannel(false, char(i));
-                    channelsFreqs[i]->needToUpdate.store(false);
+                    channelsFreqs[i]->needToUpdate.store(false, std::memory_order_release);
                     channelsFreqs[i]->serverAction = 0;
                     continue;
                 }
@@ -199,9 +199,9 @@ void PluginInstanceManager::runServer() {
                     MTS_SetMultiChannel(true, char(i));
                     channelsFreqs[i]->serverAction = 0;
                 }
-                if (channelsFreqs[i]->needToUpdate.load()) {
+                if (channelsFreqs[i]->needToUpdate.load(std::memory_order_acquire)) {
                     MTS_SetMultiChannelNoteTunings(channelsFreqs[i]->freqs, char(i));
-                    channelsFreqs[i]->needToUpdate.store(false);
+                    channelsFreqs[i]->needToUpdate.store(false, std::memory_order_release);
                 }
             }
         }
@@ -212,7 +212,7 @@ void PluginInstanceManager::runServer() {
 void PluginInstanceManager::waitChannelUpdate() {
     if (isActive) {
         ChannelFreqs *channel = channelsFreqs[channelIndex];
-        while (channel->needToUpdate.load()) {
+        while (channel->needToUpdate.load(std::memory_order_acquire)) {
             std::this_thread::yield();
         }
     }
@@ -223,7 +223,7 @@ void PluginInstanceManager::updateFreqs(const double freqs[128]) {
         bip::scoped_lock<bip::named_mutex> lock(*chFqMutex[channelIndex]);
         ChannelFreqs *channel = channelsFreqs[channelIndex];
         std::memcpy(channel->freqs, freqs, sizeof(double) * 128);
-        channel->needToUpdate.store(true);
+        channel->needToUpdate.store(true, std::memory_order_release);
     }
 }
 
