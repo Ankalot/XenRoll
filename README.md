@@ -11,8 +11,8 @@
 * XenRoll is an MTS-ESP master.
 
 ## How to get it?
-So far there is only a VST3 version for Windows.  
-Go to the releases tab and download the archive. There will be instructions inside.
+So far there are only VST3 versions for Windows and for Linux.
+Go to the releases tab and download the corresponding archive. There will be instructions inside.
 
 ## How to use it?
 1. Use a DAW that supports MTS-ESP (e.g., FL Studio, Reaper, Bitwig, etc.).  
@@ -20,14 +20,14 @@ Go to the releases tab and download the archive. There will be instructions insi
 
 List of synths that definitely work with Xenroll:  
 * Serum  
-* Serum 2 (with disabled MPE!)  
-* Surge XT (disable MPE, disable 2&3 thing in Menu->Midi settings)
+* Serum 2 (with DISABLED MPE!)  
+* Surge XT (DISABLE MPE, DISABLE 2&3 thing in Menu->Midi settings!)
  
 List of samplers that definitely work with Xenroll:  
 * Shortcircuit XT (don't forget to set corresponding midi channel) 
 
 ## How to build from source?
-You will need JUCE, a C++ compiler, CMake, and the C++ Boost library. You may have to make some adjustments to CMakeLists.txt. You can use `*.bat` scripts.  
+You will need JUCE, a C++ compiler, CMake, and the C++ Boost library. You may have to make some adjustments to CMakeLists.txt. You can use `*.bat`/`*.sh` scripts.  
 To debug the plugin through VS Code and any DAW, configure the .vscode/launch.json file.
 
 ## Examples
