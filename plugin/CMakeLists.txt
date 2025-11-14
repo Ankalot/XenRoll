@@ -29,7 +29,6 @@ juce_add_plugin(
   PLUGIN_CODE
   Xnrl
   FORMATS
-  Standalone
   VST3
   PRODUCT_NAME
   "XenRoll"

@@ -539,7 +539,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                 if (params->timeSnap) {
                     if (abs(dtime) >= dt) {
                         notes[i].duration = std::max(
-                            notes[i].duration + sgn(dtime) * floor(abs(dtime) / dt) * dt, dt);
+                            float(notes[i].duration + sgn(dtime) * floor(abs(dtime) / dt) * dt), dt);
                         resized = true;
                     }
                 } else {

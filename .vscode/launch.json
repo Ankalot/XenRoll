@@ -11,7 +11,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "console": "integratedTerminal",  
+            "console": "integratedTerminal",  // remove when you are on Linux
             //"preLaunchTask": "build-debug",
         }
     ]

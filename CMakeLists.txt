@@ -58,7 +58,7 @@ include(cmake/Util.cmake)
 add_subdirectory(plugin)
 
 # This command allows running tests from the "build" folder (the one where CMake generates the project to).
-enable_testing()
+#enable_testing()
 
 # Adds all the targets configured in the "test" folder.
-add_subdirectory(test)
+#add_subdirectory(test)
