@@ -22,6 +22,7 @@ List of synths that definitely work with Xenroll:
 * Serum  
 * Serum 2 (with DISABLED MPE!)  
 * Surge XT (DISABLE MPE, DISABLE 2&3 thing in Menu->Midi settings!)
+* Junior from Fors (4-bit Synthesizer)
  
 List of samplers that definitely work with Xenroll:  
 * Shortcircuit XT (don't forget to set corresponding midi channel) 
