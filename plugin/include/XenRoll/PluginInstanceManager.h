@@ -84,7 +84,7 @@ class PluginInstanceManager {
     std::thread checkServerThread, runServerThread;
     std::atomic<bool> checkServerFlag{false}, runServerFlag{false};
     const int checkServerDeltaTime = 500; // in ms
-    const int runServerDeltaTime = 10;    // in ms
+    //const int runServerDeltaTime = 10;    // in ms
 
     int channelIndex = -1; // 0-15 range
     std::atomic<bool> isActive{false};

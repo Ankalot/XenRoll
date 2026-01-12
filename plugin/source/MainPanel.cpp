@@ -1386,12 +1386,19 @@ juce::Path MainPanel::getNotePath(const Note &note) {
     float y2 = y1 - dy;
 
     juce::Path path;
-    if ((note.bend == 0) || (height >= width)) {
-        // make parallelogram
+    if (note.bend == 0) {
+        // make horizontal rectangle
         path.startNewSubPath(x1, y1 - height / 2);
         path.lineTo(x2, y2 - height / 2);
         path.lineTo(x2, y2 + height / 2);
         path.lineTo(x1, y1 + height / 2);
+        path.closeSubPath();
+    } else if (height >= width) {
+        // make vertical rectangle 
+        path.startNewSubPath(x1, y1 - height / 2);
+        path.lineTo(x2, y1 - height / 2);
+        path.lineTo(x2, y2 + height / 2);
+        path.lineTo(x1, y2 + height / 2);
         path.closeSubPath();
     } else {
         // make hexagon
