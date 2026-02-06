@@ -572,21 +572,20 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
     if (!stream.isExhausted()) {
         params.ratiosMarks.clear();
         int numRatiosMarks = stream.readInt();
-        if ((numRatiosMarks <= 0) || (numRatiosMarks > 1e6)) {
-            return;
+        if ((numRatiosMarks >= 0) && (numRatiosMarks < 1e6)) {
+            params.ratiosMarks.reserve(numRatiosMarks);
+            for (int i = 0; i < numRatiosMarks; ++i) {
+                int lktc = stream.readInt();
+                int hktc = stream.readInt();
+                float t = stream.readFloat();
+                RatioMark ratioMark(lktc, hktc, t, &params);
+                params.ratiosMarks.push_back(ratioMark);
+            }
+            // Other ratios marks related things
+            params.autoCorrectRatiosMarks = stream.readBool();
+            params.maxDenRatiosMarks = stream.readInt();
+            params.goodEnoughErrorRatiosMarks = stream.readInt();
         }
-        params.ratiosMarks.reserve(numRatiosMarks);
-        for (int i = 0; i < numRatiosMarks; ++i) {
-            int lktc = stream.readInt();
-            int hktc = stream.readInt();
-            float t = stream.readFloat();
-            RatioMark ratioMark(lktc, hktc, t, &params);
-            params.ratiosMarks.push_back(ratioMark);
-        }
-        // Other ratios marks related things
-        params.autoCorrectRatiosMarks = stream.readBool();
-        params.maxDenRatiosMarks = stream.readInt();
-        params.goodEnoughErrorRatiosMarks = stream.readInt();
     }
 
     // UPDATE NOTES
