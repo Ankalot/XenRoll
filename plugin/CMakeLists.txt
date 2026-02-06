@@ -57,12 +57,15 @@ set(SOURCE_FILES source/PluginEditor.cpp
                  source/PitchMemory.cpp
                  source/PitchMemorySettingsPanel.cpp
                  source/GenNewKeysMenu.cpp
+                 source/EditRatiosMarksMenu.cpp
+                 source/RatioMark.cpp
                  ${MTS_ESP_DIR}/libMTSMaster.cpp)
 # Optional; includes header files in the project file tree in Visual Studio
 set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h 
                  ${INCLUDE_DIR}/PluginProcessor.h 
                  ${INCLUDE_DIR}/IntegerInput.h
                  ${INCLUDE_DIR}/Note.h
+                 ${INCLUDE_DIR}/RatioMark.h
                  ${INCLUDE_DIR}/CircularStack.h
                  ${INCLUDE_DIR}/RelevanceQueue.h
                  ${INCLUDE_DIR}/TopPanel.h 
@@ -87,6 +90,7 @@ set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h
                  ${INCLUDE_DIR}/PitchMemorySettingsPanel.h
                  ${INCLUDE_DIR}/PitchMemory.h
                  ${INCLUDE_DIR}/GenNewKeysMenu.h
+                 ${INCLUDE_DIR}/EditRatiosMarksMenu.h
                  ${MTS_ESP_DIR}/libMTSMaster.h)
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
 
@@ -159,6 +163,7 @@ juce_add_binary_data(
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Ghost_notes_tab.svg
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Generate_new_keys.svg
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Hide_cents.svg
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Edit_ratios_marks.svg
     HEADER_NAME BinaryData.h
 )
 

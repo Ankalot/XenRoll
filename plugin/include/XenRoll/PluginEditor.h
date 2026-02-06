@@ -18,6 +18,7 @@
 #include "TopPanel.h"
 #include "InstancesMenu.h"
 #include "GenNewKeysMenu.h"
+#include "EditRatiosMarksMenu.h"
 #include "VelocityPanel.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -291,15 +292,18 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
 
     void showMessage(const juce::String &message) { popup->showMessage(message); }
 
-    void zonesChanged() {
+    void remakeKeys() {
         mainPanel->remakeKeys();
         mainPanel->repaint();
+    }
+
+    void zonesChanged() {
+        remakeKeys();
         updatePitchMemory();
     }
 
-    void genNewKeysParamsChanged() {
-        mainPanel->remakeKeys();
-        mainPanel->repaint();
+    void editRatiosMarksMenuChanged() {
+        mainPanel->updateRatiosMarks();
     }
 
     void hideMessage() { popup->timerCallback(); }
@@ -455,6 +459,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
 
     std::unique_ptr<InstancesMenu> instancesMenu;
     std::unique_ptr<GenNewKeysMenu> genNewKeysMenu;
+    std::unique_ptr<EditRatiosMarksMenu> editRatiosMarksMenu;
 
     std::unique_ptr<VelocityPanel> velocityPanel;
 
@@ -471,7 +476,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
         importButton, exportButton, camOnPlayHeadButton, turnOnAllZonesButton,
         turnOffAllZonesButton, dissonanceButton, pitchMemorySettingsButton, pitchMemoryButton,
         keysHarmonicityButton, ghostNotesKeysButton, ghostNotesTabButton, generateNewKeysButton,
-        hideCentsButton;
+        hideCentsButton, editRatiosMarksButton;
     std::unique_ptr<juce::Label> numSubdivsLabel, numBeatsLabel, numBarsLabel, midiChannelLabel;
     std::unique_ptr<IntegerInput> numSubdivsInput, numBeatsInput, numBarsInput;
 

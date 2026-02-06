@@ -452,6 +452,18 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
     stream.writeBool(params.pitchMemoryShowOnlyHarmonicity);
     stream.writeBool(params.playDraggedNotes);
     stream.writeInt(params.channelIndex);
+
+    // Write ratios marks
+    stream.writeInt(static_cast<int>(params.ratiosMarks.size()));
+    for (const auto &ratioMark : params.ratiosMarks) {
+        stream.writeInt(ratioMark.getLowerKeyTotalCents());
+        stream.writeInt(ratioMark.getHigherKeyTotalCents());
+        stream.writeFloat(ratioMark.time);
+    }
+    // Other ratios marks related things
+    stream.writeBool(params.autoCorrectRatiosMarks);
+    stream.writeInt(params.maxDenRatiosMarks);
+    stream.writeInt(params.goodEnoughErrorRatiosMarks);
 }
 
 void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeInBytes) {
@@ -554,6 +566,27 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
             pluginInstanceManager->changeChannelIndex(desiredChannelIndex);
             params.channelIndex = pluginInstanceManager->getChannelIndex();
         }
+    }
+
+    // Read ratios marks
+    if (!stream.isExhausted()) {
+        params.ratiosMarks.clear();
+        int numRatiosMarks = stream.readInt();
+        if ((numRatiosMarks <= 0) || (numRatiosMarks > 1e6)) {
+            return;
+        }
+        params.ratiosMarks.reserve(numRatiosMarks);
+        for (int i = 0; i < numRatiosMarks; ++i) {
+            int lktc = stream.readInt();
+            int hktc = stream.readInt();
+            float t = stream.readFloat();
+            RatioMark ratioMark(lktc, hktc, t, &params);
+            params.ratiosMarks.push_back(ratioMark);
+        }
+        // Other ratios marks related things
+        params.autoCorrectRatiosMarks = stream.readBool();
+        params.maxDenRatiosMarks = stream.readInt();
+        params.goodEnoughErrorRatiosMarks = stream.readInt();
     }
 
     // UPDATE NOTES

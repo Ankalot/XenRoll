@@ -38,9 +38,11 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void updateNotes(const std::vector<Note> &new_notes);
     void updateGhostNotes(const std::vector<Note> &new_ghostNotes);
     void remakeKeys();
+    void updateRatiosMarks();
     void numBarsChanged();
     void setVelocitiesOfSelectedNotes(float vel);
     std::pair<int, int> findNearestKey(int cents, int octave);
+    std::optional<int> findNearestKeyWithLimit(int key, int maxCentsChange, const std::set<int>& keys);
 
     void updatePitchMemoryResults(const PitchMemoryResults &newPitchMemoryResults);
 
@@ -55,10 +57,13 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool isSelecting = false;
     bool wasResizing = false;
     bool wasMoving = false;
+    bool isDrawingRatioMark = false;
     juce::Point<int> lastDragPos;
     juce::Point<int> lastViewPos;
     juce::Point<int> selectStartPos;
     juce::Rectangle<int> selectionRect;
+    juce::Point<int> ratioMarkStartPos;
+    juce::Point<int> ratioMarkLastPos;
     AudioPluginAudioProcessorEditor *editor;
     Parameters *params;
 
@@ -77,6 +82,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     // new should be added at the end (with push_back) (don't remember why lol)
     std::vector<Note> notes;
     std::set<int> keys;
+    std::set<int> allAllKeys; // needed when params->autoCorrectRatiosMarks
     std::array<bool, 1200> keyIsGenNew;
     // ==================== Needed for generating new keys ====================
     void generateNewKeys();
@@ -102,8 +108,10 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     std::vector<Note> ghostNotes;
 
+    std::pair<int,int> pointToOctaveCents(juce::Point<int> point);
     float adaptHor(float inputThickness);
     float adaptVert(float inputThickness);
+    float adaptFont(float inputThickness);
     void updateLayout();
     juce::Path getNotePath(const Note &note);
     void deleteNote(int i);

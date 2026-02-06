@@ -286,6 +286,27 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(keySnapButton.get());
 
+    editRatiosMarksMenu = std::make_unique<EditRatiosMarksMenu>(&processorRef.params, this);
+    addAndMakeVisible(editRatiosMarksMenu.get());
+    editRatiosMarksMenu->setVisible(false);
+
+    editRatiosMarksButton = std::make_unique<SVGButton>(
+        BinaryData::Edit_ratios_marks_svg, BinaryData::Edit_ratios_marks_svgSize, true,
+        processorRef.params.editRatiosMarks,
+        "Create (dragging LMB) and delete (click RMB) "
+        "ratios marks between keys in a certain place on the canvas.\n(RMB to open settings)");
+
+    editRatiosMarksButton->onClick = [this](const juce::MouseEvent &me) {
+        if (me.mods.isLeftButtonDown()) {
+            processorRef.params.editRatiosMarks = !processorRef.params.editRatiosMarks;
+        } else if (me.mods.isRightButtonDown()) {
+            this->editRatiosMarksMenu->setVisible(!this->editRatiosMarksMenu->isVisible());
+            return false;
+        }
+        return true;
+    };
+    addAndMakeVisible(editRatiosMarksButton.get());
+
     hideCentsButton = std::make_unique<SVGButton>(
         BinaryData::Hide_cents_svg, BinaryData::Hide_cents_svgSize, true,
         processorRef.params.hideCents, "The less you know, the better you compose.");
@@ -355,7 +376,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     generateNewKeysButton->onClick = [this](const juce::MouseEvent &me) {
         if (me.mods.isLeftButtonDown()) {
             this->processorRef.params.generateNewKeys = !this->processorRef.params.generateNewKeys;
-            this->genNewKeysParamsChanged();
+            this->remakeKeys();
         } else if (me.mods.isRightButtonDown()) {
             this->genNewKeysMenu->setVisible(!this->genNewKeysMenu->isVisible());
             return false;
@@ -506,6 +527,12 @@ void AudioPluginAudioProcessorEditor::resized() {
     timeSnapButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     bottom_x_pos += bottom_height_px + 15;
     keySnapButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    bottom_x_pos += bottom_height_px + 15;
+    editRatiosMarksButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    editRatiosMarksMenu->setBounds(
+        bottom_x_pos + (bottom_height_px - editRatiosMarksMenu->getWidth()) / 2,
+        bottom_y - editRatiosMarksMenu->getHeight() - 10, editRatiosMarksMenu->getWidth(),
+        editRatiosMarksMenu->getHeight());
     bottom_x_pos += bottom_height_px + 15;
     hideCentsButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     bottom_x_pos += bottom_height_px + 15;

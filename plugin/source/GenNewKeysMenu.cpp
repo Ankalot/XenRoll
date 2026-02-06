@@ -25,7 +25,7 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEdit
     numNewKeysSlider->onDragEnd = [this, params, editor]() {
         params->numNewGenKeys = int(numNewKeysSlider->getValue());
         if (params->generateNewKeys) {
-            editor->genNewKeysParamsChanged();
+            editor->remakeKeys();
         }
     };
     addAndMakeVisible(numNewKeysSlider.get());
@@ -44,7 +44,7 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEdit
         params->genNewKeysTactics =
             static_cast<Parameters::GenNewKeysTactics>(genNewKeysTacticsCombo->getSelectedId());
         if (params->generateNewKeys) {
-            editor->genNewKeysParamsChanged();
+            editor->remakeKeys();
         }
     };
     addAndMakeVisible(genNewKeysTacticsCombo.get());
@@ -66,7 +66,7 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEdit
     minDistExistNewKeysSlider->onDragEnd = [this, params, editor]() {
         params->minDistExistNewKeys = int(minDistExistNewKeysSlider->getValue());
         if (params->generateNewKeys) {
-            editor->genNewKeysParamsChanged();
+            editor->remakeKeys();
         }
     };
     addAndMakeVisible(minDistExistNewKeysSlider.get());
@@ -87,7 +87,7 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEdit
     minDistBetweenNewKeysSlider->onDragEnd = [this, params, editor]() {
         params->minDistBetweenNewKeys = int(minDistBetweenNewKeysSlider->getValue());
         if (params->generateNewKeys) {
-            editor->genNewKeysParamsChanged();
+            editor->remakeKeys();
         }
     };
     addAndMakeVisible(minDistBetweenNewKeysSlider.get());

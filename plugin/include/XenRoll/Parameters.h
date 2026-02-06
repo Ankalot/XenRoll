@@ -2,6 +2,7 @@
 
 #include "Theme.h"
 #include "Zones.h"
+#include "RatioMark.h"
 #include <atomic>
 #include <stdexcept>
 #include "PartialsFinder.h"
@@ -22,7 +23,7 @@ class Parameters {
     static constexpr int num_octaves = 10;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Minimum values ~~~~~~~~~~~~~~~~~~~~~~~~
-    static constexpr int min_editorWidth = 1300;
+    static constexpr int min_editorWidth = 1330;
     static constexpr int min_editorHeight = 600;
     static constexpr int min_num_bars = 1;
     static constexpr int min_num_beats = 1;
@@ -33,6 +34,8 @@ class Parameters {
     static constexpr int min_num_new_notes = 1;
     static constexpr int min_minDistExistNewKeys = 10;
     static constexpr int min_minDistBetweenNewKeys = 10;
+    static constexpr int min_maxDenRatiosMarks = 16;
+    static constexpr int min_goodEnoughErrorRatiosMarks = 1;
     // ================== Intellectual ==================
     // Partials/dissonance
     static constexpr int min_plotPartialsTotalCents = 0;
@@ -58,6 +61,8 @@ class Parameters {
     static constexpr int max_num_new_notes = 10;
     static constexpr int max_minDistExistNewKeys = 100;
     static constexpr int max_minDistBetweenNewKeys = 100;
+    static constexpr int max_maxDenRatiosMarks = 64;
+    static constexpr int max_goodEnoughErrorRatiosMarks = 20;
     // ================== Intellectual ==================
     // Partials/dissonance
     static constexpr int max_plotPartialsTotalCents = num_octaves * 1200 - 1;
@@ -72,7 +77,7 @@ class Parameters {
     // ==================================================
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~ Saved params ~~~~~~~~~~~~~~~~~~~~~~~~~
-    int editorWidth = 1200;
+    int editorWidth = 1330;
     int editorHeight = 700;
     int num_beats = 4;
     int num_subdivs = 4;
@@ -80,6 +85,10 @@ class Parameters {
     std::atomic<double> A4Freq = 440.0;
     float noteRectHeightCoef = 0.04f;
     Zones zones;
+    std::vector<RatioMark> ratiosMarks = {};
+    bool autoCorrectRatiosMarks = true;
+    int maxDenRatiosMarks = 40;
+    int goodEnoughErrorRatiosMarks = 4;
     Theme::ThemeType themeType = Theme::ThemeType::Gray;
     bool playDraggedNotes = true;
     int channelIndex = -1; // -1 means uninited state, normal range 0-15
@@ -139,6 +148,7 @@ class Parameters {
     bool isCamFixedOnPlayHead = false;
     bool timeSnap = true;
     bool keySnap = false;
+    bool editRatiosMarks = false;
     bool hideCents = false;
     bool showGhostNotesKeys = true;
     bool generateNewKeys = false;

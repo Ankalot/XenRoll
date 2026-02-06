@@ -63,6 +63,13 @@ float MainPanel::adaptVert(float inputThickness) {
     return inputThickness * std::min(1.0f, bar_width_px * 1.0f / init_bar_width_px);
 }
 
+float MainPanel::adaptFont(float inputThickness) {
+    return inputThickness * std::min(std::min(1.0f, (octave_height_px + 1.0f * init_octave_height_px) *
+                                                        (0.5f) / init_octave_height_px),
+                                     std::min(1.0f, (bar_width_px + 1.0f * init_bar_width_px) *
+                                                        (0.5f) / init_bar_width_px));
+}
+
 void MainPanel::paint(juce::Graphics &g) {
     // We paint only visible area
 
@@ -237,6 +244,70 @@ void MainPanel::paint(juce::Graphics &g) {
         g.setColour(Theme::brightest);
         g.drawRect(selectionRect, int(Theme::narrow));
     }
+
+    // ratios marks
+    g.setColour(Theme::activated);
+    const auto fontSizeRatio = adaptFont(Theme::big);
+    const auto fontSizeError = adaptFont(Theme::small_);
+    for (const auto ratioMark : params->ratiosMarks) {
+        float wdth = adaptVert(Theme::wide);
+        float ratioMarkXPos = ratioMark.time * bar_width_px;
+        if ((ratioMarkXPos >= clipX) && (ratioMarkXPos <= clipX + clipWidth)) {
+
+            float lowerKeyY =
+                (params->num_octaves - float(ratioMark.getLowerKeyTotalCents()) / 1200) *
+                octave_height_px;
+            float higherKeyY =
+                (params->num_octaves - float(ratioMark.getHigherKeyTotalCents()) / 1200) *
+                octave_height_px;
+
+            // double arrow
+            const auto point1 = juce::Point<float>(ratioMarkXPos, lowerKeyY);
+            const float midY = (lowerKeyY + higherKeyY) / 2.0f;
+            const auto point2 = juce::Point<float>(ratioMarkXPos, (lowerKeyY + higherKeyY) / 2.0f);
+            const auto point3 = juce::Point<float>(ratioMarkXPos, higherKeyY);
+            g.drawArrow(juce::Line<float>(point2, point1), wdth, wdth * 3, wdth * 3);
+            g.drawArrow(juce::Line<float>(point2, point3), wdth, wdth * 3, wdth * 3);
+
+            // ratio
+            int num, den;
+            std::tie(num, den) = ratioMark.getRatio();
+            juce::String ratioMarkText = juce::String(num) + "/" + juce::String(den);
+            g.setFont(fontSizeRatio);
+            g.drawText(ratioMarkText,
+                       juce::Rectangle<float>(ratioMarkXPos + adaptVert(5), midY - fontSizeRatio,
+                                              100, fontSizeRatio),
+                       juce::Justification::centredLeft);
+
+            // error in cents
+            int err = ratioMark.getError();
+            if (err != 0) {
+                juce::String errorMarkText = "";
+                if (err > 0) {
+                    errorMarkText += "+";
+                }
+                errorMarkText += juce::String(err) + "¢";
+                g.setFont(fontSizeError);
+                g.drawText(errorMarkText,
+                           juce::Rectangle<float>(ratioMarkXPos + adaptVert(5), midY + adaptHor(3),
+                                                  100, fontSizeError),
+                           juce::Justification::centredLeft);
+            }
+        }
+    }
+
+    // ratio mark preline
+    if (isDrawingRatioMark) {
+        g.setColour(Theme::activated);
+        float wdth = adaptVert(Theme::wide);
+        const auto point1 = ratioMarkStartPos.toFloat();
+        const auto point2 =
+            juce::Point<float>(ratioMarkStartPos.getX(),
+                               (ratioMarkStartPos.getY() + ratioMarkLastPos.getY()) / 2.0f);
+        const auto point3 = juce::Point<float>(ratioMarkStartPos.getX(), ratioMarkLastPos.getY());
+        g.drawArrow(juce::Line<float>(point2, point1), wdth, wdth * 3, wdth * 3);
+        g.drawArrow(juce::Line<float>(point2, point3), wdth, wdth * 3, wdth * 3);
+    }
 }
 
 void MainPanel::unselectAllNotes() {
@@ -255,6 +326,8 @@ void MainPanel::numBarsChanged() {
             notesNum--;
         }
     }
+    std::erase_if(params->ratiosMarks,
+                  [&](const auto &ratioMark) { return (ratioMark.time > params->get_num_bars()); });
     int min_bar_width_px =
         static_cast<int>(round(getParentComponent()->getWidth() / params->get_num_bars())) + 1;
     if (bar_width_px < min_bar_width_px) {
@@ -323,18 +396,34 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
                               juce::jlimit(0, juce::jmax(0, newHeight - viewHeight), targetY));
 }
 
+std::pair<int, int> MainPanel::pointToOctaveCents(juce::Point<int> point) {
+    int octave = params->num_octaves - 1 - point.getY() / octave_height_px;
+    int cents = static_cast<int>(round(
+                    (1.0f - (point.getY() % octave_height_px) * 1.0f / octave_height_px) * 1200)) %
+                1200;
+    if (cents == 0) {
+        octave += 1;
+        if (octave == params->num_octaves) {
+            octave--;
+        }
+    }
+    return std::make_pair(octave, cents);
+}
+
 void MainPanel::mouseDown(const juce::MouseEvent &event) {
     grabKeyboardFocus();
     juce::Point<int> point = event.getPosition();
 
     if (event.mods.isMiddleButtonDown()) {
-        for (int i = int(notes.size()) - 1; i >= 0; --i) {
-            juce::Path notePath = getNotePath(notes[i]);
-            if (notePath.contains(point.toFloat())) {
-                notes[i].isSelected = true;
-                editor->showVelocityPanel(notes[i].velocity);
-                repaint();
-                return;
+        if (!params->editRatiosMarks) {
+            for (int i = int(notes.size()) - 1; i >= 0; --i) {
+                juce::Path notePath = getNotePath(notes[i]);
+                if (notePath.contains(point.toFloat())) {
+                    notes[i].isSelected = true;
+                    editor->showVelocityPanel(notes[i].velocity);
+                    repaint();
+                    return;
+                }
             }
         }
 
@@ -345,6 +434,13 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
     }
 
     if (event.mods.isLeftButtonDown()) {
+        if (params->editRatiosMarks) {
+            ratioMarkStartPos = point;
+            ratioMarkLastPos = point;
+            isDrawingRatioMark = true;
+            return;
+        }
+
         for (int i = int(notes.size()) - 1; i >= 0; --i) {
             juce::Path notePath = getNotePath(notes[i]);
             if (notePath.contains(point.toFloat())) {
@@ -403,17 +499,8 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                                 1.0f / (params->num_beats * params->num_subdivs));
         }
         lastDuration = duration;
-        int octave = params->num_octaves - 1 - point.getY() / octave_height_px;
-        int cents =
-            static_cast<int>(round(
-                (1.0f - (point.getY() % octave_height_px) * 1.0f / octave_height_px) * 1200)) %
-            1200;
-        if (cents == 0) {
-            octave += 1;
-            if (octave == params->num_octaves) {
-                return;
-            }
-        }
+        int octave, cents;
+        std::tie(octave, cents) = pointToOctaveCents(point);
         if (params->keySnap && !keys.empty()) {
             std::tie(octave, cents) = centsToKeysCents(octave, cents);
         }
@@ -467,6 +554,26 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
     }
 
     if (event.mods.isRightButtonDown()) {
+        const int dx = 5;
+        const int dy = 2; // so you can delete 1/1 ratio
+        if (params->editRatiosMarks) {
+            std::erase_if(params->ratiosMarks, [&](const auto &ratioMark) {
+                float ratioMarkXPos = ratioMark.time * bar_width_px;
+                if ((ratioMarkXPos - dx < point.getX()) && (point.getX() < ratioMarkXPos + dx)) {
+                    float ratioMarkHighYPos =
+                        (params->num_octaves - float(ratioMark.getHigherKeyTotalCents()) / 1200) *
+                        octave_height_px;
+                    float ratioMarkLowYPos =
+                        (params->num_octaves - float(ratioMark.getLowerKeyTotalCents()) / 1200) *
+                        octave_height_px;
+                    return (ratioMarkHighYPos - dy < point.getY()) && (point.getY() < ratioMarkLowYPos + dy);
+                }
+                return false;
+            });
+            repaint();
+            return;
+        }
+
         selectStartPos = point;
         juce::Point<float> pointFloat = event.getPosition().toFloat();
         for (int i = int(notes.size()) - 1; i >= 0; --i) {
@@ -539,7 +646,8 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                 if (params->timeSnap) {
                     if (abs(dtime) >= dt) {
                         notes[i].duration = std::max(
-                            float(notes[i].duration + sgn(dtime) * floor(abs(dtime) / dt) * dt), dt);
+                            float(notes[i].duration + sgn(dtime) * floor(abs(dtime) / dt) * dt),
+                            dt);
                         resized = true;
                     }
                 } else {
@@ -653,6 +761,15 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         selectionRect = juce::Rectangle<int>(selectStartPos, event.getPosition());
         repaint();
     }
+
+    if (isDrawingRatioMark) {
+        ratioMarkLastPos = event.getPosition();
+        auto currentMods = juce::ModifierKeys::getCurrentModifiers();
+        if (currentMods.isRightButtonDown()) {
+            isDrawingRatioMark = false;
+        }
+        repaint();
+    }
 }
 
 bool MainPanel::doesPathIntersectRect(const juce::Path &parallelogram,
@@ -712,11 +829,44 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
         }
         isSelecting = false;
     }
+
+    if (isDrawingRatioMark) {
+        if ((ratioMarkStartPos != ratioMarkLastPos) && !keys.empty()) {
+            int startKeyOctave, startKeyCents, lastKeyOctave, lastKeyCents;
+
+            std::tie(startKeyOctave, startKeyCents) = pointToOctaveCents(ratioMarkStartPos);
+            std::tie(startKeyCents, startKeyOctave) = findNearestKey(startKeyCents, startKeyOctave);
+            int startKeyTotalCents = startKeyOctave * 1200 + startKeyCents;
+
+            std::tie(lastKeyOctave, lastKeyCents) = pointToOctaveCents(ratioMarkLastPos);
+            std::tie(lastKeyCents, lastKeyOctave) = findNearestKey(lastKeyCents, lastKeyOctave);
+            int lastKeyTotalCents = lastKeyOctave * 1200 + lastKeyCents;
+
+            if (startKeyTotalCents != lastKeyTotalCents) {
+                // let start key be lower than last key
+                if (startKeyTotalCents > lastKeyTotalCents) {
+                    int x = startKeyTotalCents;
+                    startKeyTotalCents = lastKeyTotalCents;
+                    lastKeyTotalCents = x;
+                }
+
+                float time = float(ratioMarkStartPos.getX()) / bar_width_px;
+                if (params->timeSnap) {
+                    time = timeToSnappedTime(time);
+                }
+
+                RatioMark ratioMark(startKeyTotalCents, lastKeyTotalCents, time, params);
+                params->ratiosMarks.push_back(ratioMark);
+            }
+        }
+        isDrawingRatioMark = false;
+    }
+
     repaint();
 }
 
 void MainPanel::mouseMove(const juce::MouseEvent &event) {
-    if (isDragging || isMoving || isResizing || isSelecting)
+    if (isDragging || isMoving || isResizing || isSelecting || params->editRatiosMarks)
         return;
 
     juce::Point<float> point = event.getPosition().toFloat();
@@ -928,13 +1078,38 @@ void MainPanel::generateNewKeys() {
     }
 }
 
+std::optional<int> MainPanel::findNearestKeyWithLimit(int key, int maxCentsChange, const std::set<int>& keys) {
+    if (keys.empty()) {
+        return std::nullopt;
+    }
+    
+    int bestKey = -1;
+    int bestDistance = maxCentsChange + 1;
+
+    for (const auto k: keys) {
+        int diff = std::abs(k - key);
+        int dist = std::min(diff, 1200 - diff);
+        if ((dist != 0) && (dist < bestDistance)) {
+            bestKey = k;
+            bestDistance = dist;
+        }
+    }
+
+    if (bestDistance <= maxCentsChange) {
+        return bestKey;
+    }
+    return std::nullopt;
+}
+
 void MainPanel::remakeKeys() {
     keys.clear();
+    allAllKeys.clear();
     keyIsGenNew.fill(false);
     for (const Note &note : notes) {
         if (params->zones.isNoteInActiveZone(note)) {
             keys.insert(note.cents);
         }
+        allAllKeys.insert(note.cents);
     }
     if (params->showGhostNotesKeys) {
         for (const Note &note : ghostNotes) {
@@ -943,12 +1118,60 @@ void MainPanel::remakeKeys() {
             }
         }
     }
+    for (const Note &note : ghostNotes) {
+        allAllKeys.insert(note.cents);
+    }
 
     if (params->generateNewKeys) {
         generateNewKeys();
     }
 
     editor->updateKeys(keys);
+
+    // Trying to attach ratio marks that lost their keys
+    // TODO: change this later maybe, that's a lazy solution
+    if (params->autoCorrectRatiosMarks) {
+        const int maxCentsChange = 100;
+        for (auto& ratioMark: params->ratiosMarks) {
+            int higherKeyCents = ratioMark.getHigherKeyTotalCents() % 1200;
+            if (!allAllKeys.contains(higherKeyCents)) {
+                auto result = findNearestKeyWithLimit(higherKeyCents, maxCentsChange, allAllKeys);
+                if (result) {
+                    int higherKeyOctave = ratioMark.getHigherKeyTotalCents() / 1200;
+                    int newHigherKeyCents = *result;
+                    if ((newHigherKeyCents - higherKeyCents < -maxCentsChange) && (higherKeyOctave < 9)) {
+                        ratioMark.setHigherKeyTotalCents(1200*(higherKeyOctave + 1) + newHigherKeyCents);
+                    } else if ((newHigherKeyCents - higherKeyCents > maxCentsChange) && (higherKeyOctave > 0)) {
+                        ratioMark.setHigherKeyTotalCents(1200*(higherKeyOctave - 1) + newHigherKeyCents);
+                    } else {
+                        ratioMark.setHigherKeyTotalCents(1200*higherKeyOctave + newHigherKeyCents);
+                    }
+                }
+            }
+            int lowerKeyCents = ratioMark.getLowerKeyTotalCents() % 1200;
+            if (!allAllKeys.contains(lowerKeyCents)) {
+                auto result = findNearestKeyWithLimit(lowerKeyCents, maxCentsChange, allAllKeys);
+                if (result) {
+                    int lowerKeyOctave = ratioMark.getLowerKeyTotalCents() / 1200;
+                    int newLowerKeyCents = *result;
+                    if ((newLowerKeyCents - lowerKeyCents < -maxCentsChange) && (lowerKeyOctave < 9)) {
+                        ratioMark.setLowerKeyTotalCents(1200*(lowerKeyOctave + 1) + newLowerKeyCents);
+                    } else if ((newLowerKeyCents - lowerKeyCents > maxCentsChange) && (lowerKeyOctave > 0)) {
+                        ratioMark.setLowerKeyTotalCents(1200*(lowerKeyOctave - 1) + newLowerKeyCents);
+                    } else {
+                        ratioMark.setLowerKeyTotalCents(1200*lowerKeyOctave + newLowerKeyCents);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void MainPanel::updateRatiosMarks() {
+    for (auto& ratioMark: params->ratiosMarks) {
+        ratioMark.calculateRatioAndError();
+    }
+    repaint();
 }
 
 int python_mod(int a, int b) {
@@ -1394,7 +1617,7 @@ juce::Path MainPanel::getNotePath(const Note &note) {
         path.lineTo(x1, y1 + height / 2);
         path.closeSubPath();
     } else if (height >= width) {
-        // make vertical rectangle 
+        // make vertical rectangle
         path.startNewSubPath(x1, y1 - height / 2);
         path.lineTo(x2, y1 - height / 2);
         path.lineTo(x2, y2 + height / 2);
