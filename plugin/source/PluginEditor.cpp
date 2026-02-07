@@ -366,6 +366,19 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(exportButton.get());
 
+    moreToolsMenu = std::make_unique<MoreToolsMenu>(this);
+    addAndMakeVisible(moreToolsMenu.get());
+    moreToolsMenu->setVisible(false);
+
+    moreToolsTabButton = std::make_unique<SVGButton>(
+        BinaryData::More_tools_svg, BinaryData::More_tools_svgSize, false, false,
+        "More tools");
+    moreToolsTabButton->onClick = [this](const juce::MouseEvent &me) {
+        this->moreToolsMenu->setVisible(!this->moreToolsMenu->isVisible());
+        return false;
+    };
+    addAndMakeVisible(moreToolsTabButton.get());
+
     genNewKeysMenu = std::make_unique<GenNewKeysMenu>(&processorRef.params, this);
     addAndMakeVisible(genNewKeysMenu.get());
     genNewKeysMenu->setVisible(false);
@@ -539,6 +552,11 @@ void AudioPluginAudioProcessorEditor::resized() {
     importButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     bottom_x_pos += bottom_height_px + 15;
     exportButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    bottom_x_pos += bottom_height_px + 15;
+    moreToolsTabButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    moreToolsMenu->setBounds(bottom_x_pos + (bottom_height_px-moreToolsMenu->getWidth())/2,
+        bottom_y - moreToolsMenu->getHeight() - 10,
+        moreToolsMenu->getWidth(), moreToolsMenu->getHeight());
 
     text = midiChannelLabel->getText();
     font = midiChannelLabel->getFont();

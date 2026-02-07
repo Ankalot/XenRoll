@@ -35,6 +35,10 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     void unselectAllNotes();
 
+    void quantizeSelectedNotes();
+    void randomizeSelectedNotesTiming();
+    void randomizeSelectedNotesVelocity();
+
     void updateNotes(const std::vector<Note> &new_notes);
     void updateGhostNotes(const std::vector<Note> &new_ghostNotes);
     void remakeKeys();

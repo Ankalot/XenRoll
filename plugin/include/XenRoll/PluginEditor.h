@@ -3,10 +3,14 @@
 #include "BinaryData.h"
 #include "DissonanceMeter.h"
 #include "DissonancePanel.h"
+#include "EditRatiosMarksMenu.h"
+#include "GenNewKeysMenu.h"
 #include "HelpPanel.h"
+#include "InstancesMenu.h"
 #include "IntegerInput.h"
 #include "LeftPanel.h"
 #include "MainPanel.h"
+#include "MoreToolsMenu.h"
 #include "Note.h"
 #include "PitchMemory.h"
 #include "PitchMemorySettingsPanel.h"
@@ -16,9 +20,6 @@
 #include "SettingsPanel.h"
 #include "Theme.h"
 #include "TopPanel.h"
-#include "InstancesMenu.h"
-#include "GenNewKeysMenu.h"
-#include "EditRatiosMarksMenu.h"
 #include "VelocityPanel.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -208,7 +209,7 @@ class SmallLookAndFeel : public juce::LookAndFeel_V4 {
         // Default colors for ToggleButton
         setColour(juce::ToggleButton::tickColourId, Theme::brightest);
         setColour(juce::ToggleButton::textColourId, Theme::brightest);
-        setColour(juce::ToggleButton::tickDisabledColourId, Theme::brighter);        
+        setColour(juce::ToggleButton::tickDisabledColourId, Theme::brighter);
     }
 
     juce::Typeface::Ptr getTypefaceForFont(const juce::Font &) override {
@@ -229,6 +230,42 @@ class SmallLookAndFeel : public juce::LookAndFeel_V4 {
         return LookAndFeel_V4::getPopupMenuFont().withHeight(Theme::small_);
     }
 
+    void drawButtonBackground(juce::Graphics &g, juce::Button &button, const juce::Colour &backgroundColour,
+                              bool shouldDrawButtonAsHighlighted,
+                              bool shouldDrawButtonAsDown) override {
+        auto bounds = button.getLocalBounds().toFloat().reduced(0.5f, 0.5f);
+
+        auto baseColour =
+            backgroundColour.withMultipliedSaturation(button.hasKeyboardFocus(true) ? 1.3f : 0.9f)
+                .withMultipliedAlpha(button.isEnabled() ? 1.0f : 0.5f);
+
+        if (shouldDrawButtonAsDown || shouldDrawButtonAsHighlighted)
+            baseColour = baseColour.contrasting(shouldDrawButtonAsDown ? 0.2f : 0.05f);
+
+        g.setColour(baseColour);
+
+        auto flatOnLeft = button.isConnectedOnLeft();
+        auto flatOnRight = button.isConnectedOnRight();
+        auto flatOnTop = button.isConnectedOnTop();
+        auto flatOnBottom = button.isConnectedOnBottom();
+
+        if (flatOnLeft || flatOnRight || flatOnTop || flatOnBottom) {
+            juce::Path path;
+            path.addRectangle(bounds.getX(), bounds.getY(), bounds.getWidth(),
+                                     bounds.getHeight());
+
+            g.fillPath(path);
+
+            g.setColour(button.findColour(juce::ComboBox::outlineColourId));
+            g.strokePath(path, juce::PathStrokeType(1.0f));
+        } else {
+            g.fillRect(bounds);
+
+            g.setColour(button.findColour(juce::ComboBox::outlineColourId));
+            g.drawRect(bounds, 1.0f);
+        }
+    }
+
   private:
     juce::Typeface::Ptr cambriaMathTypeface;
 };
@@ -236,7 +273,9 @@ class SmallLookAndFeel : public juce::LookAndFeel_V4 {
 class MainViewport : public juce::Viewport {
   public:
     MainViewport(juce::Viewport *leftViewport, juce::Viewport *topViewport)
-        : leftViewport(leftViewport), topViewport(topViewport) {updateColors();}
+        : leftViewport(leftViewport), topViewport(topViewport) {
+        updateColors();
+    }
 
     void updateColors() {
         getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, Theme::bright);
@@ -302,17 +341,25 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
         updatePitchMemory();
     }
 
-    void editRatiosMarksMenuChanged() {
-        mainPanel->updateRatiosMarks();
+    void editRatiosMarksMenuChanged() { mainPanel->updateRatiosMarks(); }
+
+    void quantizeSelectedNotes() {
+        mainPanel->quantizeSelectedNotes();
+    }
+
+    void randomizeSelectedNotesTiming() {
+        mainPanel->randomizeSelectedNotesTiming();
+    }
+
+    void randomizeSelectedNotesVelocity() {
+        mainPanel->randomizeSelectedNotesVelocity();
     }
 
     void hideMessage() { popup->timerCallback(); }
 
     const juce::String &getTextFromMessage() { return popup->getText(); }
 
-    std::tuple<float, int, int> getBpmNumDenom() {
-        return processorRef.getBpmNumDenom();
-    }
+    std::tuple<float, int, int> getBpmNumDenom() { return processorRef.getBpmNumDenom(); }
 
     void updateNotes(const std::vector<Note> &new_notes) {
         processorRef.updateNotes(new_notes);
@@ -461,6 +508,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
     std::unique_ptr<GenNewKeysMenu> genNewKeysMenu;
     std::unique_ptr<EditRatiosMarksMenu> editRatiosMarksMenu;
 
+    std::unique_ptr<MoreToolsMenu> moreToolsMenu;
+
     std::unique_ptr<VelocityPanel> velocityPanel;
 
     std::unique_ptr<juce::FileChooser> importFileChooser, exportFileChooser;
@@ -476,13 +525,13 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
         importButton, exportButton, camOnPlayHeadButton, turnOnAllZonesButton,
         turnOffAllZonesButton, dissonanceButton, pitchMemorySettingsButton, pitchMemoryButton,
         keysHarmonicityButton, ghostNotesKeysButton, ghostNotesTabButton, generateNewKeysButton,
-        hideCentsButton, editRatiosMarksButton;
+        hideCentsButton, editRatiosMarksButton, moreToolsTabButton;
     std::unique_ptr<juce::Label> numSubdivsLabel, numBeatsLabel, numBarsLabel, midiChannelLabel;
     std::unique_ptr<IntegerInput> numSubdivsInput, numBeatsInput, numBarsInput;
 
     const int timerMs = static_cast<int>(1000.0 / 60);
     const int ghostNotesUpdMs = 500;
-    const int ghostNotesTimerTicks = ghostNotesUpdMs/timerMs;
+    const int ghostNotesTimerTicks = ghostNotesUpdMs / timerMs;
     int ghostNotesTicker = 0;
     float playHeadTime = 0.0f;
 

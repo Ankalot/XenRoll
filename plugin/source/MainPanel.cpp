@@ -317,6 +317,67 @@ void MainPanel::unselectAllNotes() {
     repaint();
 }
 
+void MainPanel::quantizeSelectedNotes() {
+    float dt = 1.0f/(params->num_beats*params->num_subdivs);
+
+    for (auto& note: notes) {
+        if (note.isSelected) {
+            float newTime = roundf(note.time/dt)*dt;
+            float newDuration = roundf(note.duration/dt)*dt;
+            if (newDuration < dt) {
+                newDuration = dt;
+            }
+            note.time = newTime;
+            note.duration = newDuration;
+        }
+    }
+
+    editor->updateNotes(notes);
+    remakeKeys();
+    repaint();
+}
+
+void MainPanel::randomizeSelectedNotesTiming() {
+    float dt = 1.0f/(params->num_beats*params->num_subdivs);
+    const float maxJitter = dt*0.15f;
+
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::normal_distribution<float> dist(0.0f, maxJitter/3.0f);
+
+    for (auto& note: notes) {
+        if (note.isSelected) {
+            float jitter = juce::jlimit(-maxJitter, maxJitter, dist(gen));
+            note.time += jitter;
+            if (note.time < 0) {
+                note.time = 0;
+            }
+        }
+    }
+
+    editor->updateNotes(notes);
+    remakeKeys();
+    repaint();
+}
+
+void MainPanel::randomizeSelectedNotesVelocity() {
+    const float maxJitter = 0.12f;
+
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::normal_distribution<float> dist(0.0f, maxJitter/3.0f);
+
+    for (auto& note: notes) {
+        if (note.isSelected) {
+            float jitter = juce::jlimit(-maxJitter, maxJitter, dist(gen));
+            note.velocity = juce::jlimit(0.0f, 1.0f, note.velocity+jitter);
+        }
+    }
+
+    editor->updateNotes(notes);
+    repaint();
+}
+
 void MainPanel::numBarsChanged() {
     size_t notesNum = notes.size();
     for (int i = 0; i < notesNum; ++i) {

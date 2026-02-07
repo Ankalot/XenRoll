@@ -48,6 +48,7 @@ set(SOURCE_FILES source/PluginEditor.cpp
                  source/TopPanel.cpp
                  source/SettingsPanel.cpp
                  source/InstancesMenu.cpp
+                 source/MoreToolsMenu.cpp
                  source/Theme.cpp
                  source/PlatformUtils.cpp
                  source/PluginInstanceManager.cpp
@@ -78,6 +79,7 @@ set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h
                  ${INCLUDE_DIR}/SettingsPanel.h
                  ${INCLUDE_DIR}/SVGButton.h
                  ${INCLUDE_DIR}/InstancesMenu.h
+                 ${INCLUDE_DIR}/MoreToolsMenu.h
                  ${INCLUDE_DIR}/Theme.h
                  ${INCLUDE_DIR}/PlatformUtils.h
                  ${INCLUDE_DIR}/PluginInstanceManager.h
@@ -164,6 +166,7 @@ juce_add_binary_data(
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Generate_new_keys.svg
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Hide_cents.svg
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Edit_ratios_marks.svg
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/More_tools.svg
     HEADER_NAME BinaryData.h
 )
 
