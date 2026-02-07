@@ -318,6 +318,7 @@ void MainPanel::unselectAllNotes() {
 }
 
 void MainPanel::quantizeSelectedNotes() {
+    notesHistory.push(notes);
     float dt = 1.0f/(params->num_beats*params->num_subdivs);
 
     for (auto& note: notes) {
@@ -338,6 +339,7 @@ void MainPanel::quantizeSelectedNotes() {
 }
 
 void MainPanel::randomizeSelectedNotesTiming() {
+    notesHistory.push(notes);
     float dt = 1.0f/(params->num_beats*params->num_subdivs);
     const float maxJitter = dt*0.15f;
 
@@ -361,6 +363,7 @@ void MainPanel::randomizeSelectedNotesTiming() {
 }
 
 void MainPanel::randomizeSelectedNotesVelocity() {
+    notesHistory.push(notes);
     const float maxJitter = 0.12f;
 
     static std::random_device rd;
