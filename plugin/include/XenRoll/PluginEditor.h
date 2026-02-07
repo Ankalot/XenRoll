@@ -483,6 +483,22 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
         sendLookAndFeelChange();
     }
 
+    void leftClickTimeSnapButton() {
+        timeSnapButton->triggerLeftClick();
+    }
+
+    void leftClickKeySnapButton() {
+        keySnapButton->triggerLeftClick();
+    }
+
+    void leftClickEditRatiosMarksButton() {
+        editRatiosMarksButton->triggerLeftClick();
+    }
+
+    void leftClickPitchMemoryButton() {
+        pitchMemoryButton->triggerLeftClick();
+    }
+
     SmallLookAndFeel smallLF;
 
   private:

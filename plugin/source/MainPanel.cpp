@@ -1560,6 +1560,28 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         return true;
     }
 
+    // HOTKEYS
+    // click timeSnapButton
+    if (key == juce::KeyPress('a', juce::ModifierKeys::altModifier, 0)) {
+        editor->leftClickTimeSnapButton();
+        return true;
+    }
+    // click keySnapButton
+    if (key == juce::KeyPress('s', juce::ModifierKeys::altModifier, 0)) {
+        editor->leftClickKeySnapButton();
+        return true;
+    }
+    // click editRatiosMarksButton
+    if (key == juce::KeyPress('d', juce::ModifierKeys::altModifier, 0)) {
+        editor->leftClickEditRatiosMarksButton();
+        return true;
+    }
+    // click pitchMemoryButton
+    if (key == juce::KeyPress('f', juce::ModifierKeys::altModifier, 0)) {
+        editor->leftClickPitchMemoryButton();
+        return true;
+    }
+
     // playing a key
     auto keyChar = juce::CharacterFunctions::toLowerCase(key.getTextCharacter());
     int keyInd = keysPlaySet.indexOfChar(keyChar);

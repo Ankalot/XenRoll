@@ -129,7 +129,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     pitchMemoryButton =
         std::make_unique<SVGButton>(BinaryData::Brain_svg, BinaryData::Brain_svgSize, true,
                                     processorRef.params.showPitchesMemoryTraces,
-                                    "Show pitch memory traces & notes' harmonicity");
+                                    "Show pitch memory traces & notes' harmonicity\nHOTKEY: ALT+F");
     pitchMemoryButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.showPitchesMemoryTraces = !processorRef.params.showPitchesMemoryTraces;
         if (processorRef.params.showPitchesMemoryTraces) {
@@ -270,7 +270,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     timeSnapButton =
         std::make_unique<SVGButton>(BinaryData::Snap_time_svg, BinaryData::Snap_time_svgSize, true,
-                                    processorRef.params.timeSnap, "Snap notes horizontally");
+                                    processorRef.params.timeSnap, "Snap notes horizontally\nHOTKEY: ALT+A");
     timeSnapButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.timeSnap = !processorRef.params.timeSnap;
         return true;
@@ -279,7 +279,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     keySnapButton =
         std::make_unique<SVGButton>(BinaryData::Snap_keys_svg, BinaryData::Snap_keys_svgSize, true,
-                                    processorRef.params.keySnap, "Snap notes vertically");
+                                    processorRef.params.keySnap, "Snap notes vertically\nHOTKEY: ALT+S");
     keySnapButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.keySnap = !processorRef.params.keySnap;
         return true;
@@ -294,7 +294,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         BinaryData::Edit_ratios_marks_svg, BinaryData::Edit_ratios_marks_svgSize, true,
         processorRef.params.editRatiosMarks,
         "Create (dragging LMB) and delete (click RMB) "
-        "ratios marks between keys in a certain place on the canvas.\n(RMB to open settings)");
+        "ratios marks between keys in a certain place on the canvas.\n(RMB to open settings)\nHOTKEY: ALT+D");
 
     editRatiosMarksButton->onClick = [this](const juce::MouseEvent &me) {
         if (me.mods.isLeftButtonDown()) {

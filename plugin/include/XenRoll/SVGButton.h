@@ -48,7 +48,27 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
     void resized() override { repaint(); }
 
     std::function<bool(const juce::MouseEvent &me)> onClick;
-    
+
+    void triggerLeftClick() {
+        if (onClick) {
+            auto center = juce::Point<float>(getWidth() / 2.0f, getHeight() / 2.0f);
+
+            auto &desktop = juce::Desktop::getInstance();
+            if (desktop.getNumMouseSources() > 0) {
+                auto *mouseSource = desktop.getMouseSource(0);
+
+                if (mouseSource != nullptr) {
+                    juce::MouseEvent fakeEvent(
+                        *mouseSource, center, juce::ModifierKeys::leftButtonModifier, 1.0f, 0.0f,
+                        0.0f, 0.0f, 0.0f, this, this, juce::Time::getCurrentTime(), center,
+                        juce::Time::getCurrentTime(), 1, false);
+
+                    mouseDown(fakeEvent);
+                }
+            }
+        }
+    }
+
     juce::String getTooltip() override { return tooltipText; }
 
     void mouseEnter(const juce::MouseEvent &) override {
@@ -56,9 +76,7 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
         juce::Desktop::getInstance().getMainMouseSource().forceMouseCursorUpdate();
     }
 
-    void mouseExit(const juce::MouseEvent &) override { 
-        repaint();
-    }
+    void mouseExit(const juce::MouseEvent &) override { repaint(); }
 
     void mouseDown(const juce::MouseEvent &me) override {
         if (onClick) {
