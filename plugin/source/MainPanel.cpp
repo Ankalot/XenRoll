@@ -1590,14 +1590,14 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     int keyInd = keysPlaySet.indexOfChar(keyChar);
     if (keyInd != -1) {
         int numKeys = int(keys.size());
-        if (numKeys != 0) {
+        if ((numKeys != 0) && !wasKeyDown.contains(keyChar)) {
             int octave = params->start_octave + keyInd / numKeys;
             int cents = *(std::next(keys.begin(), keyInd % numKeys));
             int totalCents = octave * 1200 + cents;
             std::lock_guard<std::mutex> lock(mptcMtx);
             manuallyPlayedKeysTotalCents.insert(totalCents);
             editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
-            wasKeyDown.insert(keyChar);
+            wasKeyDown[keyChar] = totalCents;
         }
         return true;
     }
@@ -1609,18 +1609,16 @@ bool MainPanel::keyStateChanged(bool isKeyDown) {
     if (!isKeyDown) {
         // stop playing a key if it is playing
         bool werePlaying = false;
-        int numKeys = int(keys.size());
-        if (numKeys == 0) {
-            return false;
-        }
         for (int i = 0; i < keysPlaySet.length(); ++i) {
             int keyCode =
                 juce::KeyPress::createFromDescription(keysPlaySet.substring(i, i + 1)).getKeyCode();
             auto keyChar = keysPlaySet[i];
             if (!juce::KeyPress::isKeyCurrentlyDown(keyCode) && wasKeyDown.contains(keyChar)) {
-                int octave = params->start_octave + i / numKeys;
+                // Key may change while pressing key, so use stored value in wasKeyDown
+                /*int octave = params->start_octave + i / numKeys;
                 int cents = *(std::next(keys.begin(), i % numKeys));
-                int totalCents = octave * 1200 + cents;
+                int totalCents = octave * 1200 + cents;*/
+                int totalCents = wasKeyDown[keyChar];
                 std::lock_guard<std::mutex> lock(mptcMtx);
                 manuallyPlayedKeysTotalCents.erase(totalCents);
                 editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
