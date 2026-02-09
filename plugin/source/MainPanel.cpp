@@ -1597,7 +1597,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             std::lock_guard<std::mutex> lock(mptcMtx);
             manuallyPlayedKeysTotalCents.insert(totalCents);
             editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
-            wasKeyDown.insert(key.getKeyCode());
+            wasKeyDown.insert(keyChar);
         }
         return true;
     }
@@ -1616,7 +1616,8 @@ bool MainPanel::keyStateChanged(bool isKeyDown) {
         for (int i = 0; i < keysPlaySet.length(); ++i) {
             int keyCode =
                 juce::KeyPress::createFromDescription(keysPlaySet.substring(i, i + 1)).getKeyCode();
-            if (!juce::KeyPress::isKeyCurrentlyDown(keyCode) && wasKeyDown.contains(keyCode)) {
+            auto keyChar = keysPlaySet[i];
+            if (!juce::KeyPress::isKeyCurrentlyDown(keyCode) && wasKeyDown.contains(keyChar)) {
                 int octave = params->start_octave + i / numKeys;
                 int cents = *(std::next(keys.begin(), i % numKeys));
                 int totalCents = octave * 1200 + cents;

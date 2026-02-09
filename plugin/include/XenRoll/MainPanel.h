@@ -81,7 +81,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     const juce::String keysPlaySet = "zxcvbnm,./asdfghjkl;qwertyuiop";
     std::set<int> manuallyPlayedKeysTotalCents;
-    std::set<int> wasKeyDown;
+    std::set<juce::juce_wchar> wasKeyDown;
 
     // new should be added at the end (with push_back) (don't remember why lol)
     std::vector<Note> notes;
