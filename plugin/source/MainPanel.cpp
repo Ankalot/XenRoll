@@ -1624,7 +1624,7 @@ bool MainPanel::keyStateChanged(bool isKeyDown) {
                 std::lock_guard<std::mutex> lock(mptcMtx);
                 manuallyPlayedKeysTotalCents.erase(totalCents);
                 editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
-                wasKeyDown.erase(keyCode);
+                wasKeyDown.erase(keyChar);
                 werePlaying = true;
             }
         }
