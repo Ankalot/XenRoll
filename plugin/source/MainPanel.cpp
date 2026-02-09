@@ -1589,13 +1589,16 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     auto keyChar = juce::CharacterFunctions::toLowerCase(key.getTextCharacter());
     int keyInd = keysPlaySet.indexOfChar(keyChar);
     if (keyInd != -1) {
-        int octave = params->start_octave + keyInd / int(keys.size());
-        int cents = *(std::next(keys.begin(), keyInd % keys.size()));
-        int totalCents = octave * 1200 + cents;
-        std::lock_guard<std::mutex> lock(mptcMtx);
-        manuallyPlayedKeysTotalCents.insert(totalCents);
-        editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
-        wasKeyDown.insert(key.getKeyCode());
+        int numKeys = int(keys.size());
+        if (numKeys != 0) {
+            int octave = params->start_octave + keyInd / numKeys;
+            int cents = *(std::next(keys.begin(), keyInd % numKeys));
+            int totalCents = octave * 1200 + cents;
+            std::lock_guard<std::mutex> lock(mptcMtx);
+            manuallyPlayedKeysTotalCents.insert(totalCents);
+            editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
+            wasKeyDown.insert(key.getKeyCode());
+        }
         return true;
     }
 
@@ -1607,6 +1610,9 @@ bool MainPanel::keyStateChanged(bool isKeyDown) {
         // stop playing a key if it is playing
         bool werePlaying = false;
         int numKeys = int(keys.size());
+        if (numKeys == 0) {
+            return false;
+        }
         for (int i = 0; i < keysPlaySet.length(); ++i) {
             int keyCode =
                 juce::KeyPress::createFromDescription(keysPlaySet.substring(i, i + 1)).getKeyCode();
