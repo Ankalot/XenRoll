@@ -47,6 +47,14 @@ void PluginInstanceManager::initAll() {
     initInstance();
 }
 
+bool PluginInstanceManager::isServerHeartbeatOk() {
+    auto now = std::chrono::system_clock::now();
+    auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now.time_since_epoch()
+    ).count();
+    return (now_ms - channelsSheet->serverHeartbeat) < (heartbeatDeltaTime + heartbeatCheckFailedExtraTime);
+}
+
 void PluginInstanceManager::initSharedMemory() {
     bip::permissions perm;
     perm.set_unrestricted();
@@ -122,13 +130,9 @@ void PluginInstanceManager::initInstance() {
     }
 
     int serverIndex = channelsSheet->serverIndex;
-    auto now = std::chrono::system_clock::now();
-    auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-        now.time_since_epoch()
-    ).count();
     if ((serverIndex != -1) && channelsSheet->instanceSlots[serverIndex] &&
         os_things::is_process_active(channelsSheet->pids[serverIndex]) && 
-        ((now_ms - channelsSheet->serverHeartbeat) < (heartbeatDeltaTime + heartbeatCheckFailedExtraTime))) {
+        isServerHeartbeatOk()) {
         becomeClient();
     } else {
         becomeServer();
@@ -193,7 +197,10 @@ void PluginInstanceManager::checkServer() {
             bip::scoped_lock<bip::named_mutex> lock(*chShMutex);
             int serverIndex = channelsSheet->serverIndex;
             if ((serverIndex == -1) || !channelsSheet->instanceSlots[serverIndex] ||
-                !os_things::is_process_active(channelsSheet->pids[serverIndex])) {
+                !os_things::is_process_active(channelsSheet->pids[serverIndex])
+                /*|| !isServerHeartbeatOk()*/) {
+                // Idk, !isServerHeartbeatOk() can either improve or worsen the situation.
+                // So far, it's working fine without it, so don't need it.
                 becomeServer();
             }
         }

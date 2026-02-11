@@ -75,6 +75,7 @@ class PluginInstanceManager {
     void becomeClient();
     void becomeServer();
 
+    bool isServerHeartbeatOk();
     void checkServer();
     void runServer();
 
@@ -95,9 +96,10 @@ class PluginInstanceManager {
     std::atomic<bool> checkServerFlag{false}, runServerFlag{false};
     const int checkServerDeltaTime = 500; // in ms
     //const int runServerDeltaTime = 10;    // in ms
+    
     //            needed if server
     const int heartbeatDeltaTime = 300;            // in ms
-    const int heartbeatCheckFailedExtraTime = 300; // in ms
+    const int heartbeatCheckFailedExtraTime = 400; // in ms
     uint64_t latestHeartbeat{0};                   // ms since epoch
 
     int channelIndex = -1; // 0-15 range
