@@ -63,6 +63,31 @@ void PluginInstanceManager::initSharedMemory() {
     }
 
     channelsSheet = sharedMemory->find_or_construct<ChannelsSheet>("ChannelsSheet")();
+
+    // CREATE/OPEN ALL MUTEXES FOR EVERYONE 
+    // CHECK FOR STUCK MUTEXES AFTER CRASH
+    // (need to detect them so runServer and other functions don't wait forever)
+    for (int i = 0; i < 16; ++i) {
+        {
+            chNtMutex[i] = std::make_unique<bip::named_mutex>(bip::open_or_create, 
+                ("XenRollMutexChannel" + std::to_string(i) + "Note").c_str());
+            bip::scoped_lock<bip::named_mutex> lockNt(*chNtMutex[i], bip::defer_lock);
+            if (!lockNt.try_lock_for(std::chrono::milliseconds(lockTimeoutTime))) {
+                throw std::runtime_error(
+                    "Unable to acquire mutex lock within timeout - possible deadlock");
+            }
+        }
+        {
+            chFqMutex[i] = std::make_unique<bip::named_mutex>(bip::open_or_create,
+                ("XenRollMutexChannel" + std::to_string(i) + "Freq").c_str());
+
+            bip::scoped_lock<bip::named_mutex> lockFq(*chFqMutex[i], bip::defer_lock);
+            if (!lockFq.try_lock_for(std::chrono::milliseconds(lockTimeoutTime))) {
+                throw std::runtime_error(
+                    "Unable to acquire mutex lock within timeout - possible deadlock");
+            }
+        }
+    }
 }
 
 void PluginInstanceManager::initInstance() {
@@ -88,23 +113,22 @@ void PluginInstanceManager::initInstance() {
 
     for (int i = 0; i < 16; ++i) {
         std::string notesName = "Channel" + std::to_string(i) + "Notes";
-        channelsNotes[i] = sharedMemory->find_or_construct<std::vector<Note>>(notesName.c_str())();
-        chNtMutex[i] = std::make_unique<bip::named_mutex>(
-            bip::open_or_create, ("XenRollMutexChannel" + std::to_string(i) + "Note").c_str());
+        channelsNotes[i] = sharedMemory->find_or_construct<ShmemVector>(notesName.c_str()
+            )(ShmemAllocator(sharedMemory->get_segment_manager()));
         if ((i == channelIndex) && channelsNotes[i]) {
-            bip::scoped_lock<bip::named_mutex> lock2(*chNtMutex[i], bip::defer_lock);
-            if (!lock2.try_lock_for(std::chrono::milliseconds(lockTimeoutTime))) {
-                throw std::runtime_error(
-                    "Unable to acquire mutex lock within timeout - possible deadlock");
-            }
-            channelsNotes[i]->clear(); // THE PROBLEM IS HERE
-            // after crash clear(), resize(0), sharedMemory->delete, etc... will all cause segfault
+            bip::scoped_lock<bip::named_mutex> lockNt(*chNtMutex[i]);
+            channelsNotes[i]->clear();
         }
     }
 
     int serverIndex = channelsSheet->serverIndex;
+    auto now = std::chrono::system_clock::now();
+    auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now.time_since_epoch()
+    ).count();
     if ((serverIndex != -1) && channelsSheet->instanceSlots[serverIndex] &&
-        os_things::is_process_active(channelsSheet->pids[serverIndex])) {
+        os_things::is_process_active(channelsSheet->pids[serverIndex]) && 
+        ((now_ms - channelsSheet->serverHeartbeat) < (heartbeatDeltaTime + heartbeatCheckFailedExtraTime))) {
         becomeClient();
     } else {
         becomeServer();
@@ -114,14 +138,8 @@ void PluginInstanceManager::initInstance() {
 void PluginInstanceManager::becomeClient() {
     channelsFreqs[channelIndex] = sharedMemory->find_or_construct<ChannelFreqs>(
         ("Channel" + std::to_string(channelIndex) + "Freqs").c_str())();
-    chFqMutex[channelIndex] = std::make_unique<bip::named_mutex>(
-        bip::open_or_create,
-        ("XenRollMutexChannel" + std::to_string(channelIndex) + "Freq").c_str());
 
-    bip::scoped_lock<bip::named_mutex> lock(*chFqMutex[channelIndex], bip::defer_lock);
-    if (!lock.try_lock_for(std::chrono::milliseconds(lockTimeoutTime))) {
-        throw std::runtime_error("Unable to acquire mutex lock within timeout - possible deadlock");
-    }
+    bip::scoped_lock<bip::named_mutex> lock(*chFqMutex[channelIndex]);
     channelsFreqs[channelIndex]->serverAction = 1;
 
     isActive = true;
@@ -138,25 +156,17 @@ void PluginInstanceManager::becomeServer() {
                 continue;
             channelsFreqs[i] = sharedMemory->find_or_construct<ChannelFreqs>(
                 ("Channel" + std::to_string(i) + "Freqs").c_str())();
-            chFqMutex[i] = std::make_unique<bip::named_mutex>(
-                bip::open_or_create, ("XenRollMutexChannel" + std::to_string(i) + "Freq").c_str());
         }
     } else {
         for (int i = 0; i < 16; ++i) {
             channelsFreqs[i] = sharedMemory->find_or_construct<ChannelFreqs>(
                 ("Channel" + std::to_string(i) + "Freqs").c_str())();
-            chFqMutex[i] = std::make_unique<bip::named_mutex>(
-                bip::open_or_create, ("XenRollMutexChannel" + std::to_string(i) + "Freq").c_str());
         }
     }
 
     for (int i = 0; i < 16; ++i) {
         if (channelsSheet->instanceSlots[i]) {
-            bip::scoped_lock<bip::named_mutex> lock(*chFqMutex[i], bip::defer_lock);
-            if (!lock.try_lock_for(std::chrono::milliseconds(lockTimeoutTime))) {
-                throw std::runtime_error(
-                    "Unable to acquire mutex lock within timeout - possible deadlock");
-            }
+            bip::scoped_lock<bip::named_mutex> lock(*chFqMutex[i]);
             channelsFreqs[i]->serverAction = 1;
             channelsFreqs[i]->needToUpdate.store(true, std::memory_order_release);
         }
@@ -167,6 +177,13 @@ void PluginInstanceManager::becomeServer() {
     runServerFlag = true;
     channelsSheet->serverIndex = channelIndex;
     MTS_RegisterMaster();
+
+    auto now = std::chrono::system_clock::now();
+    auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now.time_since_epoch()
+    ).count();
+    channelsSheet->serverHeartbeat = now_ms;
+
     runServerThread = std::thread(&PluginInstanceManager::runServer, this);
 }
 
@@ -186,6 +203,14 @@ void PluginInstanceManager::checkServer() {
 
 void PluginInstanceManager::runServer() {
     while (runServerFlag) {
+        auto now = std::chrono::system_clock::now();
+        auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now.time_since_epoch()
+        ).count();
+        if (timestamp - latestHeartbeat > heartbeatDeltaTime) {
+            latestHeartbeat = timestamp;
+            channelsSheet->serverHeartbeat = timestamp;
+        }
         for (int i = 0; i < 16; ++i) {
             {
                 bip::scoped_lock<bip::named_mutex> lock(*chFqMutex[i]);
@@ -230,12 +255,16 @@ void PluginInstanceManager::updateFreqs(const double freqs[128]) {
 void PluginInstanceManager::updateNotes(const std::vector<Note> &notes) {
     if (isActive) {
         bip::scoped_lock<bip::named_mutex> lock(*chNtMutex[channelIndex]);
-        std::vector<Note> *channelNotes = channelsNotes[channelIndex];
+        ShmemVector *channelNotes = channelsNotes[channelIndex];
         channelNotes->assign(notes.begin(), notes.end());
     }
 }
 
 void PluginInstanceManager::changeChannelIndex(int desChInd) {
+    if (!isActive) {
+        return;
+    }
+
     bip::scoped_lock<bip::named_mutex> lock1(*chShMutex, bip::defer_lock);
     if (!lock1.try_lock_for(std::chrono::milliseconds(lockTimeoutTime))) {
         errorMessage = "Deadlock";
@@ -254,10 +283,6 @@ void PluginInstanceManager::changeChannelIndex(int desChInd) {
         bip::scoped_lock<bip::named_mutex> lock2(*chFqMutex[channelIndex]);
         channelsFreqs[channelIndex]->serverAction = -1;
 
-        // because it can be not created by server yet
-        chFqMutex[desChInd] = std::make_unique<bip::named_mutex>(
-            bip::open_or_create,
-            ("XenRollMutexChannel" + std::to_string(desChInd) + "Freq").c_str());
         bip::scoped_lock<bip::named_mutex> lock3(*chFqMutex[desChInd]);
         // because it can be not created by server yet
         channelsFreqs[desChInd] = sharedMemory->find_or_construct<ChannelFreqs>(
@@ -310,6 +335,7 @@ PluginInstanceManager::~PluginInstanceManager() {
         runServerFlag = false;
         if (runServerThread.joinable())
             runServerThread.join();
+        channelsSheet->serverHeartbeat = 0;
         MTS_DeregisterMaster();
     }
 

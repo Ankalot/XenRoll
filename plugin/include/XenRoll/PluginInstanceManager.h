@@ -7,6 +7,8 @@
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/interprocess/allocators/allocator.hpp>
+#include <boost/interprocess/containers/vector.hpp>
 #pragma warning(pop) // Restore warnings
 #include "libMTSMaster.h"
 #include <atomic>
@@ -15,6 +17,10 @@
 
 namespace audio_plugin {
 namespace bip = boost::interprocess;
+
+using ShmemAllocator = bip::allocator<Note, 
+    bip::managed_shared_memory::segment_manager>;
+using ShmemVector = bip::vector<Note, ShmemAllocator>;
 
 struct ChannelsSheet {
     // index in instanceSlots array. -1 means there is no server
@@ -25,6 +31,10 @@ struct ChannelsSheet {
     // It's that most likely everyone will be in the same process, then it turns out
     //    that the crash will be noticeable only when the DAW crashes, but it's okay.
     os_things::process_id pids[16]{0};
+    // Heartbeat timestamp (milliseconds since epoch) - updated by server
+    // Is needed because os can assign same pid to new process after crash and 
+    //    then there won't be any server 
+    std::atomic<uint64_t> serverHeartbeat{0};
 };
 
 struct ChannelFreqs {
@@ -68,7 +78,7 @@ class PluginInstanceManager {
     void checkServer();
     void runServer();
 
-    const int initTimeoutTime = 2000; // in ms
+    const int initTimeoutTime = 5000; // in ms
     const int lockTimeoutTime = 500; // in ms
 
     std::unique_ptr<bip::managed_shared_memory> sharedMemory;
@@ -78,13 +88,17 @@ class PluginInstanceManager {
     ChannelFreqs *channelsFreqs[16]{nullptr};
     std::unique_ptr<bip::named_mutex> chFqMutex[16];
 
-    std::vector<Note> *channelsNotes[16]{nullptr};
+    ShmemVector *channelsNotes[16]{nullptr};
     std::unique_ptr<bip::named_mutex> chNtMutex[16];
 
     std::thread checkServerThread, runServerThread;
     std::atomic<bool> checkServerFlag{false}, runServerFlag{false};
     const int checkServerDeltaTime = 500; // in ms
     //const int runServerDeltaTime = 10;    // in ms
+    //            needed if server
+    const int heartbeatDeltaTime = 300;            // in ms
+    const int heartbeatCheckFailedExtraTime = 300; // in ms
+    uint64_t latestHeartbeat{0};                   // ms since epoch
 
     int channelIndex = -1; // 0-15 range
     std::atomic<bool> isActive{false};
