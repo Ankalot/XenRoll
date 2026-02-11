@@ -15,6 +15,13 @@ class DissonancePlot : public juce::Component {
         updateDissonanceCurve();
     }
 
+    ~DissonancePlot() {
+        if (threadPool) {
+            threadPool->removeAllJobs(true, -1);
+            currentJobId++;
+        }
+    }
+
     void paint(juce::Graphics &g) override {
         g.fillAll(Theme::brighter);
         if (loading) {
@@ -33,28 +40,25 @@ class DissonancePlot : public juce::Component {
     }
 
     void updateDissonanceCurve() {
-        shouldRestart = true;
+        uint64_t myJobId = ++currentJobId;
         loading = true;
         repaint();
 
-        threadPool->addJob([this]() {
-            shouldRestart = false;
+        threadPool->addJob([this, myJobId]() {
+            int localTotalCents = totalCents;
 
-            auto startTime = juce::Time::getMillisecondCounterHiRes();
-
+            std::array<float, 401> localCurve;
             for (int i = 0; i < 401; ++i) {
-                if (shouldRestart) {
-                    return;
-                }
-                dissonanceCurve[i] =
-                    dissonanceMeter->calcDissonance(totalCents, totalCents + i * 3);
+                if (currentJobId != myJobId) return;  // Check if we're still current
+                localCurve[i] = dissonanceMeter->calcDissonance(localTotalCents, localTotalCents + i * 3);
             }
-
-            auto endTime = juce::Time::getMillisecondCounterHiRes();
-            auto durationMs = endTime - startTime;
-            DBG("updateDissonanceCurve took " << durationMs << " milliseconds");
-
-            loading = false;
+            
+            {
+                std::scoped_lock lock(mtx);
+                if (currentJobId != myJobId) return;
+                dissonanceCurve = localCurve;
+                loading = false;
+            }           
 
             // Schedule repaint on the message thread
             juce::MessageManager::callAsync([this]() { repaint(); });
@@ -64,14 +68,15 @@ class DissonancePlot : public juce::Component {
   private:
     Parameters *params;
     std::shared_ptr<DissonanceMeter> dissonanceMeter;
-    int totalCents = 0;
+    std::atomic<int> totalCents = 0;
     std::array<float, 401> dissonanceCurve{0.0f}; // i-th index = i*3 cents
+    std::mutex mtx;
     juce::Rectangle<int> plotArea;
     const int margin = 50;
 
     std::atomic<bool> loading{false};
     std::unique_ptr<juce::ThreadPool> threadPool;
-    std::atomic<bool> shouldRestart{false};
+    std::atomic<uint64_t> currentJobId{0};
 
     void drawAxes(juce::Graphics &g) {
         g.setColour(Theme::darkest);
@@ -111,6 +116,7 @@ class DissonancePlot : public juce::Component {
                    Theme::medium, juce::Justification::centred, false);
     }
 
+    // is triggered only when loading = false
     void drawDissonanceCurve(juce::Graphics &g) {
         g.setColour(Theme::darkest);
 
