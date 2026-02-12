@@ -30,7 +30,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool keyStateChanged(bool isKeyDown) override;
 
     void drawOutlinedText(juce::Graphics &g, const juce::String &text, juce::Rectangle<float> area,
-                          const juce::Font &font, float outlineThickness = Theme::narrow);
+                          const juce::Font &font);
     void paint(juce::Graphics &g) override;
 
     void unselectAllNotes();
@@ -140,6 +140,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     float dtime = 0.0f;
     int dcents = 0;
+
+    static const juce::PathStrokeType outlineStroke;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainPanel)
 };

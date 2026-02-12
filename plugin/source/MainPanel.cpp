@@ -20,6 +20,8 @@ MainPanel::MainPanel(int octave_height_px, int bar_width_px,
     bendFont = juce::Font(getLookAndFeel().getTypefaceForFont(NULL)).withPointHeight(Theme::small_);
 }
 
+const juce::PathStrokeType MainPanel::outlineStroke(Theme::wide, juce::PathStrokeType::mitered);
+
 MainPanel::~MainPanel() { removeKeyListener(this); }
 
 int MainPanel::totalCentsToY(int totalCents) {
@@ -31,26 +33,30 @@ void MainPanel::updatePitchMemoryResults(const PitchMemoryResults &newPitchMemor
     repaint();
 }
 
-void MainPanel::drawOutlinedText(juce::Graphics &g, const juce::String &text,
-                                 juce::Rectangle<float> area, const juce::Font &font,
-                                 float outlineThickness) {
+void MainPanel::drawOutlinedText(juce::Graphics& g, const juce::String& text,
+                                 juce::Rectangle<float> area, const juce::Font& font) {
+    // Precompute once
+    const float fontHeight = font.getHeight();
+    const float areaCentreX = area.getCentreX();
+    const float areaCentreY = area.getCentreY();
+    
     juce::GlyphArrangement glyphs;
-    glyphs.addLineOfText(font, text, area.getX(), area.getY() + font.getHeight());
+    glyphs.addLineOfText(font, text, 0.0f, fontHeight);
+    
     juce::Path textPath;
     glyphs.createPath(textPath);
-
-    // Center the path in the provided area
+    
+    // Get bounds and compute translation in one step
+    const auto bounds = textPath.getBounds();
     textPath.applyTransform(
-        juce::AffineTransform::translation(area.getCentreX() - textPath.getBounds().getCentreX(),
-                                           area.getCentreY() - textPath.getBounds().getCentreY()));
-
-    // === Draw the darkest outline ===
+        juce::AffineTransform::translation(
+            areaCentreX - (bounds.getX() + bounds.getWidth() * 0.5f),
+            areaCentreY - (bounds.getY() + bounds.getHeight() * 0.5f))
+    );
+        
     g.setColour(Theme::darkest);
-    juce::PathStrokeType stroke(outlineThickness);
-    stroke.setJointStyle(juce::PathStrokeType::mitered);
-    g.strokePath(textPath, stroke);
-
-    // === Draw the brightest fill ===
+    g.strokePath(textPath, outlineStroke);
+    
     g.setColour(Theme::brightest);
     g.fillPath(textPath);
 }
@@ -194,7 +200,7 @@ void MainPanel::paint(juce::Graphics &g) {
                 if ((note.bend != 0) && note.isSelected) {
                     juce::String bendText = juce::String::formatted(
                         "%s%d", (note.bend > 0 ? "+" : "-"), abs(note.bend));
-                    drawOutlinedText(g, bendText, notePath.getBounds(), bendFont, Theme::wide);
+                    drawOutlinedText(g, bendText, notePath.getBounds(), bendFont);
                 }
             }
         }
