@@ -208,6 +208,8 @@ void PluginInstanceManager::checkServer() {
     }
 }
 
+// This eats LOTS of CPU, BUT it is necessary for smooth notes' bends
+// (and for no artifacts when playing note with same pitch after bended note)
 void PluginInstanceManager::runServer() {
     while (runServerFlag) {
         auto now = std::chrono::system_clock::now();
@@ -237,6 +239,7 @@ void PluginInstanceManager::runServer() {
                 }
             }
         }
+        std::this_thread::yield();
         //std::this_thread::sleep_for(std::chrono::milliseconds(runServerDeltaTime));
     }
 }

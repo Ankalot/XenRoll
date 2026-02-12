@@ -42,6 +42,7 @@ class AccumulatingBuffer {
     }
 
     void clear() {
+        const juce::ScopedLock lock(mutex); // Thread-safe
         buffer.clear();
         writePos = 0;
     }

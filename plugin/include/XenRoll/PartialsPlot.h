@@ -4,8 +4,6 @@
 #include "Theme.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
-// Todo: add info if this is transposed of smth or not
-//       add info about num of partials
 
 namespace audio_plugin {
 using partialsVec = std::vector<std::pair<float, float>>;
@@ -48,7 +46,7 @@ class PartialsPlot : public juce::Component {
     std::map<int, partialsVec> tonesPartials;
     int totalCents = 0;
     partialsVec partials;
-    int totalCentsRef = -1;
+    int totalCentsRef = -1; // -1 value is for no ref
     bool interpolate;
     float maxAmp = 1.0f;
     juce::Rectangle<int> plotArea;

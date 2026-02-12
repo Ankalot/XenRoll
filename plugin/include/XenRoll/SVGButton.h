@@ -92,7 +92,7 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
 
     bool isActive() { return active; }
 
-    bool setState(bool activeNew) { active = activeNew; }
+    //void setState(bool activeNew) { active = activeNew; }
 
   private:
     std::unique_ptr<juce::Drawable> svg;
