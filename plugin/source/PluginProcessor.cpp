@@ -662,6 +662,13 @@ void AudioPluginAudioProcessor::prepareNotes() {
             freqs[i] = 0.0;
         }
     }
+
+    // Prepare manuallyPlayedNotesIndexes here so it doesn't crash if pitchesOverflow
+    manuallyPlayedNotesIndexes.clear();
+    manuallyPlayedNotesIndexes.resize(manuallyPlayedNotesTotalCents.size());
+    // fill with zeroes so it doesn't crash when pitchesOverflow
+    std::fill(manuallyPlayedNotesIndexes.begin(), manuallyPlayedNotesIndexes.end(), 0);
+
     // set midi notes (indexes) for notes from piano roll
     int noteIndNew = 0;
     for (int i = 0; i < notes.size(); ++i) {
@@ -669,7 +676,7 @@ void AudioPluginAudioProcessor::prepareNotes() {
         double noteFreq = getNoteFreq(note);
         int noteInd = findFreqInd(noteFreq);
         if (noteInd == -1) {
-            if (numUsedFreqs == 128) {
+            if (numUsedFreqs >= 128) {
                 pitchesOverflow = true;
                 return;
             }
@@ -693,15 +700,13 @@ void AudioPluginAudioProcessor::prepareNotes() {
     }
     // add to freqs[128] mostly relevant manually pressed notes that are not in freqs[128] array
     std::vector<double> manPlNotesTotCentsHistoryLast =
-        manPlNotesTotCentsHistory.getLast(128 - numUsedFreqs);
+        manPlNotesTotCentsHistory.getLast(juce::jmax(128 - numUsedFreqs, 0));
     for (int i = 0; i < manPlNotesTotCentsHistoryLast.size(); ++i) {
         while (freqs[noteIndNew] != 0.0)
             noteIndNew++;
         freqs[noteIndNew] = manPlNotesTotCentsHistoryLast[i];
         numUsedFreqs++;
     }
-    manuallyPlayedNotesIndexes.clear();
-    manuallyPlayedNotesIndexes.resize(manuallyPlayedNotesTotalCents.size());
     // set midi notes (indexes) for manually pressed notes
     int i = 0;
     for (const int totalCents : manuallyPlayedNotesTotalCents) {
