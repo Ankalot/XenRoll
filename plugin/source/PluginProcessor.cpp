@@ -264,6 +264,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
 
             // Play notes from piano roll
             if (isPlaying) {
+                // =======================================
                 for (int i = 0; i < notes.size(); ++i) {
                     const Note &note = notes[i];
                     // Note off
@@ -280,6 +281,33 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         currPlayedNotesTotalCents.erase(note.octave * 1200 + note.cents);
                     }
                 }
+                bool needUpdateFreqs = false;
+                // =======================================
+                for (int i = 0; i < notes.size(); ++i) {
+                    const Note &note = notes[i];
+                    // Note bend
+                    if ((note.bend != 0) && (note.time < playHeadTime) &&
+                        (playHeadTime <= note.time + note.duration)) {
+                        freqs[notesIndexes[i]] = getNoteFreq(note);
+                        needUpdateFreqs = true;
+                    }
+                }
+                // =======================================
+                for (int i = 0; i < notes.size(); ++i) {
+                    const Note &note = notes[i];
+                    // PRE Note on
+                    if ((note.time >= playHeadTime) &&
+                        (note.time < playHeadTime + 2 * barsInBlock)) {
+                        // If note was bending - update frequency (and the start of
+                        // note will be without pitch leap)
+                        const int noteInd = notesIndexes[i];
+                        if (beforeBendTotalCents[noteInd] != -1) {
+                            freqs[noteInd] = getFreqFromTotalCents(note.octave * 1200 + note.cents);
+                            needUpdateFreqs = true;
+                        }
+                    }
+                }
+                // =======================================
                 for (int i = 0; i < notes.size(); ++i) {
                     const Note &note = notes[i];
                     // Note on
@@ -287,12 +315,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                          playHeadTime) && /*!currPlayedNotesTotalCents.contains(note.octave*1200+note.cents)*/
                         (note.time < playHeadTime + barsInBlock)) {
                         const int noteInd = notesIndexes[i];
-                        // if was bending - update frequency
-                        if (beforeBendTotalCents[noteInd] != -1) {
-                            freqs[noteInd] = getFreqFromTotalCents(note.octave * 1200 + note.cents);
-                            beforeBendTotalCents[noteInd] = -1;
-                            pluginInstanceManager->updateFreqs(freqs);
-                        }
                         juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
                             params.channelIndex + 1, noteInd, note.velocity);
                         midiMessages.addEvent(
@@ -302,14 +324,13 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         currPlayedNotesIndexes.insert(noteInd);
                         if (note.bend != 0) {
                             beforeBendTotalCents[noteInd] = note.octave * 1200 + note.cents;
+                        } else {
+                            beforeBendTotalCents[noteInd] = -1;
                         }
                     }
-                    // Note bend
-                    if ((note.bend != 0) && (note.time < playHeadTime) &&
-                        (playHeadTime <= note.time + note.duration)) {
-                        freqs[notesIndexes[i]] = getNoteFreq(note);
-                        pluginInstanceManager->updateFreqs(freqs);
-                    }
+                }
+                if (needUpdateFreqs) {
+                    pluginInstanceManager->updateFreqs(freqs);
                 }
             } else {
                 currPlayedNotesTotalCents.clear();
@@ -340,10 +361,19 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     for (int i = 0; i < notes.size(); ++i) {
                         const Note &note = notes[i];
                         if ((notesIndexes[i] == ind) && (note.time < playHeadTime + barsInBlock) &&
-                            (note.time + note.duration >= playHeadTime + barsInBlock) &&
-                            (getNoteFreq(note) == freqs[ind])) {
-                            thereStillExistsThisNote = true;
-                            break;
+                            (note.time + note.duration >= playHeadTime + barsInBlock)) {
+                            // Check if the note's base pitch matches (without bend)
+                            int noteTotalCents = note.octave * 1200 + note.cents;
+                            int freqsTotalCents;
+                            if (beforeBendTotalCents[ind] != -1) {
+                                freqsTotalCents = beforeBendTotalCents[ind];
+                            } else {
+                                freqsTotalCents = getTotalCentsFromFreq(freqs[ind]);
+                            }
+                            if (noteTotalCents == freqsTotalCents) {
+                                thereStillExistsThisNote = true;
+                                break;
+                            }
                         }
                     }
                 }
