@@ -293,7 +293,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     editRatiosMarksButton = std::make_unique<SVGButton>(
         BinaryData::Edit_ratios_marks_svg, BinaryData::Edit_ratios_marks_svgSize, true,
         processorRef.params.editRatiosMarks,
-        "Create (dragging LMB) and delete (click RMB) "
+        "Create, move (holding LMB) and delete (click RMB) "
         "ratios marks between keys in a certain place on the canvas.\n(RMB to open settings)\nHOTKEY: ALT+D");
 
     editRatiosMarksButton->onClick = [this](const juce::MouseEvent &me) {

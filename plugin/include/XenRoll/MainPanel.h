@@ -62,6 +62,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool wasResizing = false;
     bool wasMoving = false;
     bool isDrawingRatioMark = false;
+    bool isMovingRatioMark = false;
+    RatioMark* movingRatioMark;
     juce::Point<int> lastDragPos;
     juce::Point<int> lastViewPos;
     juce::Point<int> selectStartPos;
@@ -105,6 +107,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     const int note_right_corner_width = 5;
     const int numDashLengths = 2;
     const float dashLengths[2] = {45, 15};
+    const int ratioMarkHalfWidth = 5;
+    const int ratioMarkMinHeight = 10; // is needed for deleting small ratio marks like 1/1
     int needToUnselectAllNotesExcept = -1;
     float lastDuration = 1.0f;
     float lastVelocity = 100.0f/127;
@@ -129,6 +133,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool doesPathIntersectRect(const juce::Path &parallelogram,
                                const juce::Rectangle<float> &rect);
     void selectAllNotes();
+
+    bool pointOnRatioMark(const RatioMark& ratioMark, const juce::Point<int>& point);
 
     int totalCentsToY(int totalCents);
 

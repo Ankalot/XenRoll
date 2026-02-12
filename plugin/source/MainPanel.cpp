@@ -474,6 +474,26 @@ std::pair<int, int> MainPanel::pointToOctaveCents(juce::Point<int> point) {
     return std::make_pair(octave, cents);
 }
 
+bool MainPanel::pointOnRatioMark(const RatioMark& ratioMark, const juce::Point<int>& point) {
+    float ratioMarkXPos = ratioMark.time * bar_width_px;
+    if ((ratioMarkXPos - ratioMarkHalfWidth < point.getX()) && 
+        (point.getX() < ratioMarkXPos + ratioMarkHalfWidth)) {
+        float ratioMarkHighYPos =
+            (params->num_octaves - float(ratioMark.getHigherKeyTotalCents()) / 1200) *
+            octave_height_px;
+        float ratioMarkLowYPos =
+            (params->num_octaves - float(ratioMark.getLowerKeyTotalCents()) / 1200) *
+            octave_height_px;
+        float ratioMarkHeight = ratioMarkLowYPos - ratioMarkHighYPos;
+        if (ratioMarkHeight < ratioMarkMinHeight) {
+            ratioMarkLowYPos += (ratioMarkMinHeight - ratioMarkHeight)/2.0f;
+            ratioMarkHighYPos -= (ratioMarkMinHeight - ratioMarkHeight)/2.0f;
+        }
+        return (ratioMarkHighYPos < point.getY()) && (point.getY() < ratioMarkLowYPos);
+    }
+    return false;
+}
+
 void MainPanel::mouseDown(const juce::MouseEvent &event) {
     grabKeyboardFocus();
     juce::Point<int> point = event.getPosition();
@@ -499,6 +519,15 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
 
     if (event.mods.isLeftButtonDown()) {
         if (params->editRatiosMarks) {
+            for (auto& ratioMark: params->ratiosMarks) {
+                if (pointOnRatioMark(ratioMark, point)) {
+                    isMovingRatioMark = true;
+                    movingRatioMark = &ratioMark;
+                    lastDragPos = getParentComponent()->getLocalPoint(this, event.getPosition());
+                    return;
+                }
+            }
+
             ratioMarkStartPos = point;
             ratioMarkLastPos = point;
             isDrawingRatioMark = true;
@@ -618,21 +647,9 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
     }
 
     if (event.mods.isRightButtonDown()) {
-        const int dx = 5;
-        const int dy = 2; // so you can delete 1/1 ratio
         if (params->editRatiosMarks) {
             std::erase_if(params->ratiosMarks, [&](const auto &ratioMark) {
-                float ratioMarkXPos = ratioMark.time * bar_width_px;
-                if ((ratioMarkXPos - dx < point.getX()) && (point.getX() < ratioMarkXPos + dx)) {
-                    float ratioMarkHighYPos =
-                        (params->num_octaves - float(ratioMark.getHigherKeyTotalCents()) / 1200) *
-                        octave_height_px;
-                    float ratioMarkLowYPos =
-                        (params->num_octaves - float(ratioMark.getLowerKeyTotalCents()) / 1200) *
-                        octave_height_px;
-                    return (ratioMarkHighYPos - dy < point.getY()) && (point.getY() < ratioMarkLowYPos + dy);
-                }
-                return false;
+                return pointOnRatioMark(ratioMark, point);
             });
             repaint();
             return;
@@ -729,6 +746,35 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         editor->updateKeys(keys);
         editor->updateNotes(notes);
         repaint();
+    }
+
+    if (isMovingRatioMark) {
+        if (!movingRatioMark) { return; }
+
+        float delta_time = float(delta.getX()) / bar_width_px;
+        dtime += delta_time;
+        bool moved = false;
+        float dt = 1.0f / (params->num_beats * params->num_subdivs);
+
+        if (movingRatioMark->time + delta_time > 0 &&
+            movingRatioMark->time + delta_time < params->get_num_bars()) {
+            if (params->timeSnap) {
+                if (abs(dtime) >= dt) {
+                    movingRatioMark->time += sgn(dtime) * floor(abs(dtime) / dt) * dt;
+                    moved = true;
+                }
+            } else {
+                moved = true;
+                movingRatioMark->time += delta_time;
+            }
+        }
+
+        if (abs(dtime) >= dt) {
+            dtime = dtime - sgn(dtime) * floor(abs(dtime) / dt) * dt;
+        }
+        if (moved) {
+            repaint();
+        }
     }
 
     if (isMoving) {
@@ -871,6 +917,7 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
     isResizing = false;
     isMoving = false;
     wasMoving = false;
+    isMovingRatioMark = false;
     dtime = 0.0f;
     dcents = 0;
     setMouseCursor(juce::MouseCursor::NormalCursor);
@@ -930,8 +977,24 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
 }
 
 void MainPanel::mouseMove(const juce::MouseEvent &event) {
-    if (isDragging || isMoving || isResizing || isSelecting || params->editRatiosMarks)
+    if (isDragging || isMoving || isResizing || isSelecting || isMovingRatioMark)
         return;
+
+    if (params->editRatiosMarks) {
+        bool isOverRatioMark = false;
+        juce::Point<int> point = event.getPosition();
+        for (const auto &ratioMark: params->ratiosMarks) {
+            if (pointOnRatioMark(ratioMark, point)) {
+                isOverRatioMark = true;
+                break;
+            }
+        }
+        if (isOverRatioMark)
+            setMouseCursor(juce::MouseCursor::PointingHandCursor);
+        else
+            setMouseCursor(juce::MouseCursor::NormalCursor);
+        return;
+    }
 
     juce::Point<float> point = event.getPosition().toFloat();
 
@@ -1203,7 +1266,8 @@ void MainPanel::remakeKeys() {
                 if (result) {
                     int higherKeyOctave = ratioMark.getHigherKeyTotalCents() / 1200;
                     int newHigherKeyCents = *result;
-                    if ((newHigherKeyCents - higherKeyCents < -maxCentsChange) && (higherKeyOctave < 9)) {
+                    if ((newHigherKeyCents - higherKeyCents < -maxCentsChange) && 
+                        (higherKeyOctave < params->num_octaves - 1)) {
                         ratioMark.setHigherKeyTotalCents(1200*(higherKeyOctave + 1) + newHigherKeyCents);
                     } else if ((newHigherKeyCents - higherKeyCents > maxCentsChange) && (higherKeyOctave > 0)) {
                         ratioMark.setHigherKeyTotalCents(1200*(higherKeyOctave - 1) + newHigherKeyCents);
@@ -1218,7 +1282,8 @@ void MainPanel::remakeKeys() {
                 if (result) {
                     int lowerKeyOctave = ratioMark.getLowerKeyTotalCents() / 1200;
                     int newLowerKeyCents = *result;
-                    if ((newLowerKeyCents - lowerKeyCents < -maxCentsChange) && (lowerKeyOctave < 9)) {
+                    if ((newLowerKeyCents - lowerKeyCents < -maxCentsChange) && 
+                        (lowerKeyOctave < params->num_octaves - 1)) {
                         ratioMark.setLowerKeyTotalCents(1200*(lowerKeyOctave + 1) + newLowerKeyCents);
                     } else if ((newLowerKeyCents - lowerKeyCents > maxCentsChange) && (lowerKeyOctave > 0)) {
                         ratioMark.setLowerKeyTotalCents(1200*(lowerKeyOctave - 1) + newLowerKeyCents);
