@@ -6,6 +6,7 @@
 #pragma warning(push, 0) // Disable all warnings for boost
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
+#include <boost/interprocess/sync/named_condition.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/allocators/allocator.hpp>
 #include <boost/interprocess/containers/vector.hpp>
@@ -84,6 +85,8 @@ class PluginInstanceManager {
 
     std::unique_ptr<bip::managed_shared_memory> sharedMemory;
     std::unique_ptr<bip::named_mutex> chShMutex;
+    std::unique_ptr<bip::named_mutex> updServCondMutex;
+    std::unique_ptr<bip::named_condition> updateServerCondition;
     ChannelsSheet *channelsSheet = nullptr;
 
     ChannelFreqs *channelsFreqs[16]{nullptr};
@@ -95,7 +98,6 @@ class PluginInstanceManager {
     std::thread checkServerThread, runServerThread;
     std::atomic<bool> checkServerFlag{false}, runServerFlag{false};
     const int checkServerDeltaTime = 500; // in ms
-    //const int runServerDeltaTime = 10;    // in ms
     
     //            needed if server
     const int heartbeatDeltaTime = 300;            // in ms
