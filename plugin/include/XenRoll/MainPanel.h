@@ -6,8 +6,8 @@
 #include "Theme.h"
 #include <algorithm>
 #include <deque>
-#include <mutex>
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <mutex>
 
 namespace audio_plugin {
 class AudioPluginAudioProcessorEditor;
@@ -46,7 +46,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void numBarsChanged();
     void setVelocitiesOfSelectedNotes(float vel);
     std::pair<int, int> findNearestKey(int cents, int octave);
-    std::optional<int> findNearestKeyWithLimit(int key, int maxCentsChange, const std::set<int>& keys);
+    std::optional<int> findNearestKeyWithLimit(int key, int maxCentsChange,
+                                               const std::set<int> &keys);
 
     void updatePitchMemoryResults(const PitchMemoryResults &newPitchMemoryResults);
 
@@ -63,7 +64,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool wasMoving = false;
     bool isDrawingRatioMark = false;
     bool isMovingRatioMark = false;
-    RatioMark* movingRatioMark;
+    RatioMark *movingRatioMark;
     juce::Point<int> lastDragPos;
     juce::Point<int> lastViewPos;
     juce::Point<int> selectStartPos;
@@ -111,12 +112,12 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     const int ratioMarkMinHeight = 10; // is needed for deleting small ratio marks like 1/1
     int needToUnselectAllNotesExcept = -1;
     float lastDuration = 1.0f;
-    float lastVelocity = 100.0f/127;
+    float lastVelocity = 100.0f / 127;
     float vertMoveSlowCoef = 0.2f;
 
     std::vector<Note> ghostNotes;
 
-    std::pair<int,int> pointToOctaveCents(juce::Point<int> point);
+    std::pair<int, int> pointToOctaveCents(juce::Point<int> point);
     float adaptHor(float inputThickness);
     float adaptVert(float inputThickness);
     float adaptFont(float inputThickness);
@@ -130,11 +131,10 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     float timeToSnappedTime(float time);
     int getKeyIndex(int cents);
     std::tuple<int, int> centsToKeysCents(int octave, int cents);
-    bool doesPathIntersectRect(const juce::Path &parallelogram,
-                               const juce::Rectangle<float> &rect);
+    bool doesPathIntersectRect(const juce::Path &parallelogram, const juce::Rectangle<float> &rect);
     void selectAllNotes();
 
-    bool pointOnRatioMark(const RatioMark& ratioMark, const juce::Point<int>& point);
+    bool pointOnRatioMark(const RatioMark &ratioMark, const juce::Point<int> &point);
 
     int totalCentsToY(int totalCents);
 

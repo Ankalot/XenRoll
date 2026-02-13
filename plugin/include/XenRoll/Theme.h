@@ -5,7 +5,16 @@
 namespace audio_plugin {
 class Theme {
   public:
-    enum ThemeType { Purple = 1, Green = 2, Gray = 3, Red = 4 };
+    enum ThemeType {
+        Purple = 1,
+        Green = 2,
+        Gray = 3,
+        Red = 4,
+        Blue = 5,
+        Orange = 6,
+        Cyan = 7,
+        LightBlue = 8
+    };
 
     // Theme dependent
     static juce::Colour darkest;
@@ -46,11 +55,28 @@ class Theme {
         case Red:
             setRedTheme();
             break;
+        case Blue:
+            setBlueTheme();
+            break;
+        case Orange:
+            setOrangeTheme();
+            break;
+        case Cyan:
+            setCyanTheme();
+            break;
+        case LightBlue:
+            setLightBlueTheme();
+            break;
         }
     }
 
     static const juce::Array<juce::String> getThemeNames() {
-        return {"Purple", "Green", "Gray", "Red"};
+        return {"Purple", "Green", "Gray", "Red", "Blue", "Orange", "Cyan", "LightBlue"};
+    }
+
+    static const juce::Array<juce::String> getThemeDescriptions() {
+        return {"SEREGA PIRAT mode", "Nature & flowers", "Standart", "Welcome to hell",
+                "On the seabed", "Desert", "Exotic", "Tender UwU"};
     }
 
   private:
@@ -58,5 +84,9 @@ class Theme {
     static void setGreenTheme();
     static void setGrayTheme();
     static void setRedTheme();
+    static void setBlueTheme();
+    static void setOrangeTheme();
+    static void setCyanTheme();
+    static void setLightBlueTheme();
 };
 } // namespace audio_plugin

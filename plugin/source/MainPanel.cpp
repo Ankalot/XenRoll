@@ -33,30 +33,28 @@ void MainPanel::updatePitchMemoryResults(const PitchMemoryResults &newPitchMemor
     repaint();
 }
 
-void MainPanel::drawOutlinedText(juce::Graphics& g, const juce::String& text,
-                                 juce::Rectangle<float> area, const juce::Font& font) {
+void MainPanel::drawOutlinedText(juce::Graphics &g, const juce::String &text,
+                                 juce::Rectangle<float> area, const juce::Font &font) {
     // Precompute once
     const float fontHeight = font.getHeight();
     const float areaCentreX = area.getCentreX();
     const float areaCentreY = area.getCentreY();
-    
+
     juce::GlyphArrangement glyphs;
     glyphs.addLineOfText(font, text, 0.0f, fontHeight);
-    
+
     juce::Path textPath;
     glyphs.createPath(textPath);
-    
+
     // Get bounds and compute translation in one step
     const auto bounds = textPath.getBounds();
-    textPath.applyTransform(
-        juce::AffineTransform::translation(
-            areaCentreX - (bounds.getX() + bounds.getWidth() * 0.5f),
-            areaCentreY - (bounds.getY() + bounds.getHeight() * 0.5f))
-    );
-        
+    textPath.applyTransform(juce::AffineTransform::translation(
+        areaCentreX - (bounds.getX() + bounds.getWidth() * 0.5f),
+        areaCentreY - (bounds.getY() + bounds.getHeight() * 0.5f)));
+
     g.setColour(Theme::darkest);
     g.strokePath(textPath, outlineStroke);
-    
+
     g.setColour(Theme::brightest);
     g.fillPath(textPath);
 }
@@ -70,10 +68,11 @@ float MainPanel::adaptVert(float inputThickness) {
 }
 
 float MainPanel::adaptFont(float inputThickness) {
-    return inputThickness * std::min(std::min(1.0f, (octave_height_px + 1.0f * init_octave_height_px) *
-                                                        (0.5f) / init_octave_height_px),
-                                     std::min(1.0f, (bar_width_px + 1.0f * init_bar_width_px) *
-                                                        (0.5f) / init_bar_width_px));
+    return inputThickness *
+           std::min(std::min(1.0f, (octave_height_px + 1.0f * init_octave_height_px) * (0.5f) /
+                                       init_octave_height_px),
+                    std::min(1.0f, (bar_width_px + 1.0f * init_bar_width_px) * (0.5f) /
+                                       init_bar_width_px));
 }
 
 void MainPanel::paint(juce::Graphics &g) {
@@ -307,9 +306,8 @@ void MainPanel::paint(juce::Graphics &g) {
         g.setColour(Theme::activated);
         float wdth = adaptVert(Theme::wide);
         const auto point1 = ratioMarkStartPos.toFloat();
-        const auto point2 =
-            juce::Point<float>(ratioMarkStartPos.getX(),
-                               (ratioMarkStartPos.getY() + ratioMarkLastPos.getY()) / 2.0f);
+        const auto point2 = juce::Point<float>(
+            ratioMarkStartPos.getX(), (ratioMarkStartPos.getY() + ratioMarkLastPos.getY()) / 2.0f);
         const auto point3 = juce::Point<float>(ratioMarkStartPos.getX(), ratioMarkLastPos.getY());
         g.drawArrow(juce::Line<float>(point2, point1), wdth, wdth * 3, wdth * 3);
         g.drawArrow(juce::Line<float>(point2, point3), wdth, wdth * 3, wdth * 3);
@@ -325,12 +323,12 @@ void MainPanel::unselectAllNotes() {
 
 void MainPanel::quantizeSelectedNotes() {
     notesHistory.push(notes);
-    float dt = 1.0f/(params->num_beats*params->num_subdivs);
+    float dt = 1.0f / (params->num_beats * params->num_subdivs);
 
-    for (auto& note: notes) {
+    for (auto &note : notes) {
         if (note.isSelected) {
-            float newTime = roundf(note.time/dt)*dt;
-            float newDuration = roundf(note.duration/dt)*dt;
+            float newTime = roundf(note.time / dt) * dt;
+            float newDuration = roundf(note.duration / dt) * dt;
             if (newDuration < dt) {
                 newDuration = dt;
             }
@@ -346,14 +344,14 @@ void MainPanel::quantizeSelectedNotes() {
 
 void MainPanel::randomizeSelectedNotesTiming() {
     notesHistory.push(notes);
-    float dt = 1.0f/(params->num_beats*params->num_subdivs);
-    const float maxJitter = dt*0.15f;
+    float dt = 1.0f / (params->num_beats * params->num_subdivs);
+    const float maxJitter = dt * 0.15f;
 
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    std::normal_distribution<float> dist(0.0f, maxJitter/3.0f);
+    std::normal_distribution<float> dist(0.0f, maxJitter / 3.0f);
 
-    for (auto& note: notes) {
+    for (auto &note : notes) {
         if (note.isSelected) {
             float jitter = juce::jlimit(-maxJitter, maxJitter, dist(gen));
             note.time += jitter;
@@ -374,12 +372,12 @@ void MainPanel::randomizeSelectedNotesVelocity() {
 
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    std::normal_distribution<float> dist(0.0f, maxJitter/3.0f);
+    std::normal_distribution<float> dist(0.0f, maxJitter / 3.0f);
 
-    for (auto& note: notes) {
+    for (auto &note : notes) {
         if (note.isSelected) {
             float jitter = juce::jlimit(-maxJitter, maxJitter, dist(gen));
-            note.velocity = juce::jlimit(0.0f, 1.0f, note.velocity+jitter);
+            note.velocity = juce::jlimit(0.0f, 1.0f, note.velocity + jitter);
         }
     }
 
@@ -480,9 +478,9 @@ std::pair<int, int> MainPanel::pointToOctaveCents(juce::Point<int> point) {
     return std::make_pair(octave, cents);
 }
 
-bool MainPanel::pointOnRatioMark(const RatioMark& ratioMark, const juce::Point<int>& point) {
+bool MainPanel::pointOnRatioMark(const RatioMark &ratioMark, const juce::Point<int> &point) {
     float ratioMarkXPos = ratioMark.time * bar_width_px;
-    if ((ratioMarkXPos - ratioMarkHalfWidth < point.getX()) && 
+    if ((ratioMarkXPos - ratioMarkHalfWidth < point.getX()) &&
         (point.getX() < ratioMarkXPos + ratioMarkHalfWidth)) {
         float ratioMarkHighYPos =
             (params->num_octaves - float(ratioMark.getHigherKeyTotalCents()) / 1200) *
@@ -492,8 +490,8 @@ bool MainPanel::pointOnRatioMark(const RatioMark& ratioMark, const juce::Point<i
             octave_height_px;
         float ratioMarkHeight = ratioMarkLowYPos - ratioMarkHighYPos;
         if (ratioMarkHeight < ratioMarkMinHeight) {
-            ratioMarkLowYPos += (ratioMarkMinHeight - ratioMarkHeight)/2.0f;
-            ratioMarkHighYPos -= (ratioMarkMinHeight - ratioMarkHeight)/2.0f;
+            ratioMarkLowYPos += (ratioMarkMinHeight - ratioMarkHeight) / 2.0f;
+            ratioMarkHighYPos -= (ratioMarkMinHeight - ratioMarkHeight) / 2.0f;
         }
         return (ratioMarkHighYPos < point.getY()) && (point.getY() < ratioMarkLowYPos);
     }
@@ -525,7 +523,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
 
     if (event.mods.isLeftButtonDown()) {
         if (params->editRatiosMarks) {
-            for (auto& ratioMark: params->ratiosMarks) {
+            for (auto &ratioMark : params->ratiosMarks) {
                 if (pointOnRatioMark(ratioMark, point)) {
                     isMovingRatioMark = true;
                     movingRatioMark = &ratioMark;
@@ -755,7 +753,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     }
 
     if (isMovingRatioMark) {
-        if (!movingRatioMark) { return; }
+        if (!movingRatioMark) {
+            return;
+        }
 
         float delta_time = float(delta.getX()) / bar_width_px;
         dtime += delta_time;
@@ -854,7 +854,6 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                         moved = true;
                         notes[i].octave = new_octave;
                         notes[i].cents = new_cents;
-                        remakeKeys();
                     }
                 }
             }
@@ -989,7 +988,7 @@ void MainPanel::mouseMove(const juce::MouseEvent &event) {
     if (params->editRatiosMarks) {
         bool isOverRatioMark = false;
         juce::Point<int> point = event.getPosition();
-        for (const auto &ratioMark: params->ratiosMarks) {
+        for (const auto &ratioMark : params->ratiosMarks) {
             if (pointOnRatioMark(ratioMark, point)) {
                 isOverRatioMark = true;
                 break;
@@ -1211,15 +1210,16 @@ void MainPanel::generateNewKeys() {
     }
 }
 
-std::optional<int> MainPanel::findNearestKeyWithLimit(int key, int maxCentsChange, const std::set<int>& keys) {
+std::optional<int> MainPanel::findNearestKeyWithLimit(int key, int maxCentsChange,
+                                                      const std::set<int> &keys) {
     if (keys.empty()) {
         return std::nullopt;
     }
-    
+
     int bestKey = -1;
     int bestDistance = maxCentsChange + 1;
 
-    for (const auto k: keys) {
+    for (const auto k : keys) {
         int diff = std::abs(k - key);
         int dist = std::min(diff, 1200 - diff);
         if ((dist != 0) && (dist < bestDistance)) {
@@ -1265,20 +1265,24 @@ void MainPanel::remakeKeys() {
     // TODO: change this later maybe, that's a lazy solution
     if (params->autoCorrectRatiosMarks) {
         const int maxCentsChange = 100;
-        for (auto& ratioMark: params->ratiosMarks) {
+        for (auto &ratioMark : params->ratiosMarks) {
             int higherKeyCents = ratioMark.getHigherKeyTotalCents() % 1200;
             if (!allAllKeys.contains(higherKeyCents)) {
                 auto result = findNearestKeyWithLimit(higherKeyCents, maxCentsChange, allAllKeys);
                 if (result) {
                     int higherKeyOctave = ratioMark.getHigherKeyTotalCents() / 1200;
                     int newHigherKeyCents = *result;
-                    if ((newHigherKeyCents - higherKeyCents < -maxCentsChange) && 
+                    if ((newHigherKeyCents - higherKeyCents < -maxCentsChange) &&
                         (higherKeyOctave < params->num_octaves - 1)) {
-                        ratioMark.setHigherKeyTotalCents(1200*(higherKeyOctave + 1) + newHigherKeyCents);
-                    } else if ((newHigherKeyCents - higherKeyCents > maxCentsChange) && (higherKeyOctave > 0)) {
-                        ratioMark.setHigherKeyTotalCents(1200*(higherKeyOctave - 1) + newHigherKeyCents);
+                        ratioMark.setHigherKeyTotalCents(1200 * (higherKeyOctave + 1) +
+                                                         newHigherKeyCents);
+                    } else if ((newHigherKeyCents - higherKeyCents > maxCentsChange) &&
+                               (higherKeyOctave > 0)) {
+                        ratioMark.setHigherKeyTotalCents(1200 * (higherKeyOctave - 1) +
+                                                         newHigherKeyCents);
                     } else {
-                        ratioMark.setHigherKeyTotalCents(1200*higherKeyOctave + newHigherKeyCents);
+                        ratioMark.setHigherKeyTotalCents(1200 * higherKeyOctave +
+                                                         newHigherKeyCents);
                     }
                 }
             }
@@ -1288,13 +1292,16 @@ void MainPanel::remakeKeys() {
                 if (result) {
                     int lowerKeyOctave = ratioMark.getLowerKeyTotalCents() / 1200;
                     int newLowerKeyCents = *result;
-                    if ((newLowerKeyCents - lowerKeyCents < -maxCentsChange) && 
+                    if ((newLowerKeyCents - lowerKeyCents < -maxCentsChange) &&
                         (lowerKeyOctave < params->num_octaves - 1)) {
-                        ratioMark.setLowerKeyTotalCents(1200*(lowerKeyOctave + 1) + newLowerKeyCents);
-                    } else if ((newLowerKeyCents - lowerKeyCents > maxCentsChange) && (lowerKeyOctave > 0)) {
-                        ratioMark.setLowerKeyTotalCents(1200*(lowerKeyOctave - 1) + newLowerKeyCents);
+                        ratioMark.setLowerKeyTotalCents(1200 * (lowerKeyOctave + 1) +
+                                                        newLowerKeyCents);
+                    } else if ((newLowerKeyCents - lowerKeyCents > maxCentsChange) &&
+                               (lowerKeyOctave > 0)) {
+                        ratioMark.setLowerKeyTotalCents(1200 * (lowerKeyOctave - 1) +
+                                                        newLowerKeyCents);
                     } else {
-                        ratioMark.setLowerKeyTotalCents(1200*lowerKeyOctave + newLowerKeyCents);
+                        ratioMark.setLowerKeyTotalCents(1200 * lowerKeyOctave + newLowerKeyCents);
                     }
                 }
             }
@@ -1303,7 +1310,7 @@ void MainPanel::remakeKeys() {
 }
 
 void MainPanel::updateRatiosMarks() {
-    for (auto& ratioMark: params->ratiosMarks) {
+    for (auto &ratioMark : params->ratiosMarks) {
         ratioMark.calculateRatioAndError();
     }
     repaint();

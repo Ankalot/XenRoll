@@ -63,7 +63,12 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     addAndMakeVisible(themeTypeLabel.get());
 
     themeTypeCombo = std::make_unique<juce::ComboBox>();
-    themeTypeCombo->addItemList(Theme::getThemeNames(), 1);
+    auto themeNames = Theme::getThemeNames();
+    auto themeDescriptions = Theme::getThemeDescriptions();
+    for (int i = 0; i < themeNames.size(); ++i) {
+        juce::String itemText = themeNames[i] + " - " + themeDescriptions[i];
+        themeTypeCombo->addItem(itemText, i + 1);
+    }
     themeTypeCombo->setSelectedId(static_cast<int>(params->themeType));
     themeTypeLabel->attachToComponent(themeTypeCombo.get(), true);
     themeTypeCombo->onChange = [this, params, editor]() {
