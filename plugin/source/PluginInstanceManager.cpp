@@ -78,17 +78,18 @@ void PluginInstanceManager::initSharedMemory() {
     updServCondMutex = std::make_unique<bip::named_mutex>(bip::open_or_create,
                                                           "XenRollMutexUpdateServerCondition");
 
-    bip::scoped_lock<bip::named_mutex> lock2(*updServCondMutex, bip::defer_lock);
-    if (!lock2.try_lock_for(std::chrono::milliseconds(lockTimeoutTime))) {
-        throw std::runtime_error("Unable to acquire mutex lock within timeout - possible deadlock");
-    }
-
     updateServerCondition =
         std::make_unique<bip::named_condition>(bip::open_or_create, "XenRollUpdateServerCondition");
 
     // CREATE/OPEN ALL MUTEXES FOR EVERYONE
     // CHECK FOR STUCK MUTEXES AFTER CRASH
     // (need to detect them so runServer and other functions don't wait forever)
+    {
+        bip::scoped_lock<bip::named_mutex> lock2(*updServCondMutex, bip::defer_lock);
+        if (!lock2.try_lock_for(std::chrono::milliseconds(lockTimeoutTime))) {
+            throw std::runtime_error("Unable to acquire mutex lock within timeout - possible deadlock");
+        }
+    }
     for (int i = 0; i < 16; ++i) {
         {
             chNtMutex[i] = std::make_unique<bip::named_mutex>(
@@ -205,10 +206,6 @@ void PluginInstanceManager::becomeServer() {
     channelsSheet->serverHeartbeat = now_ms;
 
     runServerThread = std::thread(&PluginInstanceManager::runServer, this);
-
-    // Notify the new server thread to process initial updates
-    bip::scoped_lock<bip::named_mutex> lock(*updServCondMutex);
-    updateServerCondition->notify_one();
 }
 
 void PluginInstanceManager::checkServer() {
