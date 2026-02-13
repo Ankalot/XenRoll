@@ -70,7 +70,7 @@ void Theme::setOrangeTheme() {
     bright    = juce::Colour(215, 140, 70);
     brighter  = juce::Colour(245, 185, 120);
     brightest = juce::Colour(255, 250, 245);
-    activated = juce::Colour(80, 180, 210);
+    activated = juce::Colour(200, 240, 140);
 }
 
 void Theme::setCyanTheme() {
