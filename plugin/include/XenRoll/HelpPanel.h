@@ -86,7 +86,19 @@ class HelpPanel : public juce::Component {
                    {"RIGHT", "Move selected notes by 1 subdiv to the right"},
                    {"LEFT", "Move selected notes by 1 subdiv to the left"},
                    {"SHIFT + RIGHT", "Move selected notes by 1 bar to the right"},
-                   {"SHIFT + LEFT", "Move selected notes by 1 bar to the left"}});
+                   {"SHIFT + LEFT", "Move selected notes by 1 bar to the left"},
+                   {"ALT + " + juce::String::charToString(static_cast<char>(
+                                   std::toupper(Parameters::hotkeys::timeSnap_withAlt))),
+                    "Switch horizontal (time) snapping mode"},
+                   {"ALT + " + juce::String::charToString(static_cast<char>(
+                                   std::toupper(Parameters::hotkeys::keySnap_withAlt))),
+                    "Switch vertical (pitch) snapping mode"},
+                   {"ALT + " + juce::String::charToString(static_cast<char>(
+                                   std::toupper(Parameters::hotkeys::editRatiosMarks_withAlt))),
+                    "Switch editing ratios marks mode"},
+                   {"ALT + " + juce::String::charToString(static_cast<char>(
+                                   std::toupper(Parameters::hotkeys::pitchMemory_withAlt))),
+                    "Switch the harmonicity display mode"}});
     }
 
   private:

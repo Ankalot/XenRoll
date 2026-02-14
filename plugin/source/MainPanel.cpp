@@ -1643,22 +1643,26 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
 
     // HOTKEYS
     // click timeSnapButton
-    if (key == juce::KeyPress('a', juce::ModifierKeys::altModifier, 0)) {
+    if (key ==
+        juce::KeyPress(Parameters::hotkeys::timeSnap_withAlt, juce::ModifierKeys::altModifier, 0)) {
         editor->leftClickTimeSnapButton();
         return true;
     }
     // click keySnapButton
-    if (key == juce::KeyPress('s', juce::ModifierKeys::altModifier, 0)) {
+    if (key ==
+        juce::KeyPress(Parameters::hotkeys::keySnap_withAlt, juce::ModifierKeys::altModifier, 0)) {
         editor->leftClickKeySnapButton();
         return true;
     }
     // click editRatiosMarksButton
-    if (key == juce::KeyPress('d', juce::ModifierKeys::altModifier, 0)) {
+    if (key == juce::KeyPress(Parameters::hotkeys::editRatiosMarks_withAlt,
+                              juce::ModifierKeys::altModifier, 0)) {
         editor->leftClickEditRatiosMarksButton();
         return true;
     }
     // click pitchMemoryButton
-    if (key == juce::KeyPress('f', juce::ModifierKeys::altModifier, 0)) {
+    if (key == juce::KeyPress(Parameters::hotkeys::pitchMemory_withAlt,
+                              juce::ModifierKeys::altModifier, 0)) {
         editor->leftClickPitchMemoryButton();
         return true;
     }

@@ -1,12 +1,12 @@
 #pragma once
 
+#include "PartialsFinder.h"
+#include "RatioMark.h"
 #include "Theme.h"
 #include "Zones.h"
-#include "RatioMark.h"
 #include <atomic>
-#include <stdexcept>
-#include "PartialsFinder.h"
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <stdexcept>
 
 // total cents = 1200*octave + cents
 // Ghost notes = notes from other instances of xenroll
@@ -18,6 +18,14 @@ class Parameters {
     static const juce::Array<juce::String> getGenNewKeysTacticsNames() {
         return {"+diverse intervals", "random"};
     }
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ HOTKEYS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    enum hotkeys {
+        timeSnap_withAlt = 'a',
+        keySnap_withAlt = 's',
+        editRatiosMarks_withAlt = 'd',
+        pitchMemory_withAlt = 'f'
+    };
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants ~~~~~~~~~~~~~~~~~~~~~~~~~~~
     static constexpr int num_octaves = 10;
@@ -46,7 +54,7 @@ class Parameters {
     // Pitch memory
     static constexpr float min_pitchMemoryTVvalForZeroHV = 0.0f;
     static constexpr float min_pitchMemoryTVaddInfluence = 0.0f;
-    static constexpr float min_pitchMemoryTVminNonzero = 0.0f; 
+    static constexpr float min_pitchMemoryTVminNonzero = 0.0f;
     // ==================================================
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Maximum values ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -101,7 +109,7 @@ class Parameters {
     float roughCompactFrac = 0.0f;
     float dissonancePow = 1.0f;
     // Pitch memory
-    float pitchMemoryTVvalForZeroHV = 0.2f; 
+    float pitchMemoryTVvalForZeroHV = 0.2f;
     float pitchMemoryTVaddInfluence = 0.3f;
     float pitchMemoryTVminNonzero = 0.0f;
     bool pitchMemoryShowOnlyHarmonicity = true;
