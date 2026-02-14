@@ -7,6 +7,9 @@
 namespace audio_plugin {
 class AudioPluginAudioProcessorEditor;
 
+/**
+ * @brief The panel above the main one. Contains bars numbers and a playhead
+ */
 class TopPanel : public juce::Component {
   public:
     TopPanel(int bar_width_px, const int topPanel_height_px,
@@ -30,10 +33,20 @@ class TopPanel : public juce::Component {
 
     void mouseDown(const juce::MouseEvent &event) override;
 
+    /**
+     * @brief Adapt line thickness based on zoom level
+     * @param inputThickness Input thickness
+     * @return Adapted thickness
+     */
     float adaptSize(float inputThickness) {
         return inputThickness * std::min(1.0f, bar_width_px * 1.0f / init_bar_width_px);
     }
 
+    /**
+     * @brief Adapt font size based on zoom level
+     * @param inputThickness Input font size
+     * @return Adapted font size
+     */
     float adaptFont(float inputThickness) {
         return inputThickness * std::min(1.0f, (bar_width_px + 1.5f * init_bar_width_px) * (0.4f) /
                                                    init_bar_width_px);

@@ -4,6 +4,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace audio_plugin {
+// Is needed for scrolling
 class HelpViewport : public juce::Viewport {
   public:
     HelpViewport() {
@@ -104,6 +105,12 @@ class HelpPanel : public juce::Component {
   private:
     int firstColumnWidth = 300;
 
+    /**
+     * @brief Draw a help table
+     * @param g Graphics context
+     * @param bounds Rectangle to draw table in
+     * @param rows Vector of row data (key, description)
+     */
     void drawTable(juce::Graphics &g, juce::Rectangle<int> bounds,
                    const std::vector<std::pair<juce::String, juce::String>> &rows) {
         g.setColour(Theme::brighter.withAlpha(0.2f));

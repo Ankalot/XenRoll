@@ -9,18 +9,33 @@ class Parameters;
 
 struct RatioMark {
   public:
-    float time; // in bars
+    float time; ///< Time position in bars
 
-    RatioMark(int lktc, int hktc, float t, Parameters* ps)
+    /**
+     * @brief Construct a RatioMark
+     * @param lktc Lower key total cents
+     * @param hktc Higher key total cents
+     * @param t Time position in bars
+     * @param ps Pointer to Parameters object
+     */
+    RatioMark(int lktc, int hktc, float t, Parameters *ps)
         : lowerKeyTotalCents(lktc), higherKeyTotalCents(hktc), time(t), params(ps) {
         calculateRatioAndError();
     }
 
     int getLowerKeyTotalCents() const { return lowerKeyTotalCents; }
     int getHigherKeyTotalCents() const { return higherKeyTotalCents; }
-    
+
+    /**
+     * @brief Get the ratio as a pair (numerator, denominator)
+     * @return Pair of integers representing the ratio
+     */
     std::pair<int, int> getRatio() const { return std::make_pair(num, den); }
 
+    /**
+     * @brief Get the error in cents
+     * @return Error value in cents
+     */
     int getError() const { return err; }
 
     void setLowerKeyTotalCents(int newLowerKeyTotalCents) {
@@ -36,9 +51,9 @@ struct RatioMark {
     void calculateRatioAndError();
 
   private:
-    Parameters* params;
+    Parameters *params;
     int lowerKeyTotalCents, higherKeyTotalCents;
     int num, den;
-    int err; // in cents
+    int err; ///< in cents
 };
 } // namespace audio_plugin

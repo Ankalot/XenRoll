@@ -2,7 +2,7 @@
 
 namespace audio_plugin {
 DissonancePanel::DissonancePanel(Parameters *params,
-                                     std::shared_ptr<DissonanceMeter> dissonanceMeter)
+                                 std::shared_ptr<DissonanceMeter> dissonanceMeter)
     : params(params), dissonanceMeter(dissonanceMeter) {
     setVisible(false);
     setAlwaysOnTop(true);

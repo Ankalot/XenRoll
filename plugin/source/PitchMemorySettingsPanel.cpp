@@ -41,7 +41,7 @@ PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters *params,
     showOnlyHarmonicityLabel = std::make_unique<juce::Label>();
     showOnlyHarmonicityLabel->setFont(currentFont);
     showOnlyHarmonicityLabel->setText("Don't show traces (show only harmonicity)",
-                               juce::dontSendNotification);
+                                      juce::dontSendNotification);
     addAndMakeVisible(showOnlyHarmonicityLabel.get());
 
     TVvalForZeroHVSlider = std::make_unique<juce::Slider>();

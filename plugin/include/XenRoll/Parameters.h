@@ -99,7 +99,7 @@ class Parameters {
     int goodEnoughErrorRatiosMarks = 4;
     Theme::ThemeType themeType = Theme::ThemeType::Gray;
     bool playDraggedNotes = true;
-    int channelIndex = -1; // -1 means uninited state, normal range 0-15
+    int channelIndex = -1; ///< -1 means uninited state, normal range 0-15
     // ================== Intellectual ==================
     // Partials/dissonance
     std::atomic<int> findPartialsFFTSize = 8192;
@@ -115,6 +115,12 @@ class Parameters {
     bool pitchMemoryShowOnlyHarmonicity = true;
     // ==================================================
 
+    /**
+     * @brief Add partials for a specific tone
+     * @param toneTotalCents Total cents value of the tone (1200 * octave + cents)
+     * @param partials Vector of partials (frequency in Hz, amplitude)
+     * @note Currently only one set of partials is supported, so adding new ones clears previous
+     */
     void add_partials(int toneTotalCents, partialsVec partials) {
         std::sort(partials.begin(), partials.end(),
                   [](const auto &p1, const auto &p2) { return p1.first < p2.first; });
@@ -131,21 +137,39 @@ class Parameters {
         // ========================================================================================
     }
 
+    /**
+     * @brief Remove partials for a specific tone
+     * @param toneTotalCents Total cents value of the tone to remove
+     * @return true if partials were removed, false if tone was not found
+     */
     bool remove_partials(int toneTotalCents) {
         std::lock_guard<std::mutex> lock(partialsMutex);
         return tonesPartials.erase(toneTotalCents) > 0;
     }
 
+    /**
+     * @brief Set all tones' partials at once
+     * @param newTonesPartials Map of tone total cents to partials vectors
+     */
     void set_tonesPartials(std::map<int, partialsVec> newTonesPartials) {
         std::lock_guard<std::mutex> lock(partialsMutex);
         tonesPartials = newTonesPartials;
     }
 
+    /**
+     * @brief Get all tones' partials
+     * @return Map of tone total cents to partials vectors
+     */
     std::map<int, partialsVec> get_tonesPartials() {
         std::lock_guard<std::mutex> lock(partialsMutex);
         return tonesPartials;
     }
 
+    /**
+     * @brief Set the number of bars in the timeline
+     * @param new_num_bars Number of bars (must be >= min_num_bars and <= max_num_bars)
+     * @note Also updates the zones border point
+     */
     void set_num_bars(int new_num_bars) {
         num_bars = new_num_bars;
         zones.setBorderPoint(float(num_bars));
@@ -182,9 +206,11 @@ class Parameters {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~ Saved params ~~~~~~~~~~~~~~~~~~~~~~~~~
     int num_bars = 6;
     // ================== Intellectual ==================
-    // Partials/dissonance
-    // key - total cents of tone, value - partials of tone
-    //    Partials consist of pairs {freq, amp}, where freq is in Hz and amp is linear (gain)
+    /**
+     * Partials/dissonance
+     * key - total cents of tone, value - partials of tone
+     * Partials consist of pairs {freq, amp}, where freq is in Hz and amp is linear (gain)
+     */
     std::map<int, partialsVec> tonesPartials = {{5700, {{A4Freq, 1.0f}}}};
     // GUI and processor threads can try to get/set partials at the same time
     std::mutex partialsMutex;

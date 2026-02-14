@@ -15,6 +15,11 @@
 namespace audio_plugin {
 class DissonancePanel : public juce::Component {
   public:
+    /**
+     * @brief Construct a DissonancePanel
+     * @param params Pointer to parameters
+     * @param dissonanceMeter Shared pointer to DissonanceMeter for calculations
+     */
     DissonancePanel(Parameters *params, std::shared_ptr<DissonanceMeter> dissonanceMeter);
     ~DissonancePanel() override;
 
@@ -52,7 +57,19 @@ class DissonancePanel : public juce::Component {
 
     bool ignoreUpdatePartials = false;
     bool ignoreUpdateDissonance = false;
+
+    /**
+     * @brief Update total cents for partials plot
+     * @param newTotalCents New total cents value
+     * @param ind Index of component to ignore during update (to avoid cyclic updates)
+     */
     void updatePartialsPlotTotalCents(int newTotalCents, int ind);
+
+    /**
+     * @brief Update total cents for dissonance plot
+     * @param newTotalCents New total cents value
+     * @param ind Index of component to ignore during update (to avoid cyclic updates)
+     */
     void updateDissonancePlotTotalCents(int newTotalCents, int ind);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DissonancePanel)

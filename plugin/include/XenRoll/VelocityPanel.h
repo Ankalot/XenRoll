@@ -4,6 +4,9 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace audio_plugin {
+/**
+ * @brief A very small window for changing the velocity of the selected notes(s)
+ */
 class VelocityPanel : public juce::Component {
   public:
     VelocityPanel(std::function<void()> onValueChange) {
@@ -20,8 +23,16 @@ class VelocityPanel : public juce::Component {
 
     void resized() override { velocitySlider->setBounds(getLocalBounds().reduced(2)); }
 
+    /**
+     * @brief Set the velocity value
+     * @param vel Velocity value (0-1)
+     */
     void setVelocity(float vel) { velocitySlider->setValue(vel * 127.0); }
 
+    /**
+     * @brief Get the current velocity value
+     * @return Velocity value (0-1)
+     */
     float getVelocity() { return float(velocitySlider->getValue() / 127.0); }
 
     void paint(juce::Graphics &g) override {

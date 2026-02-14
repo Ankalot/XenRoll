@@ -7,7 +7,9 @@
 namespace audio_plugin {
 class AudioPluginAudioProcessorEditor;
 
-
+/**
+ * @brief Small menu for changing the settings for generating new keys
+ */
 class GenNewKeysMenu : public juce::Component {
   public:
     GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor);

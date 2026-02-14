@@ -1,5 +1,5 @@
-#include "XenRoll/PluginEditor.h"
 #include "XenRoll/SettingsPanel.h"
+#include "XenRoll/PluginEditor.h"
 
 namespace audio_plugin {
 SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor *editor) {

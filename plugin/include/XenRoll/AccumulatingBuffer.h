@@ -3,13 +3,25 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace audio_plugin {
+/**
+ * @brief Thread-safe buffer for accumulating audio samples over time
+ * @note Automatically mixes multi-channel input to mono
+ */
 class AccumulatingBuffer {
   public:
+    /**
+     * @brief Construct an AccumulatingBuffer with default size
+     */
     AccumulatingBuffer() {
         buffer.setSize(1, 1024);
         buffer.clear();
     }
 
+    /**
+     * @brief Add samples to the buffer
+     * @param input Audio buffer to add (multi-channel input is mixed to mono)
+     * @note Thread-safe. Automatically resizes buffer if needed.
+     */
     void addSamples(const juce::AudioBuffer<float> &input) {
         const juce::ScopedLock lock(mutex); // Thread-safe
 
@@ -29,6 +41,11 @@ class AccumulatingBuffer {
         }
     }
 
+    /**
+     * @brief Extract all accumulated samples and clear the buffer
+     * @return Audio buffer containing all accumulated samples (mono)
+     * @note Thread-safe
+     */
     juce::AudioBuffer<float> extractAndClear() {
         const juce::ScopedLock lock(mutex); // Thread-safe
 
@@ -41,6 +58,10 @@ class AccumulatingBuffer {
         return result;
     }
 
+    /**
+     * @brief Clear the buffer
+     * @note Thread-safe
+     */
     void clear() {
         const juce::ScopedLock lock(mutex); // Thread-safe
         buffer.clear();

@@ -6,6 +6,11 @@
 namespace audio_plugin {
 class PopupMessage : public juce::Component, private juce::Timer {
   public:
+    /**
+     * @brief Construct a PopupMessage
+     * @param displayTimeMs Time to display message in milliseconds
+     * @param alpha Background opacity (0.0 to 1.0)
+     */
     PopupMessage(int displayTimeMs, float alpha) : displayTimeMs(displayTimeMs), alpha(alpha) {
         setAlwaysOnTop(true);
         setInterceptsMouseClicks(false, false);
@@ -30,6 +35,9 @@ class PopupMessage : public juce::Component, private juce::Timer {
         g.drawText(messageText, getLocalBounds(), juce::Justification::centred, false);
     }
 
+    /**
+     * @brief Called when timer expires (hides the message)
+     */
     void timerCallback() override {
         setVisible(false);
         messageText = "";
@@ -40,6 +48,6 @@ class PopupMessage : public juce::Component, private juce::Timer {
   private:
     int displayTimeMs;
     juce::String messageText = "";
-    float alpha;
+    float alpha; ///< opacity
 };
 } // namespace audio_plugin

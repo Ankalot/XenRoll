@@ -6,6 +6,9 @@
 namespace audio_plugin {
 class AudioPluginAudioProcessorEditor;
 
+/**
+ * @brief Small menu with buttons that represent some kind of tools for manipulating notes.
+ */
 class MoreToolsMenu : public juce::Component {
   public:
     MoreToolsMenu(AudioPluginAudioProcessorEditor *editor);

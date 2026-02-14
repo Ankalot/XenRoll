@@ -10,26 +10,20 @@ MoreToolsMenu::MoreToolsMenu(AudioPluginAudioProcessorEditor *editor) : editor(e
     quantizeSelNotesButton = std::make_unique<juce::TextButton>("Quantize selected notes");
     quantizeSelNotesButton->setLookAndFeel(&editor->smallLF);
     quantizeSelNotesButton->setClickingTogglesState(false);
-    quantizeSelNotesButton->onClick = [this, editor]() {
-        editor->quantizeSelectedNotes();
-    };
+    quantizeSelNotesButton->onClick = [this, editor]() { editor->quantizeSelectedNotes(); };
     addAndMakeVisible(quantizeSelNotesButton.get());
 
     randSelNotesTimeButton = std::make_unique<juce::TextButton>("Randomize selected notes' timing");
     randSelNotesTimeButton->setLookAndFeel(&editor->smallLF);
     randSelNotesTimeButton->setClickingTogglesState(false);
-    randSelNotesTimeButton->onClick = [this, editor]() {
-        editor->randomizeSelectedNotesTiming();
-    };
+    randSelNotesTimeButton->onClick = [this, editor]() { editor->randomizeSelectedNotesTiming(); };
     addAndMakeVisible(randSelNotesTimeButton.get());
 
     randSelNotesVelButton =
         std::make_unique<juce::TextButton>("Randomize selected notes' velocity");
     randSelNotesVelButton->setLookAndFeel(&editor->smallLF);
     randSelNotesVelButton->setClickingTogglesState(false);
-    randSelNotesVelButton->onClick = [this, editor]() {
-        editor->randomizeSelectedNotesVelocity();
-    };
+    randSelNotesVelButton->onClick = [this, editor]() { editor->randomizeSelectedNotesVelocity(); };
     addAndMakeVisible(randSelNotesVelButton.get());
 
     // Position elements

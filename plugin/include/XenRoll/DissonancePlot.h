@@ -8,6 +8,11 @@
 namespace audio_plugin {
 class DissonancePlot : public juce::Component {
   public:
+    /**
+     * @brief Construct a DissonancePlot
+     * @param params Pointer to parameters
+     * @param dissonanceMeter Shared pointer to DissonanceMeter for calculations
+     */
     DissonancePlot(Parameters *params, std::shared_ptr<DissonanceMeter> dissonanceMeter)
         : params(params), dissonanceMeter(dissonanceMeter) {
         totalCents = params->plotDissonanceTotalCents;
@@ -34,11 +39,18 @@ class DissonancePlot : public juce::Component {
 
     void resized() override { plotArea = getLocalBounds().reduced(margin, margin); }
 
+    /**
+     * @brief Update the total cents value from parameters
+     * @note Updates plot
+     */
     void updateTotalCents() {
         totalCents = params->plotDissonanceTotalCents;
         updateDissonanceCurve();
     }
 
+    /**
+     * @brief Update the dissonance curve asynchronously
+     */
     void updateDissonanceCurve() {
         uint64_t myJobId = ++currentJobId;
         loading = true;
@@ -49,16 +61,19 @@ class DissonancePlot : public juce::Component {
 
             std::array<float, 401> localCurve;
             for (int i = 0; i < 401; ++i) {
-                if (currentJobId != myJobId) return;  // Check if we're still current
-                localCurve[i] = dissonanceMeter->calcDissonance(localTotalCents, localTotalCents + i * 3);
+                if (currentJobId != myJobId)
+                    return; // Check if we're still current
+                localCurve[i] =
+                    dissonanceMeter->calcDissonance(localTotalCents, localTotalCents + i * 3);
             }
-            
+
             {
                 std::scoped_lock lock(mtx);
-                if (currentJobId != myJobId) return;
+                if (currentJobId != myJobId)
+                    return;
                 dissonanceCurve = localCurve;
                 loading = false;
-            }           
+            }
 
             // Schedule repaint on the message thread
             juce::MessageManager::callAsync([this]() { repaint(); });
@@ -69,7 +84,7 @@ class DissonancePlot : public juce::Component {
     Parameters *params;
     std::shared_ptr<DissonanceMeter> dissonanceMeter;
     std::atomic<int> totalCents = 0;
-    std::array<float, 401> dissonanceCurve{0.0f}; // i-th index = i*3 cents
+    std::array<float, 401> dissonanceCurve{0.0f}; ///< i-th index = i*3 cents
     std::mutex mtx;
     juce::Rectangle<int> plotArea;
     const int margin = 50;
@@ -139,6 +154,11 @@ class DissonancePlot : public juce::Component {
         g.drawText("LOADING...", plotArea, juce::Justification::centred);
     }
 
+    /**
+     * @brief Convert cents to x-coordinate on plot
+     * @param cents Cents value (0-1200)
+     * @return X position in pixels
+     */
     float centsToX(int cents) const { return float(cents) / 1200 * plotArea.getWidth(); }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DissonancePlot)

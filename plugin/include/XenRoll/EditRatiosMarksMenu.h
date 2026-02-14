@@ -7,7 +7,9 @@
 namespace audio_plugin {
 class AudioPluginAudioProcessorEditor;
 
-
+/**
+ * @brief Small menu for managing ratios marks editing mode settings
+ */
 class EditRatiosMarksMenu : public juce::Component {
   public:
     EditRatiosMarksMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor);

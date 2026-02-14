@@ -887,12 +887,12 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     }
 }
 
-bool MainPanel::doesPathIntersectRect(const juce::Path &parallelogram,
+bool MainPanel::doesPathIntersectRect(const juce::Path &somePath,
                                       const juce::Rectangle<float> &rect) {
-    if (!parallelogram.getBounds().intersects(rect))
+    if (!somePath.getBounds().intersects(rect))
         return false;
 
-    juce::Path::Iterator iter(parallelogram);
+    juce::Path::Iterator iter(somePath);
     iter.next();
     auto prevPoint = juce::Point(iter.x1, iter.y1);
     while (iter.next()) {

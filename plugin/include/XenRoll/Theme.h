@@ -6,40 +6,40 @@ namespace audio_plugin {
 class Theme {
   public:
     enum ThemeType {
-        Purple = 1,
-        Green = 2,
-        Gray = 3,
-        Red = 4,
-        Blue = 5,
-        Orange = 6,
-        Cyan = 7,
-        LightBlue = 8
+        Purple = 1,   ///< Purple theme
+        Green = 2,    ///< Green theme
+        Gray = 3,     ///< Gray theme
+        Red = 4,      ///< Red theme
+        Blue = 5,     ///< Blue theme
+        Orange = 6,   ///< Orange theme
+        Cyan = 7,     ///< Cyan theme
+        LightBlue = 8 ///< Light blue theme
     };
 
-    // Theme dependent
-    static juce::Colour darkest;
-    static juce::Colour darker;
-    static juce::Colour dark;
-    static juce::Colour bright;
-    static juce::Colour brighter;
-    static juce::Colour brightest;
-    static juce::Colour activated;
+    // Theme dependent colors
+    static juce::Colour darkest;   ///< Darkest theme color
+    static juce::Colour darker;    ///< Darker theme color
+    static juce::Colour dark;      ///< Dark theme color
+    static juce::Colour bright;    ///< Bright theme color
+    static juce::Colour brighter;  ///< Brighter theme color
+    static juce::Colour brightest; ///< Brightest theme color
+    static juce::Colour activated; ///< Activated element color
 
     // Theme independent colors
-    static juce::Colour maxHarmony;
-    static juce::Colour midHarmony;
-    static juce::Colour minHarmony;
+    static juce::Colour maxHarmony; ///< Color for maximum harmonicity
+    static juce::Colour midHarmony; ///< Color for mid harmonicity
+    static juce::Colour minHarmony; ///< Color for minimum harmonicity
 
-    // For lines
-    static constexpr float wider = 4.0f;
-    static constexpr float wide = 3.0f;
-    static constexpr float narrow = 2.0f;
-    static constexpr float narrower = 1.0f;
+    // Line widths
+    static constexpr float wider = 4.0f;    ///< Widest line width
+    static constexpr float wide = 3.0f;     ///< Wide line width
+    static constexpr float narrow = 2.0f;   ///< Narrow line width
+    static constexpr float narrower = 1.0f; ///< Narrowest line width
 
-    // For text
-    static constexpr float big = 24.0f;
-    static constexpr float medium = 20.0f;
-    static constexpr float small_ = 16.0f;
+    // Text sizes
+    static constexpr float big = 24.0f;    ///< Big text size
+    static constexpr float medium = 20.0f; ///< Medium text size
+    static constexpr float small_ = 16.0f; ///< Small text size
 
     static void setTheme(ThemeType theme) {
         switch (theme) {
@@ -76,7 +76,7 @@ class Theme {
 
     static const juce::Array<juce::String> getThemeDescriptions() {
         return {"SEREGA PIRAT mode", "Nature & flowers", "Standart", "Welcome to hell",
-                "On the seabed", "Desert", "Exotic", "Tender UwU"};
+                "On the seabed",     "Desert",           "Exotic",   "Tender UwU"};
     }
 
   private:

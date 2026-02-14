@@ -8,6 +8,9 @@
 namespace audio_plugin {
 class AudioPluginAudioProcessorEditor;
 
+/**
+ * @brief The panel is to the left of the main one. There are keys and octaves drawn on it.
+ */
 class LeftPanel : public juce::Component {
   public:
     LeftPanel(int octave_height_px, int leftPanel_width_px, AudioPluginAudioProcessorEditor *editor,
@@ -19,105 +22,52 @@ class LeftPanel : public juce::Component {
         repaint();
     }
 
+    /**
+     * @brief Adapt line thickness based on zoom level
+     * @param inputThickness Input thickness
+     * @return Adapted thickness
+     */
     float adaptSize(float inputThickness) {
         return inputThickness * std::min(1.0f, octave_height_px * 1.0f / init_octave_height_px);
     }
 
+    /**
+     * @brief Adapt font size based on zoom level
+     * @param inputThickness Input font size
+     * @return Adapted font size
+     */
     float adaptFont(float inputThickness) {
         return inputThickness * std::min(1.0f, (octave_height_px + init_octave_height_px) * 0.5f /
                                                    init_octave_height_px);
     }
 
+    /**
+     * @brief Adapt key height based on zoom level
+     * @param inputThickness Input height
+     * @return Adapted height
+     */
     float adaptKeyHeight(float inputThickness) {
         return inputThickness * std::min(1.0f, (octave_height_px + 0.5f * init_octave_height_px) *
                                                    (2.0f / 3) / init_octave_height_px);
     }
 
-    void paint(juce::Graphics &g) override {
-        g.fillAll(Theme::bright);
+    void paint(juce::Graphics &g) override;
 
-        // rectangles for keys that are played
-        g.setColour(Theme::brighter);
-        for (int i = 0; i < params->num_octaves; ++i) {
-            for (const int &key : keys) {
-                float yPos = (i + 1.0f - float(key) / 1200) * octave_height_px;
-                bool keyIsPlaying = false;
-                for (int totalCents : currPlayedNotesTotalCents) {
-                    if (1200 * (params->num_octaves - i - 1) + key == totalCents) {
-                        keyIsPlaying = true;
-                        break;
-                    }
-                }
-                if (keyIsPlaying) {
-                    g.fillRoundedRectangle(
-                        juce::Rectangle<float>(0.0f, yPos - adaptKeyHeight(10.0f),
-                                               float(leftPanel_width_px), adaptKeyHeight(20.0f)),
-                        4.0f);
-                }
-            }
-        }
-
-        // octaves
-        g.setColour(Theme::darkest);
-        for (int i = 0; i <= params->num_octaves; ++i) {
-            float yPos = float(i * octave_height_px);
-            g.drawLine(0, yPos, 40, yPos, adaptSize(Theme::wide));
-            g.drawLine((float)leftPanel_width_px - 20, yPos, (float)leftPanel_width_px, yPos,
-                       adaptSize(Theme::wide));
-        }
-
-        // keys
-        g.setFont(adaptFont(Theme::medium));
-        juce::String keyText = juce::String::fromUTF8("⤬⤬⤬");
-        for (int i = 0; i < params->num_octaves; ++i) {
-            int j = 0;
-            for (const int &key : keys) {
-                float yPos = (i + 1.0f - float(key) / 1200) * octave_height_px;
-                g.setColour(Theme::darkest);
-                g.drawLine(leftPanel_width_px - 20.0f, yPos, float(leftPanel_width_px), yPos,
-                           adaptSize(Theme::narrow));
-                if (params->showKeysHarmonicity) {
-                    const int totalCents = key + 1200 * (params->num_octaves - i - 1);
-                    if (keysHarmonicity.contains(totalCents)) {
-                        const float keyHarm = keysHarmonicity[totalCents];
-                        if (keyHarm > 0) {
-                            g.setColour(
-                                Theme::midHarmony.interpolatedWith(Theme::maxHarmony, keyHarm));
-                        } else {
-                            g.setColour(
-                                Theme::midHarmony.interpolatedWith(Theme::minHarmony, -keyHarm));
-                        }
-                    }
-                }
-                if (!params->hideCents) {
-                    keyText = juce::String(key);
-                }
-                g.drawText(keyText,
-                           juce::Rectangle<int>(leftPanel_width_px - 145 + 42 * ((j + 1) % 2),
-                                                (int)yPos - 9, 80, 20),
-                           juce::Justification::right, false);
-                j++;
-            }
-        }
-
-        // octaves labels
-        g.setFont(adaptFont(Theme::big));
-        for (int i = 0; i < params->num_octaves; ++i) {
-            float yPos = float(i * octave_height_px);
-            juce::Graphics::ScopedSaveState state(g);
-            g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, 15,
-                                                           yPos + octave_height_px / 2));
-            g.drawText("OCTAVE " + juce::String(params->num_octaves - i - 1),
-                       juce::Rectangle<int>(-100, (int)yPos, 230, octave_height_px),
-                       juce::Justification::centred, false);
-        }
-    }
-
+    /**
+     * @brief Update the keys in this panel
+     * @param new_keys Set of new keys
+     * @note Repaints panel
+     */
     void updateKeys(const std::set<int> &new_keys) {
         keys = new_keys;
         repaint();
     }
 
+    /**
+     * @brief Set the currently played notes
+     * @param newCurrPlayedNotesTotalCents Set of currently played notes (in total cents)
+     * @note Repaints panel (if these currently played notes are new)
+     */
     void setAllCurrPlayedNotesTotalCents(const std::set<int> &newCurrPlayedNotesTotalCents) {
         if (currPlayedNotesTotalCents != newCurrPlayedNotesTotalCents) {
             currPlayedNotesTotalCents = newCurrPlayedNotesTotalCents;
@@ -130,6 +80,11 @@ class LeftPanel : public juce::Component {
     void mouseUp(const juce::MouseEvent &) override;
     void mouseMove(const juce::MouseEvent &event) override;
 
+    /**
+     * @brief Update keys harmonicity
+     * @param newKeysHarmonicity Map of total cents to harmonicity values
+     * @note Repaints panel
+     */
     void updateKeysHarmonicity(const std::map<int, float> newKeysHarmonicity) {
         keysHarmonicity = newKeysHarmonicity;
         repaint();
@@ -139,7 +94,7 @@ class LeftPanel : public juce::Component {
     const int leftPanel_width_px;
     int init_octave_height_px;
     int octave_height_px;
-    std::set<int> keys;
+    std::set<int> keys; ///< 0-1199 cents
 
     std::set<int> currPlayedNotesTotalCents;
     std::set<int> manuallyPlayedNoteTotalCents;
@@ -147,8 +102,14 @@ class LeftPanel : public juce::Component {
     AudioPluginAudioProcessorEditor *editor;
     Parameters *params;
 
-    std::map<int, float> keysHarmonicity = {};
+    std::map<int, float> keysHarmonicity = {}; ///< total cents -> harmonicity
 
+    /**
+     * @brief Convert octave and cents to octave and nearest key cents
+     * @param octave Octave number
+     * @param cents Cents within octave
+     * @return Tuple of (octave, cents of nearest key)
+     */
     std::tuple<int, int> centsToKeysCents(int octave, int cents);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeftPanel)

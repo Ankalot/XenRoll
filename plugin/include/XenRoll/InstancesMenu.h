@@ -7,8 +7,18 @@
 namespace audio_plugin {
 class AudioPluginAudioProcessorEditor;
 
+/**
+ * @brief Small menu for selecting other instances of this plugin whose notes should be viewed (as
+ * ghost notes)
+ */
 class InstancesMenu : public juce::Component {
   public:
+    /**
+     * @brief Construct an InstancesMenu
+     * @param chIndex Current MIDI channel index (0-15)
+     * @param params Pointer to parameters
+     * @param editor Pointer to the plugin editor
+     */
     InstancesMenu(const int chIndex, Parameters *params, AudioPluginAudioProcessorEditor *editor);
 
     ~InstancesMenu() override {};

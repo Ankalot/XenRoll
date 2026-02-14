@@ -4,7 +4,6 @@
 #include "Theme.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
-
 namespace audio_plugin {
 using partialsVec = std::vector<std::pair<float, float>>;
 
@@ -29,12 +28,18 @@ class PartialsPlot : public juce::Component {
         updateTotalCents();
     }
 
+    /**
+     * @brief Update the total cents value from parameters
+     */
     void updateTotalCents() {
         totalCents = params->plotPartialsTotalCents;
         updatePartials();
         repaint();
     }
 
+    /**
+     * @brief Update the tones partials from parameters
+     */
     void updateTonesPartials() {
         tonesPartials = params->get_tonesPartials();
         updatePartials();
@@ -46,14 +51,19 @@ class PartialsPlot : public juce::Component {
     std::map<int, partialsVec> tonesPartials;
     int totalCents = 0;
     partialsVec partials;
-    int totalCentsRef = -1; // -1 value is for no ref
-    bool interpolate;
+    int totalCentsRef = -1; ///< -1 value is for no ref
+    bool interpolate;       ///< interpolate or not partials when tone not found
     float maxAmp = 1.0f;
     juce::Rectangle<int> plotArea;
     const int margin = 50;
     float minFreq = 20.0f;
     float maxFreq = 20000.0f;
 
+    /**
+     * @brief Update partials data based on current totalCents
+     * @note If totalCents not found in tonesPartials, uses nearest tone.
+     *       If interpolate is true, transposes nearest tone's partials.
+     */
     void updatePartials() {
         if (tonesPartials.empty()) {
             partials = {};
@@ -196,6 +206,11 @@ class PartialsPlot : public juce::Component {
         }
     }
 
+    /**
+     * @brief Convert frequency to x-coordinate on plot
+     * @param freq Frequency in Hz
+     * @return X position in pixels (logarithmic scale)
+     */
     float freqToX(float freq) const {
         // Convert frequency to logarithmic x-position
         float logMin = std::log10(minFreq);

@@ -2,6 +2,146 @@
 #include "XenRoll/PluginProcessor.h"
 
 namespace audio_plugin {
+void CustomLookAndFeel::updateColors() {
+    // Default colors for Tooltip
+    setColour(juce::TooltipWindow::backgroundColourId, Theme::darkest);
+    setColour(juce::TooltipWindow::outlineColourId, Theme::brightest);
+    setColour(juce::TooltipWindow::textColourId, Theme::brightest);
+
+    // Default colors for Label
+    setColour(juce::Label::textColourId, Theme::brightest);
+    setColour(juce::Label::backgroundColourId, Theme::darker);
+
+    // Default colors for TextEditor
+    setColour(juce::TextEditor::textColourId, Theme::brightest);
+    setColour(juce::TextEditor::backgroundColourId, Theme::darkest);
+    setColour(juce::TextEditor::outlineColourId, Theme::darkest);
+
+    // Default colors for ComboBox
+    setColour(juce::ComboBox::backgroundColourId, Theme::darkest);
+    setColour(juce::ComboBox::textColourId, Theme::brightest);
+    setColour(juce::ComboBox::outlineColourId, Theme::darkest);
+    setColour(juce::ComboBox::buttonColourId, Theme::darkest);
+    setColour(juce::ComboBox::arrowColourId, Theme::brighter);
+    setColour(juce::ComboBox::focusedOutlineColourId, Theme::brighter);
+
+    setColour(juce::PopupMenu::backgroundColourId, Theme::darkest);
+    setColour(juce::PopupMenu::textColourId, Theme::brightest);
+    setColour(juce::PopupMenu::headerTextColourId, Theme::brightest);
+    setColour(juce::PopupMenu::highlightedTextColourId, Theme::brightest);
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, Theme::dark);
+
+    // Default colors for Slider
+    setColour(juce::Slider::backgroundColourId, Theme::darkest);
+    setColour(juce::Slider::thumbColourId, Theme::brighter);
+    setColour(juce::Slider::trackColourId, Theme::darkest);
+    setColour(juce::Slider::textBoxTextColourId, Theme::brightest);
+    setColour(juce::Slider::textBoxBackgroundColourId, Theme::darkest);
+    setColour(juce::Slider::textBoxOutlineColourId, Theme::darkest);
+
+    // Default colors for TextButton
+    setColour(juce::TextButton::buttonColourId, Theme::bright);
+    setColour(juce::TextButton::textColourOffId, Theme::darkest);
+
+    // Default colors for AlertWindow
+    setColour(juce::AlertWindow::backgroundColourId, Theme::darkest);
+    setColour(juce::AlertWindow::textColourId, Theme::brightest);
+    setColour(juce::AlertWindow::outlineColourId, Theme::darkest);
+
+    // Default colors for ToggleButton
+    setColour(juce::ToggleButton::tickColourId, Theme::brightest);
+    setColour(juce::ToggleButton::textColourId, Theme::brightest);
+    setColour(juce::ToggleButton::tickDisabledColourId, Theme::brighter);
+}
+
+void SmallLookAndFeel::updateColors() {
+    // Default colors for Tooltip
+    setColour(juce::TooltipWindow::backgroundColourId, Theme::darkest);
+    setColour(juce::TooltipWindow::outlineColourId, Theme::brightest);
+    setColour(juce::TooltipWindow::textColourId, Theme::brightest);
+
+    // Default colors for Label
+    setColour(juce::Label::textColourId, Theme::brightest);
+    setColour(juce::Label::backgroundColourId, Theme::darker);
+
+    // Default colors for TextEditor
+    setColour(juce::TextEditor::textColourId, Theme::brightest);
+    setColour(juce::TextEditor::backgroundColourId, Theme::darkest);
+    setColour(juce::TextEditor::outlineColourId, Theme::darkest);
+
+    // Default colors for ComboBox
+    setColour(juce::ComboBox::backgroundColourId, Theme::darkest);
+    setColour(juce::ComboBox::textColourId, Theme::brightest);
+    setColour(juce::ComboBox::outlineColourId, Theme::darkest);
+    setColour(juce::ComboBox::buttonColourId, Theme::darkest);
+    setColour(juce::ComboBox::arrowColourId, Theme::brighter);
+    setColour(juce::ComboBox::focusedOutlineColourId, Theme::brighter);
+
+    setColour(juce::PopupMenu::backgroundColourId, Theme::darkest);
+    setColour(juce::PopupMenu::textColourId, Theme::brightest);
+    setColour(juce::PopupMenu::headerTextColourId, Theme::brightest);
+    setColour(juce::PopupMenu::highlightedTextColourId, Theme::brightest);
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, Theme::dark);
+
+    // Default colors for Slider
+    setColour(juce::Slider::backgroundColourId, Theme::darkest);
+    setColour(juce::Slider::thumbColourId, Theme::brighter);
+    setColour(juce::Slider::trackColourId, Theme::darkest);
+    setColour(juce::Slider::textBoxTextColourId, Theme::brightest);
+    setColour(juce::Slider::textBoxBackgroundColourId, Theme::darkest);
+    setColour(juce::Slider::textBoxOutlineColourId, Theme::darkest);
+
+    // Default colors for TextButton
+    setColour(juce::TextButton::buttonColourId, Theme::bright);
+    setColour(juce::TextButton::textColourOffId, Theme::darkest);
+
+    // Default colors for AlertWindow
+    setColour(juce::AlertWindow::backgroundColourId, Theme::darkest);
+    setColour(juce::AlertWindow::textColourId, Theme::brightest);
+    setColour(juce::AlertWindow::outlineColourId, Theme::darkest);
+
+    // Default colors for ToggleButton
+    setColour(juce::ToggleButton::tickColourId, Theme::brightest);
+    setColour(juce::ToggleButton::textColourId, Theme::brightest);
+    setColour(juce::ToggleButton::tickDisabledColourId, Theme::brighter);
+}
+
+void SmallLookAndFeel::drawButtonBackground(juce::Graphics &g, juce::Button &button,
+                                            const juce::Colour &backgroundColour,
+                                            bool shouldDrawButtonAsHighlighted,
+                                            bool shouldDrawButtonAsDown) {
+    auto bounds = button.getLocalBounds().toFloat().reduced(0.5f, 0.5f);
+
+    auto baseColour =
+        backgroundColour.withMultipliedSaturation(button.hasKeyboardFocus(true) ? 1.3f : 0.9f)
+            .withMultipliedAlpha(button.isEnabled() ? 1.0f : 0.5f);
+
+    if (shouldDrawButtonAsDown || shouldDrawButtonAsHighlighted)
+        baseColour = baseColour.contrasting(shouldDrawButtonAsDown ? 0.2f : 0.05f);
+
+    g.setColour(baseColour);
+
+    auto flatOnLeft = button.isConnectedOnLeft();
+    auto flatOnRight = button.isConnectedOnRight();
+    auto flatOnTop = button.isConnectedOnTop();
+    auto flatOnBottom = button.isConnectedOnBottom();
+
+    if (flatOnLeft || flatOnRight || flatOnTop || flatOnBottom) {
+        juce::Path path;
+        path.addRectangle(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
+
+        g.fillPath(path);
+
+        g.setColour(button.findColour(juce::ComboBox::outlineColourId));
+        g.strokePath(path, juce::PathStrokeType(1.0f));
+    } else {
+        g.fillRect(bounds);
+
+        g.setColour(button.findColour(juce::ComboBox::outlineColourId));
+        g.drawRect(bounds, 1.0f);
+    }
+}
+
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor &p)
     : AudioProcessorEditor(&p), processorRef(p) {
     partialsVec partials = {};
@@ -268,18 +408,18 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(turnOffAllZonesButton.get());
 
-    timeSnapButton =
-        std::make_unique<SVGButton>(BinaryData::Snap_time_svg, BinaryData::Snap_time_svgSize, true,
-                                    processorRef.params.timeSnap, "Snap notes horizontally\nHOTKEY: ALT+A");
+    timeSnapButton = std::make_unique<SVGButton>(
+        BinaryData::Snap_time_svg, BinaryData::Snap_time_svgSize, true,
+        processorRef.params.timeSnap, "Snap notes horizontally\nHOTKEY: ALT+A");
     timeSnapButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.timeSnap = !processorRef.params.timeSnap;
         return true;
     };
     addAndMakeVisible(timeSnapButton.get());
 
-    keySnapButton =
-        std::make_unique<SVGButton>(BinaryData::Snap_keys_svg, BinaryData::Snap_keys_svgSize, true,
-                                    processorRef.params.keySnap, "Snap notes vertically\nHOTKEY: ALT+S");
+    keySnapButton = std::make_unique<SVGButton>(
+        BinaryData::Snap_keys_svg, BinaryData::Snap_keys_svgSize, true, processorRef.params.keySnap,
+        "Snap notes vertically\nHOTKEY: ALT+S");
     keySnapButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.keySnap = !processorRef.params.keySnap;
         return true;
@@ -294,7 +434,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         BinaryData::Edit_ratios_marks_svg, BinaryData::Edit_ratios_marks_svgSize, true,
         processorRef.params.editRatiosMarks,
         "Create, move (holding LMB) and delete (click RMB) "
-        "ratios marks between keys in a certain place on the canvas.\n(RMB to open settings)\nHOTKEY: ALT+D");
+        "ratios marks between keys in a certain place on the canvas.\n(RMB to open "
+        "settings)\nHOTKEY: ALT+D");
 
     editRatiosMarksButton->onClick = [this](const juce::MouseEvent &me) {
         if (me.mods.isLeftButtonDown()) {
@@ -371,8 +512,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     moreToolsMenu->setVisible(false);
 
     moreToolsTabButton = std::make_unique<SVGButton>(
-        BinaryData::More_tools_svg, BinaryData::More_tools_svgSize, false, false,
-        "More tools");
+        BinaryData::More_tools_svg, BinaryData::More_tools_svgSize, false, false, "More tools");
     moreToolsTabButton->onClick = [this](const juce::MouseEvent &me) {
         this->moreToolsMenu->setVisible(!this->moreToolsMenu->isVisible());
         return false;
@@ -554,9 +694,9 @@ void AudioPluginAudioProcessorEditor::resized() {
     exportButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     bottom_x_pos += bottom_height_px + 15;
     moreToolsTabButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    moreToolsMenu->setBounds(bottom_x_pos + (bottom_height_px-moreToolsMenu->getWidth())/2,
-        bottom_y - moreToolsMenu->getHeight() - 10,
-        moreToolsMenu->getWidth(), moreToolsMenu->getHeight());
+    moreToolsMenu->setBounds(bottom_x_pos + (bottom_height_px - moreToolsMenu->getWidth()) / 2,
+                             bottom_y - moreToolsMenu->getHeight() - 10, moreToolsMenu->getWidth(),
+                             moreToolsMenu->getHeight());
 
     text = midiChannelLabel->getText();
     font = midiChannelLabel->getFont();
@@ -1047,5 +1187,85 @@ void AudioPluginAudioProcessorEditor::importNotesFile() {
                                                    "BPM of imported track: " + juce::String(bpm),
                                                    "OK");
         });
+}
+
+void AudioPluginAudioProcessorEditor::updatePitchMemory() {
+    bool showKeysHarmonicity = processorRef.params.showKeysHarmonicity;
+    if (processorRef.params.showPitchesMemoryTraces || showKeysHarmonicity) {
+        // ====================================================================================
+        //                         THIS THREAD POOL CAN CAUSE PROBLEMS?
+        // ====================================================================================
+        // 0. Stop finding PitchMemoryResults
+        pitchMemoryTerminate.store(true);
+        pitchMemoryThreadPool->removeAllJobs(true, 0);
+        // 1. Get notes
+        std::vector<Note> notes = getNotes();
+        // 2. Remove notes that are not in active zones
+        notes.erase(std::remove_if(notes.begin(), notes.end(),
+                                   [this](const Note &note) {
+                                       return !this->processorRef.params.zones.isNoteInActiveZone(
+                                           note);
+                                   }),
+                    notes.end());
+        // 3. Add job where PitchMemoryResults will be found
+        pitchMemoryThreadPool->addJob([this, notes, showKeysHarmonicity]() {
+            pitchMemoryTerminate.store(false);
+            this->pitchMemory->set_TV_add_influence(
+                this->processorRef.params.pitchMemoryTVaddInfluence);
+            this->pitchMemory->set_TV_min_nonzero(
+                this->processorRef.params.pitchMemoryTVminNonzero);
+            this->pitchMemory->set_TV_val_for_zero_HV(
+                this->processorRef.params.pitchMemoryTVvalForZeroHV);
+            auto pitchMemoryResults =
+                this->pitchMemory->findPitchTraces(notes, this->pitchMemoryTerminate);
+            if (pitchMemoryResults.has_value()) {
+                if (showKeysHarmonicity) {
+                    auto keysHarmonicity = this->pitchMemory->findKeysHarmonicity(
+                        pitchMemoryResults.value(), this->pitchMemoryTerminate);
+                    if (keysHarmonicity.has_value()) {
+                        juce::MessageManager::callAsync([this, keysHarmonicity]() {
+                            this->leftPanel->updateKeysHarmonicity(keysHarmonicity.value());
+                        });
+                    }
+                }
+                juce::MessageManager::callAsync([this, pitchMemoryResults]() {
+                    this->mainPanel->updatePitchMemoryResults(pitchMemoryResults.value());
+                });
+            }
+        });
+    }
+}
+
+void AudioPluginAudioProcessorEditor::timerCallback() {
+    float newPlayHeadTime = processorRef.getPlayHeadTime();
+    leftPanel.get()->setAllCurrPlayedNotesTotalCents(
+        processorRef.getAllCurrPlayedNotesTotalCents());
+    if (newPlayHeadTime != playHeadTime) {
+        playHeadTime = newPlayHeadTime;
+        mainPanel->setPlayHeadTime(playHeadTime);
+        topPanel->setPlayHeadTime(playHeadTime);
+        if (processorRef.params.isCamFixedOnPlayHead) {
+            mainViewport->setCamOnTime(playHeadTime, bar_width_px);
+        }
+    }
+
+    if (ghostNotesTicker == 0) {
+        updateGhostNotes();
+    }
+    ghostNotesTicker++;
+    ghostNotesTicker = ghostNotesTicker % ghostNotesTimerTicks;
+
+    bool pitchOverflow = processorRef.thereIsPitchOverflow();
+    if (pitchOverflow) {
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::AlertWindow::WarningIcon, "Pitches Overflow",
+            juce::String("You have exceeded the limit on the number of unique pitches (128). ") +
+                "This number includes all notes from the piano roll and those that are "
+                "played " +
+                "manually (using mouse, keyboard or midi controller) with a unique pitch.\n\n" +
+                "FIX: remove some notes and/or don't manually play that many keys on which " +
+                "you don't have notes from the piano roll.",
+            "OK");
+    }
 }
 } // namespace audio_plugin

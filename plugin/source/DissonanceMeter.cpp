@@ -160,7 +160,7 @@ float DissonanceMeter::calcCompactnessTenney(int totalCents1, int totalCents2) {
         maxC = it->second.second;
     }
 
-    // Scale roughness to [-1; +1] range
+    // Scale compactness to [-1; +1] range
     if (compactness > maxC) {
         compactness = maxC;
     } else if (compactness < minC) {

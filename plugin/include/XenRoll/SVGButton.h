@@ -6,6 +6,14 @@
 namespace audio_plugin {
 class SVGButton : public juce::Component, public juce::TooltipClient {
   public:
+    /**
+     * @brief Construct an SVGButton from binary SVG data
+     * @param svgBinaryData Binary SVG data
+     * @param svgBinaryDataSize Size of binary data
+     * @param togglable Whether button can be toggled on/off
+     * @param active Initial active state
+     * @param tooltipText Tooltip text to display
+     */
     SVGButton(const char *svgBinaryData, int svgBinaryDataSize, bool togglable = true,
               bool active = false, const std::string &tooltipText = "")
         : togglable(togglable), active(active) {
@@ -16,6 +24,13 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
         setMouseCursor(juce::MouseCursor::PointingHandCursor);
     }
 
+    /**
+     * @brief Construct an SVGButton from SVG string
+     * @param svgData SVG data as string
+     * @param togglable Whether button can be toggled on/off
+     * @param active Initial active state
+     * @param tooltipText Tooltip text to display
+     */
     SVGButton(const juce::String &svgData, bool togglable = true, bool active = false,
               const std::string &tooltipText = "")
         : togglable(togglable), active(active) {
@@ -47,6 +62,10 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
 
     void resized() override { repaint(); }
 
+    /**
+     * @brief Callback function for click events
+     * @return true to toggle button state, false to keep current state
+     */
     std::function<bool(const juce::MouseEvent &me)> onClick;
 
     void triggerLeftClick() {
@@ -92,7 +111,7 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
 
     bool isActive() { return active; }
 
-    //void setState(bool activeNew) { active = activeNew; }
+    // void setState(bool activeNew) { active = activeNew; }
 
   private:
     std::unique_ptr<juce::Drawable> svg;
@@ -100,6 +119,11 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
     bool togglable;
     bool active;
 
+    /**
+     * @brief Recursively recolor a drawable and its children
+     * @param drawable Drawable to recolor
+     * @param newColor New color to apply
+     */
     void recolorDrawable(juce::Drawable *drawable, const juce::Colour &newColor) {
         if (auto *shape = dynamic_cast<juce::DrawableShape *>(drawable)) {
             shape->setFill(newColor);

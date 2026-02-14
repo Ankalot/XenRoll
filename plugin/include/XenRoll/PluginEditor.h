@@ -33,57 +33,7 @@ class CustomLookAndFeel : public juce::LookAndFeel_V4 {
         updateColors();
     }
 
-    void updateColors() {
-        // Default colors for Tooltip
-        setColour(juce::TooltipWindow::backgroundColourId, Theme::darkest);
-        setColour(juce::TooltipWindow::outlineColourId, Theme::brightest);
-        setColour(juce::TooltipWindow::textColourId, Theme::brightest);
-
-        // Default colors for Label
-        setColour(juce::Label::textColourId, Theme::brightest);
-        setColour(juce::Label::backgroundColourId, Theme::darker);
-
-        // Default colors for TextEditor
-        setColour(juce::TextEditor::textColourId, Theme::brightest);
-        setColour(juce::TextEditor::backgroundColourId, Theme::darkest);
-        setColour(juce::TextEditor::outlineColourId, Theme::darkest);
-
-        // Default colors for ComboBox
-        setColour(juce::ComboBox::backgroundColourId, Theme::darkest);
-        setColour(juce::ComboBox::textColourId, Theme::brightest);
-        setColour(juce::ComboBox::outlineColourId, Theme::darkest);
-        setColour(juce::ComboBox::buttonColourId, Theme::darkest);
-        setColour(juce::ComboBox::arrowColourId, Theme::brighter);
-        setColour(juce::ComboBox::focusedOutlineColourId, Theme::brighter);
-
-        setColour(juce::PopupMenu::backgroundColourId, Theme::darkest);
-        setColour(juce::PopupMenu::textColourId, Theme::brightest);
-        setColour(juce::PopupMenu::headerTextColourId, Theme::brightest);
-        setColour(juce::PopupMenu::highlightedTextColourId, Theme::brightest);
-        setColour(juce::PopupMenu::highlightedBackgroundColourId, Theme::dark);
-
-        // Default colors for Slider
-        setColour(juce::Slider::backgroundColourId, Theme::darkest);
-        setColour(juce::Slider::thumbColourId, Theme::brighter);
-        setColour(juce::Slider::trackColourId, Theme::darkest);
-        setColour(juce::Slider::textBoxTextColourId, Theme::brightest);
-        setColour(juce::Slider::textBoxBackgroundColourId, Theme::darkest);
-        setColour(juce::Slider::textBoxOutlineColourId, Theme::darkest);
-
-        // Default colors for TextButton
-        setColour(juce::TextButton::buttonColourId, Theme::bright);
-        setColour(juce::TextButton::textColourOffId, Theme::darkest);
-
-        // Default colors for AlertWindow
-        setColour(juce::AlertWindow::backgroundColourId, Theme::darkest);
-        setColour(juce::AlertWindow::textColourId, Theme::brightest);
-        setColour(juce::AlertWindow::outlineColourId, Theme::darkest);
-
-        // Default colors for ToggleButton
-        setColour(juce::ToggleButton::tickColourId, Theme::brightest);
-        setColour(juce::ToggleButton::textColourId, Theme::brightest);
-        setColour(juce::ToggleButton::tickDisabledColourId, Theme::brighter);
-    }
+    void updateColors();
 
     juce::Typeface::Ptr getTypefaceForFont(const juce::Font &) override {
         return cambriaMathTypeface;
@@ -160,57 +110,7 @@ class SmallLookAndFeel : public juce::LookAndFeel_V4 {
         updateColors();
     }
 
-    void updateColors() {
-        // Default colors for Tooltip
-        setColour(juce::TooltipWindow::backgroundColourId, Theme::darkest);
-        setColour(juce::TooltipWindow::outlineColourId, Theme::brightest);
-        setColour(juce::TooltipWindow::textColourId, Theme::brightest);
-
-        // Default colors for Label
-        setColour(juce::Label::textColourId, Theme::brightest);
-        setColour(juce::Label::backgroundColourId, Theme::darker);
-
-        // Default colors for TextEditor
-        setColour(juce::TextEditor::textColourId, Theme::brightest);
-        setColour(juce::TextEditor::backgroundColourId, Theme::darkest);
-        setColour(juce::TextEditor::outlineColourId, Theme::darkest);
-
-        // Default colors for ComboBox
-        setColour(juce::ComboBox::backgroundColourId, Theme::darkest);
-        setColour(juce::ComboBox::textColourId, Theme::brightest);
-        setColour(juce::ComboBox::outlineColourId, Theme::darkest);
-        setColour(juce::ComboBox::buttonColourId, Theme::darkest);
-        setColour(juce::ComboBox::arrowColourId, Theme::brighter);
-        setColour(juce::ComboBox::focusedOutlineColourId, Theme::brighter);
-
-        setColour(juce::PopupMenu::backgroundColourId, Theme::darkest);
-        setColour(juce::PopupMenu::textColourId, Theme::brightest);
-        setColour(juce::PopupMenu::headerTextColourId, Theme::brightest);
-        setColour(juce::PopupMenu::highlightedTextColourId, Theme::brightest);
-        setColour(juce::PopupMenu::highlightedBackgroundColourId, Theme::dark);
-
-        // Default colors for Slider
-        setColour(juce::Slider::backgroundColourId, Theme::darkest);
-        setColour(juce::Slider::thumbColourId, Theme::brighter);
-        setColour(juce::Slider::trackColourId, Theme::darkest);
-        setColour(juce::Slider::textBoxTextColourId, Theme::brightest);
-        setColour(juce::Slider::textBoxBackgroundColourId, Theme::darkest);
-        setColour(juce::Slider::textBoxOutlineColourId, Theme::darkest);
-
-        // Default colors for TextButton
-        setColour(juce::TextButton::buttonColourId, Theme::bright);
-        setColour(juce::TextButton::textColourOffId, Theme::darkest);
-
-        // Default colors for AlertWindow
-        setColour(juce::AlertWindow::backgroundColourId, Theme::darkest);
-        setColour(juce::AlertWindow::textColourId, Theme::brightest);
-        setColour(juce::AlertWindow::outlineColourId, Theme::darkest);
-
-        // Default colors for ToggleButton
-        setColour(juce::ToggleButton::tickColourId, Theme::brightest);
-        setColour(juce::ToggleButton::textColourId, Theme::brightest);
-        setColour(juce::ToggleButton::tickDisabledColourId, Theme::brighter);
-    }
+    void updateColors();
 
     juce::Typeface::Ptr getTypefaceForFont(const juce::Font &) override {
         return cambriaMathTypeface;
@@ -230,41 +130,10 @@ class SmallLookAndFeel : public juce::LookAndFeel_V4 {
         return LookAndFeel_V4::getPopupMenuFont().withHeight(Theme::small_);
     }
 
-    void drawButtonBackground(juce::Graphics &g, juce::Button &button, const juce::Colour &backgroundColour,
+    void drawButtonBackground(juce::Graphics &g, juce::Button &button,
+                              const juce::Colour &backgroundColour,
                               bool shouldDrawButtonAsHighlighted,
-                              bool shouldDrawButtonAsDown) override {
-        auto bounds = button.getLocalBounds().toFloat().reduced(0.5f, 0.5f);
-
-        auto baseColour =
-            backgroundColour.withMultipliedSaturation(button.hasKeyboardFocus(true) ? 1.3f : 0.9f)
-                .withMultipliedAlpha(button.isEnabled() ? 1.0f : 0.5f);
-
-        if (shouldDrawButtonAsDown || shouldDrawButtonAsHighlighted)
-            baseColour = baseColour.contrasting(shouldDrawButtonAsDown ? 0.2f : 0.05f);
-
-        g.setColour(baseColour);
-
-        auto flatOnLeft = button.isConnectedOnLeft();
-        auto flatOnRight = button.isConnectedOnRight();
-        auto flatOnTop = button.isConnectedOnTop();
-        auto flatOnBottom = button.isConnectedOnBottom();
-
-        if (flatOnLeft || flatOnRight || flatOnTop || flatOnBottom) {
-            juce::Path path;
-            path.addRectangle(bounds.getX(), bounds.getY(), bounds.getWidth(),
-                                     bounds.getHeight());
-
-            g.fillPath(path);
-
-            g.setColour(button.findColour(juce::ComboBox::outlineColourId));
-            g.strokePath(path, juce::PathStrokeType(1.0f));
-        } else {
-            g.fillRect(bounds);
-
-            g.setColour(button.findColour(juce::ComboBox::outlineColourId));
-            g.drawRect(bounds, 1.0f);
-        }
-    }
+                              bool shouldDrawButtonAsDown) override;
 
   private:
     juce::Typeface::Ptr cambriaMathTypeface;
@@ -277,11 +146,19 @@ class MainViewport : public juce::Viewport {
         updateColors();
     }
 
+    /**
+     * @brief Update scrollbar colors to match current theme
+     */
     void updateColors() {
         getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, Theme::bright);
         getHorizontalScrollBar().setColour(juce::ScrollBar::thumbColourId, Theme::bright);
     }
 
+    /**
+     * @brief Center the viewport on the playhead position
+     * @param playHeadTime Current playhead time in beats
+     * @param bar_width_px Width of one bar in pixels
+     */
     void setCamOnTime(float playHeadTime, int bar_width_px) {
         auto *viewedComponent = getViewedComponent();
         if (viewedComponent == nullptr)
@@ -300,6 +177,10 @@ class MainViewport : public juce::Viewport {
     juce::Viewport *leftViewport;
     juce::Viewport *topViewport;
 
+    /**
+     * @brief Called when visible area changes, syncs with linked viewports
+     * @param newVisibleArea New visible area rectangle
+     */
     void visibleAreaChanged(const juce::Rectangle<int> &newVisibleArea) override {
         Viewport::visibleAreaChanged(newVisibleArea);
         leftViewport->setViewPosition(leftViewport->getViewPositionX(), newVisibleArea.getY());
@@ -329,6 +210,10 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
 
     void updateKeys(std::set<int> keys) { leftPanel->updateKeys(keys); }
 
+    /**
+     * @brief Show a popup message
+     * @param message Message text to display
+     */
     void showMessage(const juce::String &message) { popup->showMessage(message); }
 
     void remakeKeys() {
@@ -336,83 +221,59 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
         mainPanel->repaint();
     }
 
+    /**
+     * @brief Called when zones configuration changes
+     */
     void zonesChanged() {
         remakeKeys();
         updatePitchMemory();
     }
 
+    /**
+     * @brief Called when ratios marks settings change
+     */
     void editRatiosMarksMenuChanged() { mainPanel->updateRatiosMarks(); }
 
-    void quantizeSelectedNotes() {
-        mainPanel->quantizeSelectedNotes();
-    }
+    void quantizeSelectedNotes() { mainPanel->quantizeSelectedNotes(); }
 
-    void randomizeSelectedNotesTiming() {
-        mainPanel->randomizeSelectedNotesTiming();
-    }
+    void randomizeSelectedNotesTiming() { mainPanel->randomizeSelectedNotesTiming(); }
 
-    void randomizeSelectedNotesVelocity() {
-        mainPanel->randomizeSelectedNotesVelocity();
-    }
+    void randomizeSelectedNotesVelocity() { mainPanel->randomizeSelectedNotesVelocity(); }
 
+    /**
+     * @brief Hide the current popup message
+     */
     void hideMessage() { popup->timerCallback(); }
 
+    /**
+     * @brief Get the text from the current popup message
+     * @return Message string
+     */
     const juce::String &getTextFromMessage() { return popup->getText(); }
 
+    /**
+     * @brief Get BPM, numerator and denominator
+     * @return Tuple of (BPM, numerator, denominator)
+     */
     std::tuple<float, int, int> getBpmNumDenom() { return processorRef.getBpmNumDenom(); }
 
+    /**
+     * @brief Update the notes and recalculate pitch memory
+     * @param new_notes New notes vector
+     */
     void updateNotes(const std::vector<Note> &new_notes) {
         processorRef.updateNotes(new_notes);
         updatePitchMemory();
     }
 
-    void updatePitchMemory() {
-        bool showKeysHarmonicity = processorRef.params.showKeysHarmonicity;
-        if (processorRef.params.showPitchesMemoryTraces || showKeysHarmonicity) {
-            // ====================================================================================
-            //                         THIS THREAD POOL CAN CAUSE PROBLEMS?
-            // ====================================================================================
-            // 0. Stop finding PitchMemoryResults
-            pitchMemoryTerminate.store(true);
-            pitchMemoryThreadPool->removeAllJobs(true, 0);
-            // 1. Get notes
-            std::vector<Note> notes = getNotes();
-            // 2. Remove notes that are not in active zones
-            notes.erase(
-                std::remove_if(notes.begin(), notes.end(),
-                               [this](const Note &note) {
-                                   return !this->processorRef.params.zones.isNoteInActiveZone(note);
-                               }),
-                notes.end());
-            // 3. Add job where PitchMemoryResults will be found
-            pitchMemoryThreadPool->addJob([this, notes, showKeysHarmonicity]() {
-                pitchMemoryTerminate.store(false);
-                this->pitchMemory->set_TV_add_influence(
-                    this->processorRef.params.pitchMemoryTVaddInfluence);
-                this->pitchMemory->set_TV_min_nonzero(
-                    this->processorRef.params.pitchMemoryTVminNonzero);
-                this->pitchMemory->set_TV_val_for_zero_HV(
-                    this->processorRef.params.pitchMemoryTVvalForZeroHV);
-                auto pitchMemoryResults =
-                    this->pitchMemory->findPitchTraces(notes, this->pitchMemoryTerminate);
-                if (pitchMemoryResults.has_value()) {
-                    if (showKeysHarmonicity) {
-                        auto keysHarmonicity = this->pitchMemory->findKeysHarmonicity(
-                            pitchMemoryResults.value(), this->pitchMemoryTerminate);
-                        if (keysHarmonicity.has_value()) {
-                            juce::MessageManager::callAsync([this, keysHarmonicity]() {
-                                this->leftPanel->updateKeysHarmonicity(keysHarmonicity.value());
-                            });
-                        }
-                    }
-                    juce::MessageManager::callAsync([this, pitchMemoryResults]() {
-                        this->mainPanel->updatePitchMemoryResults(pitchMemoryResults.value());
-                    });
-                }
-            });
-        }
-    }
+    /**
+     * @brief Update pitch memory traces and harmonicity
+     */
+    void updatePitchMemory();
 
+    /**
+     * @brief Re-prepare notes for playback
+     */
     void rePrepareNotes() { processorRef.rePrepareNotes(); }
 
     void setManuallyPlayedNotesTotalCents(const std::set<int> &manuallyPlayedNotesTotalCents) {
@@ -433,42 +294,20 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
         mainPanel->updateGhostNotes(ghostNotes);
     }
 
-    void timerCallback() {
-        float newPlayHeadTime = processorRef.getPlayHeadTime();
-        leftPanel.get()->setAllCurrPlayedNotesTotalCents(
-            processorRef.getAllCurrPlayedNotesTotalCents());
-        if (newPlayHeadTime != playHeadTime) {
-            playHeadTime = newPlayHeadTime;
-            mainPanel->setPlayHeadTime(playHeadTime);
-            topPanel->setPlayHeadTime(playHeadTime);
-            if (processorRef.params.isCamFixedOnPlayHead) {
-                mainViewport->setCamOnTime(playHeadTime, bar_width_px);
-            }
-        }
+    /**
+     * @brief Timer callback for UI updates
+     */
+    void timerCallback();
 
-        if (ghostNotesTicker == 0) {
-            updateGhostNotes();
-        }
-        ghostNotesTicker++;
-        ghostNotesTicker = ghostNotesTicker % ghostNotesTimerTicks;
-
-        bool pitchOverflow = processorRef.thereIsPitchOverflow();
-        if (pitchOverflow) {
-            juce::AlertWindow::showMessageBoxAsync(
-                juce::AlertWindow::WarningIcon, "Pitches Overflow",
-                juce::String(
-                    "You have exceeded the limit on the number of unique pitches (128). ") +
-                    "This number includes all notes from the piano roll and those that are "
-                    "played " +
-                    "manually (using mouse, keyboard or midi controller) with a unique pitch.\n\n" +
-                    "FIX: remove some notes and/or don't manually play that many keys on which " +
-                    "you don't have notes from the piano roll.",
-                "OK");
-        }
-    }
-
+    /**
+     * @brief Bring keyboard focus back to main panel
+     */
     void bringBackKeyboardFocus() { mainPanel->grabKeyboardFocus(); }
 
+    /**
+     * @brief Called when A4 frequency changes
+     * @note Re-prepairs notes
+     */
     void A4freqChanged() {
         dissonanceMeter->setA4freq(processorRef.params.A4Freq);
         rePrepareNotes();
@@ -483,21 +322,13 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
         sendLookAndFeelChange();
     }
 
-    void leftClickTimeSnapButton() {
-        timeSnapButton->triggerLeftClick();
-    }
+    void leftClickTimeSnapButton() { timeSnapButton->triggerLeftClick(); }
 
-    void leftClickKeySnapButton() {
-        keySnapButton->triggerLeftClick();
-    }
+    void leftClickKeySnapButton() { keySnapButton->triggerLeftClick(); }
 
-    void leftClickEditRatiosMarksButton() {
-        editRatiosMarksButton->triggerLeftClick();
-    }
+    void leftClickEditRatiosMarksButton() { editRatiosMarksButton->triggerLeftClick(); }
 
-    void leftClickPitchMemoryButton() {
-        pitchMemoryButton->triggerLeftClick();
-    }
+    void leftClickPitchMemoryButton() { pitchMemoryButton->triggerLeftClick(); }
 
     SmallLookAndFeel smallLF;
 

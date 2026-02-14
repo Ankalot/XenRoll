@@ -87,7 +87,8 @@ void PluginInstanceManager::initSharedMemory() {
     {
         bip::scoped_lock<bip::named_mutex> lock2(*updServCondMutex, bip::defer_lock);
         if (!lock2.try_lock_for(std::chrono::milliseconds(lockTimeoutTime))) {
-            throw std::runtime_error("Unable to acquire mutex lock within timeout - possible deadlock");
+            throw std::runtime_error(
+                "Unable to acquire mutex lock within timeout - possible deadlock");
         }
     }
     for (int i = 0; i < 16; ++i) {

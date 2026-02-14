@@ -6,6 +6,12 @@
 namespace audio_plugin {
 class IntegerInput : public juce::Component {
   public:
+    /**
+     * @brief Construct an IntegerInput component
+     * @param val Initial value
+     * @param minVal Minimum allowed value
+     * @param maxVal Maximum allowed value
+     */
     IntegerInput(int val, int minVal, int maxVal) : minVal(minVal), maxVal(maxVal) {
         juce::Font currentFont = editor.getFont();
         currentFont.setHeight(Theme::big);
@@ -42,9 +48,7 @@ class IntegerInput : public juce::Component {
 
     void resized() override { editor.setBounds(getLocalBounds()); }
 
-    void lookAndFeelChanged() override {
-        editor.applyColourToAllText(Theme::brightest);
-    }
+    void lookAndFeelChanged() override { editor.applyColourToAllText(Theme::brightest); }
 
     int getValue() const { return lastValidValue; }
 
@@ -54,6 +58,9 @@ class IntegerInput : public juce::Component {
         lastValidValue = newValue;
     }
 
+    /**
+     * @brief Callback function called when value changes
+     */
     std::function<void(int)> onValueChanged;
 
   private:

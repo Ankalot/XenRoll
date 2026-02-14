@@ -7,10 +7,14 @@
 namespace audio_plugin {
 class AudioPluginAudioProcessorEditor;
 
+// Is needed for scrolling
 class AlgoDescrViewport : public juce::Viewport {
   public:
     AlgoDescrViewport() { updateColors(); }
 
+    /**
+     * @brief Update scrollbar colors to match current theme
+     */
     void updateColors() {
         getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, Theme::bright);
     }
@@ -22,6 +26,10 @@ class PitchMemorySettingsPanel : public juce::Component {
 
     void resized() override;
     void paint(juce::Graphics &g) override;
+
+    /**
+     * @brief Update colors to match current theme
+     */
     void updateColors() { algoDescrViewport->updateColors(); }
 
   private:

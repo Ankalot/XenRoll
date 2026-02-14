@@ -1,5 +1,5 @@
 // ========================================== Algorithm ==========================================
-// Inspired by "Spectral Analysis, Editing, and Resynthesis: Methods and Applications" (2009) 
+// Inspired by "Spectral Analysis, Editing, and Resynthesis: Methods and Applications" (2009)
 // by Michael Kateley Klingbeil. Link:
 // https://www.klingbeil.com/data/Klingbeil_Dissertation_web.pdf
 //      From this dissertation I took:
@@ -23,13 +23,16 @@ using partialsVec = std::vector<std::pair<float, float>>;
 // NOT thread safe, for now this is not required as I only use it in the threadpool
 class PartialsFinder {
   public:
+    /**
+     * @brief Strategy for finding the best analysis window position
+     */
     enum class PosFindStrat {
-        midrangeRMS = 3, // window that has (minRMS + maxRMS)/2
-        medianRMS = 4,   // window that has median RMS
-        minRMSfluct = 2, // window that has min(RMS fluctuation) & RMS in [maxRMS/2; maxRMS]
+        midrangeRMS = 3, ///< Window that has (minRMS + maxRMS)/2
+        medianRMS = 4,   ///< Window that has median RMS
+        minRMSfluct = 2, ///< Window that has min(RMS fluctuation) & RMS in [maxRMS/2; maxRMS]
         maxSpectralFlatness =
-            5,         // window that has max spectral flatness & RMS in [maxRMS/2; maxRMS]
-        peakSample = 1 // window that is centered in peak sample
+            5,         ///< Window that has max spectral flatness & RMS in [maxRMS/2; maxRMS]
+        peakSample = 1 ///< Window that is centered in peak sample
     };
 
     PartialsFinder();
@@ -42,7 +45,7 @@ class PartialsFinder {
   private:
     PosFindStrat posFindStrat = PosFindStrat::maxSpectralFlatness;
     int fftSize = 8192;
-    double sampleRate = 44100;
+    double sampleRate = 44100; ///< in Hz
     float dBThr = -70.0f;
 
     std::unique_ptr<juce::dsp::FFT> fft;
@@ -57,6 +60,11 @@ class PartialsFinder {
     std::vector<float> findRMSes(const juce::AudioBuffer<float> &buffer);
     float findRMS(const juce::AudioBuffer<float> &buffer, int startSample, int numSamples);
 
+    /**
+     * @brief Compute dB threshold for a given frequency
+     * @param freq Frequency in Hz
+     * @return Threshold in dB
+     */
     float computedBThreshold(float freq);
 };
 } // namespace audio_plugin
