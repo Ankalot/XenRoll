@@ -46,6 +46,12 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void updateNotes(const std::vector<Note> &new_notes);
     void updateGhostNotes(const std::vector<Note> &new_ghostNotes);
     void remakeKeys();
+
+    /**
+     * @brief Trying to attach ratio marks that lost their keys
+     * @todo Change this later maybe, that's a lazy solution
+     */
+    void reattachRatiosMarks();
     void updateRatiosMarks();
     void numBarsChanged();
 
@@ -113,7 +119,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     // new should be added at the end (with push_back) (don't remember why lol)
     std::vector<Note> notes;
     std::set<int> keys;
-    std::set<int> allAllKeys; ///< needed when params->autoCorrectRatiosMarks
+    ///< Keys from ALL notes and ghost notes (is needed when params->autoCorrectRatiosMarks)
+    std::set<int> keysFromAllNotes;
     std::array<bool, 1200> keyIsGenNew;
     // ==================== Needed for generating new keys ====================
     void generateNewKeys();

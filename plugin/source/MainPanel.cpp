@@ -603,6 +603,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         }
         notesHistory.push(notes);
         notes.push_back({octave, cents, time, false, duration, lastVelocity});
+        keysFromAllNotes.insert(cents);
         if (params->zones.isNoteInActiveZone(*(notes.rbegin()))) {
             auto [_, inserted] = keys.insert(cents);
             if (inserted || keyIsGenNew[cents]) {
@@ -1035,10 +1036,14 @@ void MainPanel::deleteNote(int i) {
             num_notes_cents_i++;
     }
 
-    if (params->showGhostNotesKeys) {
-        for (int j = 0; j < ghostNotes.size(); ++j) {
-            if (ghostNotes[j].cents == note_cents)
+    int num_notes_cents_i_ghost_not_visible = 0;
+    for (int j = 0; j < ghostNotes.size(); ++j) {
+        if (ghostNotes[j].cents == note_cents) {
+            if (params->showGhostNotesKeys) {
                 num_notes_cents_i++;
+            } else {
+                num_notes_cents_i_ghost_not_visible++;
+            } 
         }
     }
 
@@ -1048,6 +1053,10 @@ void MainPanel::deleteNote(int i) {
         if (keys.erase(note_cents) > 0) {
             if (params->generateNewKeys) {
                 generateNewKeys();
+            }
+            if (num_notes_cents_i_ghost_not_visible + num_notes_cents_i == 1) {
+                keysFromAllNotes.erase(note_cents);
+                reattachRatiosMarks();
             }
             editor->updateKeys(keys);
         }
@@ -1234,41 +1243,13 @@ std::optional<int> MainPanel::findNearestKeyWithLimit(int key, int maxCentsChang
     return std::nullopt;
 }
 
-void MainPanel::remakeKeys() {
-    keys.clear();
-    allAllKeys.clear();
-    keyIsGenNew.fill(false);
-    for (const Note &note : notes) {
-        if (params->zones.isNoteInActiveZone(note)) {
-            keys.insert(note.cents);
-        }
-        allAllKeys.insert(note.cents);
-    }
-    if (params->showGhostNotesKeys) {
-        for (const Note &note : ghostNotes) {
-            if (params->zones.isNoteInActiveZone(note)) {
-                keys.insert(note.cents);
-            }
-        }
-    }
-    for (const Note &note : ghostNotes) {
-        allAllKeys.insert(note.cents);
-    }
-
-    if (params->generateNewKeys) {
-        generateNewKeys();
-    }
-
-    editor->updateKeys(keys);
-
-    // Trying to attach ratio marks that lost their keys
-    // TODO: change this later maybe, that's a lazy solution
+void MainPanel::reattachRatiosMarks() {
     if (params->autoCorrectRatiosMarks) {
         const int maxCentsChange = 100;
         for (auto &ratioMark : params->ratiosMarks) {
             int higherKeyCents = ratioMark.getHigherKeyTotalCents() % 1200;
-            if (!allAllKeys.contains(higherKeyCents)) {
-                auto result = findNearestKeyWithLimit(higherKeyCents, maxCentsChange, allAllKeys);
+            if (!keysFromAllNotes.contains(higherKeyCents)) {
+                auto result = findNearestKeyWithLimit(higherKeyCents, maxCentsChange, keysFromAllNotes);
                 if (result) {
                     int higherKeyOctave = ratioMark.getHigherKeyTotalCents() / 1200;
                     int newHigherKeyCents = *result;
@@ -1287,8 +1268,8 @@ void MainPanel::remakeKeys() {
                 }
             }
             int lowerKeyCents = ratioMark.getLowerKeyTotalCents() % 1200;
-            if (!allAllKeys.contains(lowerKeyCents)) {
-                auto result = findNearestKeyWithLimit(lowerKeyCents, maxCentsChange, allAllKeys);
+            if (!keysFromAllNotes.contains(lowerKeyCents)) {
+                auto result = findNearestKeyWithLimit(lowerKeyCents, maxCentsChange, keysFromAllNotes);
                 if (result) {
                     int lowerKeyOctave = ratioMark.getLowerKeyTotalCents() / 1200;
                     int newLowerKeyCents = *result;
@@ -1307,6 +1288,35 @@ void MainPanel::remakeKeys() {
             }
         }
     }
+}
+
+void MainPanel::remakeKeys() {
+    keys.clear();
+    keysFromAllNotes.clear();
+    keyIsGenNew.fill(false);
+    for (const Note &note : notes) {
+        if (params->zones.isNoteInActiveZone(note)) {
+            keys.insert(note.cents);
+        }
+        keysFromAllNotes.insert(note.cents);
+    }
+    if (params->showGhostNotesKeys) {
+        for (const Note &note : ghostNotes) {
+            if (params->zones.isNoteInActiveZone(note)) {
+                keys.insert(note.cents);
+            }
+        }
+    }
+    for (const Note &note : ghostNotes) {
+        keysFromAllNotes.insert(note.cents);
+    }
+
+    if (params->generateNewKeys) {
+        generateNewKeys();
+    }
+
+    editor->updateKeys(keys);
+    reattachRatiosMarks();
 }
 
 void MainPanel::updateRatiosMarks() {
@@ -1374,6 +1384,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             notes.push_back(copiedNotes[i]);
             int cents = copiedNotes[i].cents;
             keys.insert(cents);
+            keysFromAllNotes.insert(cents);
             keyIsGenNew[cents] = false;
         }
         if (params->generateNewKeys) {
@@ -1875,6 +1886,14 @@ void MainPanel::updateGhostNotes(const std::vector<Note> &new_ghostNotes) {
     ghostNotes = new_ghostNotes;
     if (params->showGhostNotesKeys) {
         remakeKeys();
+    } else {
+        keysFromAllNotes.clear();
+        for (const Note &note : notes) {
+            keysFromAllNotes.insert(note.cents);
+        }
+        for (const Note &note : ghostNotes) {
+            keysFromAllNotes.insert(note.cents);
+        }
     }
     repaint();
 }
