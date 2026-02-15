@@ -45,6 +45,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     void updateNotes(const std::vector<Note> &new_notes);
     void updateGhostNotes(const std::vector<Note> &new_ghostNotes);
+    void createNotesFromGhostNotes();
     void remakeKeys();
 
     /**

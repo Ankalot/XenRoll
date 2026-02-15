@@ -300,7 +300,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     ghostNotesKeysButton = std::make_unique<SVGButton>(
         BinaryData::Ghost_notes_keys_svg, BinaryData::Ghost_notes_keys_svgSize, true,
         processorRef.params.showGhostNotesKeys,
-        "Show keys of \"ghost\" notes (notes from other instances of XenRoll).");
+        "Show keys of \"ghost\" notes");
     ghostNotesKeysButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.showGhostNotesKeys = !processorRef.params.showGhostNotesKeys;
         mainPanel->remakeKeys();
@@ -309,6 +309,15 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(ghostNotesKeysButton.get());
 
+    notesFromGhostNotesButton = std::make_unique<SVGButton>(
+        BinaryData::Notes_from_ghost_svg, BinaryData::Notes_from_ghost_svgSize, false, false,
+        "Create notes from \"ghost\" notes");
+    notesFromGhostNotesButton->onClick = [this](const juce::MouseEvent &me) {
+        mainPanel->createNotesFromGhostNotes();
+        return true;
+    };
+    addAndMakeVisible(notesFromGhostNotesButton.get());
+
     instancesMenu = std::make_unique<InstancesMenu>(processorRef.params.channelIndex,
                                                     &processorRef.params, this);
     addAndMakeVisible(instancesMenu.get());
@@ -316,7 +325,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     ghostNotesTabButton = std::make_unique<SVGButton>(
         BinaryData::Ghost_notes_tab_svg, BinaryData::Ghost_notes_tab_svgSize, false, false,
-        "Choose instances of XenRoll from which you want to see notes");
+        "Choose instances of XenRoll from which you want to see notes (these notes are called "
+        "\"ghost\" notes)");
     ghostNotesTabButton->onClick = [this](const juce::MouseEvent &me) {
         this->instancesMenu->setVisible(!this->instancesMenu->isVisible());
         return false;
@@ -601,7 +611,7 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
     juce::String text = midiChannelLabel->getText();
     juce::Font font = midiChannelLabel->getFont();
     int textWidth = juce::roundToInt(getTextWidth(text, font));
-    int bottom_x_pos = width - 15 * 4 - textWidth - 2 * bottom_height_px;
+    int bottom_x_pos = width - 15 * 5 - textWidth - 3 * bottom_height_px;
 
     // Draw vertical separator lines
     g.setColour(Theme::darkest);
@@ -713,6 +723,9 @@ void AudioPluginAudioProcessorEditor::resized() {
     midiChannelLabel->setBounds(width - 15 - textWidth, bottom_y, textWidth, bottom_height_px);
     bottom_x_pos -= 15 + bottom_height_px;
     ghostNotesKeysButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    bottom_x_pos -= 15 + bottom_height_px;
+    notesFromGhostNotesButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px,
+                                         bottom_height_px);
     bottom_x_pos -= 15 + bottom_height_px;
     ghostNotesTabButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     bottom_x_pos -= 30 + bottom_height_px;

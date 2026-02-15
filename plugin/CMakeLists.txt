@@ -179,6 +179,7 @@ juce_add_binary_data(
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Hide_cents.svg
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Edit_ratios_marks.svg
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/More_tools.svg
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Notes_from_ghost.svg
     HEADER_NAME BinaryData.h
 )
 

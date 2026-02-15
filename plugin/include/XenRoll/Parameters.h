@@ -31,7 +31,7 @@ class Parameters {
     static constexpr int num_octaves = 10;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Minimum values ~~~~~~~~~~~~~~~~~~~~~~~~
-    static constexpr int min_editorWidth = 1380;
+    static constexpr int min_editorWidth = 1420;
     static constexpr int min_editorHeight = 600;
     static constexpr int min_num_bars = 1;
     static constexpr int min_num_beats = 1;
@@ -85,7 +85,7 @@ class Parameters {
     // ==================================================
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~ Saved params ~~~~~~~~~~~~~~~~~~~~~~~~~
-    int editorWidth = 1380;
+    int editorWidth = 1420;
     int editorHeight = 700;
     int num_beats = 4;
     int num_subdivs = 4;

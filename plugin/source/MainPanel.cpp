@@ -1031,19 +1031,19 @@ void MainPanel::deleteNote(int i) {
     int note_cents = notes[i].cents;
 
     int num_notes_cents_i = 0;
-    for (int j = 0; j < notes.size(); ++j) {
-        if ((notes[j].cents == note_cents) && (params->zones.isNoteInActiveZone(notes[j])))
+    for (const auto& note: notes) {
+        if ((note.cents == note_cents) && (params->zones.isNoteInActiveZone(note)))
             num_notes_cents_i++;
     }
 
     int num_notes_cents_i_ghost_not_visible = 0;
-    for (int j = 0; j < ghostNotes.size(); ++j) {
-        if (ghostNotes[j].cents == note_cents) {
-            if (params->showGhostNotesKeys) {
+    for (const auto& note: ghostNotes) {
+        if (note.cents == note_cents) {
+            if (params->showGhostNotesKeys && params->zones.isNoteInActiveZone(note)) {
                 num_notes_cents_i++;
             } else {
                 num_notes_cents_i_ghost_not_visible++;
-            } 
+            }
         }
     }
 
@@ -1249,7 +1249,8 @@ void MainPanel::reattachRatiosMarks() {
         for (auto &ratioMark : params->ratiosMarks) {
             int higherKeyCents = ratioMark.getHigherKeyTotalCents() % 1200;
             if (!keysFromAllNotes.contains(higherKeyCents)) {
-                auto result = findNearestKeyWithLimit(higherKeyCents, maxCentsChange, keysFromAllNotes);
+                auto result =
+                    findNearestKeyWithLimit(higherKeyCents, maxCentsChange, keysFromAllNotes);
                 if (result) {
                     int higherKeyOctave = ratioMark.getHigherKeyTotalCents() / 1200;
                     int newHigherKeyCents = *result;
@@ -1269,7 +1270,8 @@ void MainPanel::reattachRatiosMarks() {
             }
             int lowerKeyCents = ratioMark.getLowerKeyTotalCents() % 1200;
             if (!keysFromAllNotes.contains(lowerKeyCents)) {
-                auto result = findNearestKeyWithLimit(lowerKeyCents, maxCentsChange, keysFromAllNotes);
+                auto result =
+                    findNearestKeyWithLimit(lowerKeyCents, maxCentsChange, keysFromAllNotes);
                 if (result) {
                     int lowerKeyOctave = ratioMark.getLowerKeyTotalCents() / 1200;
                     int newLowerKeyCents = *result;
@@ -1894,6 +1896,23 @@ void MainPanel::updateGhostNotes(const std::vector<Note> &new_ghostNotes) {
         for (const Note &note : ghostNotes) {
             keysFromAllNotes.insert(note.cents);
         }
+    }
+    repaint();
+}
+
+void MainPanel::createNotesFromGhostNotes() {
+    notesHistory.push(notes);
+    unselectAllNotes();
+    int num_bars = params->get_num_bars();
+    for (Note note: ghostNotes) {
+        if (note.time + note.duration <= num_bars) {
+            note.isSelected = true;
+            notes.push_back(note);
+        }
+    }
+    editor->updateNotes(notes);
+    if (!params->showGhostNotesKeys) {
+        remakeKeys();
     }
     repaint();
 }

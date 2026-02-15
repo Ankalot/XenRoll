@@ -130,6 +130,9 @@ class Zones {
         if (zonesPoints.empty()) {
             return zonesOnOff[0];
         }
+        if (note.time >= borderPoint) {
+            return false;
+        }
         int noteStartZoneInd = getZoneIndex(note.time, false);
         int noteEndZoneInd = getZoneIndex(note.time + note.duration, true);
         for (int zoneInd = noteStartZoneInd; zoneInd <= noteEndZoneInd; ++zoneInd) {
