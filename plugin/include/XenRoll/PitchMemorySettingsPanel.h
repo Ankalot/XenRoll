@@ -36,8 +36,8 @@ class PitchMemorySettingsPanel : public juce::Component {
     std::unique_ptr<juce::Label> TVvalForZeroHVLabel, TVaddInfluenceLabel, TVminNonzeroLabel,
         showOnlyHarmonicityLabel;
     std::unique_ptr<juce::Slider> TVvalForZeroHVSlider, TVaddInfluenceSlider, TVminNonzeroSlider;
+    std::unique_ptr<AlgoDescrViewport> algoDescrViewport;  // Destroyed before algoDescrLabel
     std::unique_ptr<juce::Label> algoDescrLabel;
-    std::unique_ptr<AlgoDescrViewport> algoDescrViewport;
     std::unique_ptr<juce::ToggleButton> showOnlyHarmonicityCheckbox;
 
     const int padding = 15;

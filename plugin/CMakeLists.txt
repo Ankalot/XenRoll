@@ -40,6 +40,17 @@ if(WIN32)
     target_compile_options(${PROJECT_NAME} PRIVATE /wd4619)
 endif()
 
+# Enable Address Sanitizer for Debug builds on Windows/MSVC
+if(WIN32 AND MSVC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(${PROJECT_NAME} PRIVATE /fsanitize=address)
+    target_link_options(${PROJECT_NAME} PRIVATE /fsanitize=address)
+    
+    # Optional: Set ASAN options for better output (can also be set via environment variable)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE _DISABLE_VECTOR_ANNOTATION _DISABLE_STRING_ANNOTATION)
+    
+    message(STATUS "Address Sanitizer is ENABLED for Debug build")
+endif()
+
 # Sets the source files of the plugin project.
 set(SOURCE_FILES source/PluginEditor.cpp 
                  source/PluginProcessor.cpp 

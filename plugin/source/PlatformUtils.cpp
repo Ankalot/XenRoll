@@ -36,12 +36,11 @@ bool is_process_active(process_id pid) {
     }
 
     DWORD exitCode;
-    if (GetExitCodeProcess(hProcess, &exitCode)) {
-        CloseHandle(hProcess);
+    bool result = GetExitCodeProcess(hProcess, &exitCode);
+    CloseHandle(hProcess);  // Always close handle before returning
+    if (result) {
         return (exitCode == STILL_ACTIVE);
     }
-
-    CloseHandle(hProcess);
     return false;
 #else
     return (kill(pid, 0) == 0);
