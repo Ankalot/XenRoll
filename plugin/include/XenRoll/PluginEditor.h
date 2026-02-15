@@ -3,6 +3,7 @@
 #include "BinaryData.h"
 #include "DissonanceMeter.h"
 #include "DissonancePanel.h"
+#include "DragAndDropPopup.h"
 #include "EditRatiosMarksMenu.h"
 #include "GenNewKeysMenu.h"
 #include "HelpPanel.h"
@@ -188,7 +189,9 @@ class MainViewport : public juce::Viewport {
     }
 };
 
-class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, private juce::Timer {
+class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
+                                        public juce::FileDragAndDropTarget,
+                                        private juce::Timer {
   public:
     explicit AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor &);
     ~AudioPluginAudioProcessorEditor() override;
@@ -330,6 +333,11 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
 
     void leftClickPitchMemoryButton() { pitchMemoryButton->triggerLeftClick(); }
 
+    bool isInterestedInFileDrag(const juce::StringArray &files) override;
+    void fileDragEnter(const juce::StringArray &files, int x, int y) override;
+    void fileDragExit(const juce::StringArray &files) override;
+    void filesDropped(const juce::StringArray &files, int x, int y) override;
+
     SmallLookAndFeel smallLF;
 
   private:
@@ -362,6 +370,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
     std::unique_ptr<juce::FileChooser> importFileChooser, exportFileChooser;
 
     std::unique_ptr<PopupMessage> popup;
+    std::unique_ptr<DragAndDropPopup> dragAndDropPopup;
     std::unique_ptr<HelpViewport> helpViewport;
     std::unique_ptr<HelpPanel> helpPanel;
     std::unique_ptr<SettingsPanel> settingsPanel;
@@ -392,6 +401,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
     const int bottom_gap_height_px = 15;
     const int popup_width_px = 300;
     const int popup_height_px = 50;
+    const int dnd_popup_width_px = 500;
+    const int dnd_popup_height_px = 250;
     const int top_height_px = bottom_height_px;
     const int top_x = (topPanel_height_px - top_height_px) / 2;
     const int top_y = top_x;
@@ -400,10 +411,14 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor, priva
     const int velocity_height_px = 40;
     const int velocity_bot_gap_px = 20;
 
+    void parseMidiSclFiles(const juce::File &midiFile, const juce::File &sclFile = juce::File{});
     void importMidiSclFiles();
     void exportMidiSclFiles();
+    void parseNotesFile(const juce::File &notesFile);
     void importNotesFile();
     void exportNotesFile();
+
+    void processDroppedFiles(const juce::StringArray &files);
 
     float getTextWidth(const juce::String &text, const juce::Font &font) {
         juce::GlyphArrangement glyphs;

@@ -541,6 +541,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     popup = std::make_unique<PopupMessage>(3000, 0.7f);
     addChildComponent(popup.get());
 
+    dragAndDropPopup = std::make_unique<DragAndDropPopup>();
+    addChildComponent(dragAndDropPopup.get());
+
     velocityPanel = std::make_unique<VelocityPanel>(
         [this]() { mainPanel->setVelocitiesOfSelectedNotes(this->velocityPanel->getVelocity()); });
     addAndMakeVisible(velocityPanel.get());
@@ -578,6 +581,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
+    stopTimer(); // Ensure timer is stopped before destruction
     processorRef.params.editorWidth = getWidth();
     processorRef.params.editorHeight = getHeight();
 }
@@ -632,6 +636,10 @@ void AudioPluginAudioProcessorEditor::resized() {
 
     popup->setBounds(leftPanel_width_px + (topView_width_px - popup_width_px) / 2,
                      20 + topPanel_height_px, popup_width_px, popup_height_px);
+
+    dragAndDropPopup->setBounds(leftPanel_width_px + (topView_width_px - dnd_popup_width_px) / 2,
+                                topPanel_height_px + (leftView_height_px - dnd_popup_height_px) / 2,
+                                dnd_popup_width_px, dnd_popup_height_px);
 
     helpViewport->setBounds(allBesidesBottomRect);
     helpPanel->setSize(width - slider_width_px, 1000);
@@ -831,6 +839,132 @@ std::optional<std::vector<int>> parseSclFile(const juce::File &file) {
     return scale;
 }
 
+void AudioPluginAudioProcessorEditor::parseMidiSclFiles(const juce::File &midiFile,
+                                                        const juce::File &sclFile) {
+    std::vector<int> sclScale;
+    bool hasScl = sclFile.exists();
+    if (hasScl) {
+        auto sclScaleOpt = parseSclFile(sclFile);
+        if (!sclScaleOpt) {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                                   "Failed to parse .scl file", "OK");
+            return;
+        }
+        sclScale = sclScaleOpt.value();
+        sclScale.insert(sclScale.begin(), 0);
+    }
+
+    juce::MidiFile midi;
+    juce::FileInputStream inputStream(midiFile);
+    std::vector<Note> notes;
+
+    if (!inputStream.openedOk() || !midi.readFrom(inputStream)) {
+        return;
+    }
+
+    // Get ticks per quarter note from the MIDI file header
+    double ticksPerQuarterNote = midi.getTimeFormat();
+    if (ticksPerQuarterNote < 0) {
+        // If negative, it's SMPTE format which we don't handle here
+        ticksPerQuarterNote = 960.0; // fallback to default
+    }
+
+    // Convert MIDI tracks to single sequence of events
+    // midi.convertTimestampTicksToSeconds();
+
+    int totalBars = 0;
+    int beatsPerBar = 4;
+    int subdivisionsPerBeat = 4;
+    double bpm = 120.0;
+    int numerator = 4, denominator = 4;
+    double maxBarPosition = 0.0;
+
+    // Find tempo and time signature
+    for (int i = 0; i < midi.getNumTracks(); i++) {
+        const auto *track = midi.getTrack(i);
+        for (int j = 0; j < track->getNumEvents(); j++) {
+            const auto &msg = track->getEventPointer(j)->message;
+            if (msg.isTempoMetaEvent()) {
+                bpm = msg.getTempoSecondsPerQuarterNote() > 0
+                          ? 60.0 / msg.getTempoSecondsPerQuarterNote()
+                          : 120.0;
+            } else if (msg.isTimeSignatureMetaEvent()) {
+                msg.getTimeSignatureInfo(numerator, denominator);
+                beatsPerBar = numerator;
+                subdivisionsPerBeat = 4 * (4 / denominator);
+            }
+            // Track the latest note end time to calculate total bars
+            if (msg.isNoteOff()) {
+                maxBarPosition = std::max(maxBarPosition, msg.getTimeStamp());
+            }
+        }
+    }
+
+    // Calculate ticks per bar
+    const double ticksPerBar = ticksPerQuarterNote * 4.0 * numerator / denominator;
+    totalBars = static_cast<int>(std::ceil(maxBarPosition / ticksPerBar));
+
+    // Process all note events
+    for (int i = 0; i < midi.getNumTracks(); i++) {
+        const auto *track = midi.getTrack(i);
+        for (int j = 0; j < track->getNumEvents(); j++) {
+            const auto *event = track->getEventPointer(j);
+            const auto &msg = event->message;
+
+            if (msg.isNoteOn()) {
+                // Find matching note-off
+                const auto *noteOffEvent = event->noteOffObject;
+                if (!noteOffEvent)
+                    continue;
+
+                // Calculate timing in bars
+                const double startTimeTicks = msg.getTimeStamp();
+                const double endTimeTicks = noteOffEvent->message.getTimeStamp();
+
+                const double startTimeBars = startTimeTicks / ticksPerBar;
+                const double durationBars = (endTimeTicks - startTimeTicks) / ticksPerBar;
+
+                // Convert MIDI note to octave and cents
+                const int midiNote = msg.getNoteNumber();
+                int octave, cents;
+                if (hasScl) {
+                    int n = int(sclScale.size()) - 1;
+                    int totalCents = sclScale[n] * (midiNote / n) + sclScale[midiNote % n];
+                    octave = totalCents / 1200;
+                    if (octave >= processorRef.params.num_octaves) {
+                        juce::AlertWindow::showMessageBoxAsync(
+                            juce::AlertWindow::WarningIcon, "Error",
+                            "There is a too high pitched note", "OK");
+                        return;
+                    }
+                    cents = totalCents % 1200;
+                } else {
+                    octave = (midiNote / 12);
+                    cents = (midiNote % 12) * 100; // 0-1100 in 100-cent steps
+                }
+
+                // Create Note struct
+                notes.push_back({octave, cents, static_cast<float>(startTimeBars), false,
+                                 static_cast<float>(durationBars), msg.getFloatVelocity()});
+            }
+        }
+    }
+
+    this->numBarsInput.get()->onValueChanged(totalBars);
+    this->numBeatsInput.get()->onValueChanged(beatsPerBar);
+    this->numSubdivsInput.get()->onValueChanged(subdivisionsPerBeat);
+
+    this->numBarsInput.get()->setValue(totalBars);
+    this->numBeatsInput.get()->setValue(beatsPerBar);
+    this->numSubdivsInput.get()->setValue(subdivisionsPerBeat);
+
+    this->mainPanel->updateNotes(notes);
+    this->updateNotes(notes);
+
+    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Imported!",
+                                           "BPM of imported track: " + juce::String(bpm), "OK");
+}
+
 void AudioPluginAudioProcessorEditor::importMidiSclFiles() {
     importFileChooser.get()->launchAsync(
         juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles |
@@ -874,128 +1008,7 @@ void AudioPluginAudioProcessorEditor::importMidiSclFiles() {
                 return;
             }
 
-            std::vector<int> sclScale;
-            if (hasScl) {
-                auto sclScaleOpt = parseSclFile(sclFile);
-                if (!sclScaleOpt) {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
-                                                           "Failed to parse .scl file", "OK");
-                    return;
-                }
-                sclScale = sclScaleOpt.value();
-                sclScale.insert(sclScale.begin(), 0);
-            }
-
-            juce::MidiFile midi;
-            juce::FileInputStream inputStream(midiFile);
-            std::vector<Note> notes;
-
-            if (!inputStream.openedOk() || !midi.readFrom(inputStream)) {
-                return;
-            }
-
-            // Get ticks per quarter note from the MIDI file header
-            double ticksPerQuarterNote = midi.getTimeFormat();
-            if (ticksPerQuarterNote < 0) {
-                // If negative, it's SMPTE format which we don't handle here
-                ticksPerQuarterNote = 960.0; // fallback to default
-            }
-
-            // Convert MIDI tracks to single sequence of events
-            // midi.convertTimestampTicksToSeconds();
-
-            int totalBars = 0;
-            int beatsPerBar = 4;
-            int subdivisionsPerBeat = 4;
-            double bpm = 120.0;
-            int numerator = 4, denominator = 4;
-            double maxBarPosition = 0.0;
-
-            // Find tempo and time signature
-            for (int i = 0; i < midi.getNumTracks(); i++) {
-                const auto *track = midi.getTrack(i);
-                for (int j = 0; j < track->getNumEvents(); j++) {
-                    const auto &msg = track->getEventPointer(j)->message;
-                    if (msg.isTempoMetaEvent()) {
-                        bpm = msg.getTempoSecondsPerQuarterNote() > 0
-                                  ? 60.0 / msg.getTempoSecondsPerQuarterNote()
-                                  : 120.0;
-                    } else if (msg.isTimeSignatureMetaEvent()) {
-                        msg.getTimeSignatureInfo(numerator, denominator);
-                        beatsPerBar = numerator;
-                        subdivisionsPerBeat = 4 * (4 / denominator);
-                    }
-                    // Track the latest note end time to calculate total bars
-                    if (msg.isNoteOff()) {
-                        maxBarPosition = std::max(maxBarPosition, msg.getTimeStamp());
-                    }
-                }
-            }
-
-            // Calculate ticks per bar
-            const double ticksPerBar = ticksPerQuarterNote * 4.0 * numerator / denominator;
-            totalBars = static_cast<int>(std::ceil(maxBarPosition / ticksPerBar));
-
-            // Process all note events
-            for (int i = 0; i < midi.getNumTracks(); i++) {
-                const auto *track = midi.getTrack(i);
-                for (int j = 0; j < track->getNumEvents(); j++) {
-                    const auto *event = track->getEventPointer(j);
-                    const auto &msg = event->message;
-
-                    if (msg.isNoteOn()) {
-                        // Find matching note-off
-                        const auto *noteOffEvent = event->noteOffObject;
-                        if (!noteOffEvent)
-                            continue;
-
-                        // Calculate timing in bars
-                        const double startTimeTicks = msg.getTimeStamp();
-                        const double endTimeTicks = noteOffEvent->message.getTimeStamp();
-
-                        const double startTimeBars = startTimeTicks / ticksPerBar;
-                        const double durationBars = (endTimeTicks - startTimeTicks) / ticksPerBar;
-
-                        // Convert MIDI note to octave and cents
-                        const int midiNote = msg.getNoteNumber();
-                        int octave, cents;
-                        if (hasScl) {
-                            int n = int(sclScale.size()) - 1;
-                            int totalCents = sclScale[n] * (midiNote / n) + sclScale[midiNote % n];
-                            octave = totalCents / 1200;
-                            if (octave >= processorRef.params.num_octaves) {
-                                juce::AlertWindow::showMessageBoxAsync(
-                                    juce::AlertWindow::WarningIcon, "Error",
-                                    "There is a too high pitched note", "OK");
-                                return;
-                            }
-                            cents = totalCents % 1200;
-                        } else {
-                            octave = (midiNote / 12);
-                            cents = (midiNote % 12) * 100; // 0-1100 in 100-cent steps
-                        }
-
-                        // Create Note struct
-                        notes.push_back({octave, cents, static_cast<float>(startTimeBars), false,
-                                         static_cast<float>(durationBars), msg.getFloatVelocity()});
-                    }
-                }
-            }
-
-            this->numBarsInput.get()->onValueChanged(totalBars);
-            this->numBeatsInput.get()->onValueChanged(beatsPerBar);
-            this->numSubdivsInput.get()->onValueChanged(subdivisionsPerBeat);
-
-            this->numBarsInput.get()->setValue(totalBars);
-            this->numBeatsInput.get()->setValue(beatsPerBar);
-            this->numSubdivsInput.get()->setValue(subdivisionsPerBeat);
-
-            this->mainPanel->updateNotes(notes);
-            this->updateNotes(notes);
-
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Imported!",
-                                                   "BPM of imported track: " + juce::String(bpm),
-                                                   "OK");
+            parseMidiSclFiles(midiFile, sclFile);
         });
 }
 
@@ -1139,54 +1152,128 @@ void AudioPluginAudioProcessorEditor::exportNotesFile() {
         });
 }
 
+void AudioPluginAudioProcessorEditor::parseNotesFile(const juce::File &notesFile) {
+    juce::FileInputStream inputStream(notesFile);
+    if (!inputStream.openedOk()) {
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::AlertWindow::WarningIcon, "Error",
+            "Failed to open file: " + notesFile.getFullPathName(), "OK");
+        return;
+    }
+
+    // read time info
+    const int numBars = inputStream.readInt();
+    const int numBeats = inputStream.readInt();
+    const int numSubdivs = inputStream.readInt();
+    const int bpm = inputStream.readFloat();
+
+    const int numNotes = inputStream.readInt();
+    std::vector<Note> notes(numNotes);
+    for (int i = 0; i < numNotes; ++i) {
+        notes[i].octave = inputStream.readInt();
+        notes[i].cents = inputStream.readInt();
+        notes[i].time = inputStream.readFloat();
+        notes[i].duration = inputStream.readFloat();
+        notes[i].velocity = inputStream.readFloat();
+        notes[i].bend = inputStream.readInt();
+    }
+
+    this->numBarsInput.get()->onValueChanged(numBars);
+    this->numBeatsInput.get()->onValueChanged(numBeats);
+    this->numSubdivsInput.get()->onValueChanged(numSubdivs);
+
+    this->numBarsInput.get()->setValue(numBars);
+    this->numBeatsInput.get()->setValue(numBeats);
+    this->numSubdivsInput.get()->setValue(numSubdivs);
+
+    this->mainPanel->updateNotes(notes);
+    this->updateNotes(notes);
+
+    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Imported!",
+                                           "BPM of imported track: " + juce::String(bpm), "OK");
+}
+
 void AudioPluginAudioProcessorEditor::importNotesFile() {
-    importFileChooser.get()->launchAsync(
-        juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
-        [this](const juce::FileChooser &fc) {
-            juce::File notesFile = fc.getResult();
-            if (notesFile == juce::File{})
-                return;
+    importFileChooser.get()->launchAsync(juce::FileBrowserComponent::openMode |
+                                             juce::FileBrowserComponent::canSelectFiles,
+                                         [this](const juce::FileChooser &fc) {
+                                             juce::File notesFile = fc.getResult();
+                                             if (notesFile == juce::File{})
+                                                 return;
 
-            juce::FileInputStream inputStream(notesFile);
-            if (!inputStream.openedOk()) {
-                juce::AlertWindow::showMessageBoxAsync(
-                    juce::AlertWindow::WarningIcon, "Error",
-                    "Failed to open file: " + notesFile.getFullPathName(), "OK");
+                                             parseNotesFile(notesFile);
+                                         });
+}
+
+bool AudioPluginAudioProcessorEditor::isInterestedInFileDrag(const juce::StringArray &files) {
+    for (const auto &file : files) {
+        if (file.endsWithIgnoreCase(".mid") || file.endsWithIgnoreCase(".midi") ||
+            file.endsWithIgnoreCase(".scl") || file.endsWithIgnoreCase(".notes")) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void AudioPluginAudioProcessorEditor::fileDragEnter(const juce::StringArray &files, int x, int y) {
+    dragAndDropPopup->setVisible(true);
+}
+
+void AudioPluginAudioProcessorEditor::fileDragExit(const juce::StringArray &files) {
+    dragAndDropPopup->setVisible(false);
+}
+
+void AudioPluginAudioProcessorEditor::filesDropped(const juce::StringArray &files, int x, int y) {
+    dragAndDropPopup->setVisible(false);
+    processDroppedFiles(files);
+}
+
+void AudioPluginAudioProcessorEditor::processDroppedFiles(const juce::StringArray &files) {
+    juce::File midiFile;
+    juce::File sclFile;
+    juce::File notesFile;
+    bool hasMidi = false;
+    bool hasScl = false;
+    bool hasNotes = false;
+
+    for (const auto &fileStr : files) {
+        juce::File file(fileStr);
+        if (file.hasFileExtension(".mid") || file.hasFileExtension(".midi")) {
+            if (hasMidi) {
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                                       "Please select only one MIDI file", "OK");
                 return;
             }
-
-            // read time info
-            const int numBars = inputStream.readInt();
-            const int numBeats = inputStream.readInt();
-            const int numSubdivs = inputStream.readInt();
-            const int bpm = inputStream.readFloat();
-
-            const int numNotes = inputStream.readInt();
-            std::vector<Note> notes(numNotes);
-            for (int i = 0; i < numNotes; ++i) {
-                notes[i].octave = inputStream.readInt();
-                notes[i].cents = inputStream.readInt();
-                notes[i].time = inputStream.readFloat();
-                notes[i].duration = inputStream.readFloat();
-                notes[i].velocity = inputStream.readFloat();
-                notes[i].bend = inputStream.readInt();
+            midiFile = file;
+            hasMidi = true;
+        } else if (file.hasFileExtension(".scl")) {
+            if (hasScl) {
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                                       "Please select only one .scl file", "OK");
+                return;
             }
+            sclFile = file;
+            hasScl = true;
+        } else if (file.hasFileExtension(".notes")) {
+            if (hasNotes) {
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                                       "Please select only one .notes file", "OK");
+                return;
+            }
+            notesFile = file;
+            hasNotes = true;
+        }
+    }
 
-            this->numBarsInput.get()->onValueChanged(numBars);
-            this->numBeatsInput.get()->onValueChanged(numBeats);
-            this->numSubdivsInput.get()->onValueChanged(numSubdivs);
-
-            this->numBarsInput.get()->setValue(numBars);
-            this->numBeatsInput.get()->setValue(numBeats);
-            this->numSubdivsInput.get()->setValue(numSubdivs);
-
-            this->mainPanel->updateNotes(notes);
-            this->updateNotes(notes);
-
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Imported!",
-                                                   "BPM of imported track: " + juce::String(bpm),
-                                                   "OK");
-        });
+    if (hasNotes) {
+        parseNotesFile(notesFile);
+    } else if (!hasMidi) {
+        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                               "Please select at least one MIDI file", "OK");
+        return;
+    } else {
+        parseMidiSclFiles(midiFile, sclFile);
+    }
 }
 
 void AudioPluginAudioProcessorEditor::updatePitchMemory() {

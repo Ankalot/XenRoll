@@ -104,6 +104,7 @@ set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h
                  ${INCLUDE_DIR}/PitchMemory.h
                  ${INCLUDE_DIR}/GenNewKeysMenu.h
                  ${INCLUDE_DIR}/EditRatiosMarksMenu.h
+                 ${INCLUDE_DIR}/DragAndDropPopup.h
                  ${MTS_ESP_DIR}/libMTSMaster.h)
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
 
