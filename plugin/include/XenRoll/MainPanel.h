@@ -18,7 +18,7 @@ class AudioPluginAudioProcessorEditor;
  */
 class MainPanel : public juce::Component, public juce::KeyListener {
   public:
-    MainPanel(int octave_height_px, int bar_width_px, AudioPluginAudioProcessorEditor *editor,
+    MainPanel(float octave_height_px, float bar_width_px, AudioPluginAudioProcessorEditor *editor,
               Parameters *params);
     ~MainPanel() override;
 
@@ -47,6 +47,16 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void updateGhostNotes(const std::vector<Note> &new_ghostNotes);
     void createNotesFromGhostNotes();
     void remakeKeys();
+
+    void changeBarWidthPx(float new_bar_width_px) {
+        bar_width_px = new_bar_width_px;
+        updateLayout();
+    }
+
+    void changeOctaveHeightPx(float new_octave_height_px) {
+        octave_height_px = new_octave_height_px;
+        updateLayout();
+    }
 
     /**
      * @brief Trying to attach ratio marks that lost their keys
@@ -84,9 +94,9 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
   private:
     float playHeadTime; ///< In beats
-    const int max_bar_width_px = 1000;
-    int init_octave_height_px, init_bar_width_px;
-    int octave_height_px, bar_width_px;
+    const float max_bar_width_px = 1000.0f;
+    float init_octave_height_px, init_bar_width_px;
+    float octave_height_px, bar_width_px;
     bool isDragging = false;
     bool isResizing = false;
     bool isMoving = false;

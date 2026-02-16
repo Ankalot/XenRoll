@@ -186,6 +186,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     mainPanel =
         std::make_unique<MainPanel>(octave_height_px, bar_width_px, this, &(processorRef.params));
     mainViewport = std::make_unique<MainViewport>(leftViewport.get(), topViewport.get());
+    mainViewport->setUpdateCallback([this]() { this->updateMainViewportSize(); });
     mainViewport->setScrollBarsShown(true, true);
     mainViewport->setViewedComponent(mainPanel.get(), false);
     mainPanel->setPlayHeadTime(playHeadTime);
@@ -299,8 +300,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     ghostNotesKeysButton = std::make_unique<SVGButton>(
         BinaryData::Ghost_notes_keys_svg, BinaryData::Ghost_notes_keys_svgSize, true,
-        processorRef.params.showGhostNotesKeys,
-        "Show keys of \"ghost\" notes");
+        processorRef.params.showGhostNotesKeys, "Show keys of \"ghost\" notes");
     ghostNotesKeysButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.showGhostNotesKeys = !processorRef.params.showGhostNotesKeys;
         mainPanel->remakeKeys();
@@ -636,13 +636,24 @@ void AudioPluginAudioProcessorEditor::resized() {
 
     leftViewport->setSize(leftPanel_width_px, leftView_height_px);
     topViewport->setSize(topView_width_px, topPanel_height_px);
-    mainViewport->setSize(topView_width_px + slider_width_px, leftView_height_px + slider_width_px);
 
     leftViewport->setBounds(0, topPanel_height_px, leftPanel_width_px, leftView_height_px);
     topViewport->setBounds(leftPanel_width_px, 0, topView_width_px, topPanel_height_px);
-    mainViewport->setBounds(leftPanel_width_px, topPanel_height_px,
-                            topView_width_px + slider_width_px,
-                            leftView_height_px + slider_width_px);
+
+    // Update mainViewport size and bounds based on scrollbar visibility
+    updateMainViewportSize();
+
+    // If we resize while mainPanel has max zoom out, we need a correction:
+    if (mainPanel->getWidth() < topView_width_px) {
+        bar_width_px = topView_width_px * 1.0f / processorRef.params.get_num_bars();
+        mainPanel->changeBarWidthPx(bar_width_px);
+        topPanel->changeBarWidthPx(bar_width_px);
+    }
+    if (mainPanel->getHeight() < leftView_height_px) {
+        octave_height_px = leftView_height_px * 1.0f / processorRef.params.num_octaves;
+        mainPanel->changeOctaveHeightPx(octave_height_px);
+        leftPanel->changeOctaveHeightPx(octave_height_px);
+    }
 
     popup->setBounds(leftPanel_width_px + (topView_width_px - popup_width_px) / 2,
                      20 + topPanel_height_px, popup_width_px, popup_height_px);
@@ -1366,6 +1377,50 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
                 "FIX: remove some notes and/or don't manually play that many keys on which " +
                 "you don't have notes from the piano roll.",
             "OK");
+    }
+}
+
+void AudioPluginAudioProcessorEditor::updateMainViewportSize() {
+    const int width = getWidth();
+    const int height = getHeight();
+
+    const int leftView_height_px =
+        height - topPanel_height_px - 2 * bottom_gap_height_px - bottom_height_px - slider_width_px;
+    const int topView_width_px = width - leftPanel_width_px - slider_width_px;
+
+    // Get current scrollbar visibility
+    bool vScrollVisible = mainViewport->isVerticalScrollBarVisible();
+    bool hScrollVisible = mainViewport->isHorizontalScrollBarVisible();
+
+    // Get current bounds
+    auto currentBounds = mainViewport->getBounds();
+    int currentWidth = currentBounds.getWidth();
+    int currentHeight = currentBounds.getHeight();
+
+    // Calculate target size based on CONTENT, not current viewport size
+    // This prevents the "catch-22" where hiding scrollbars causes them to reappear
+    auto *viewedComponent = mainViewport->getViewedComponent();
+    bool contentNeedsVScroll =
+        viewedComponent != nullptr && viewedComponent->getHeight() > leftView_height_px;
+    bool contentNeedsHScroll =
+        viewedComponent != nullptr && viewedComponent->getWidth() > topView_width_px;
+
+    // Calculate mainViewport size based on CONTENT needs, not current visibility
+    int actualMainViewWidth = topView_width_px;
+    int actualMainViewHeight = leftView_height_px;
+
+    if (contentNeedsVScroll) {
+        actualMainViewWidth += slider_width_px;
+    }
+    if (contentNeedsHScroll) {
+        actualMainViewHeight += slider_width_px;
+    }
+
+    // Only update if size has changed
+    if (currentWidth != actualMainViewWidth || currentHeight != actualMainViewHeight) {
+        mainViewport->setSize(actualMainViewWidth, actualMainViewHeight);
+        mainViewport->setBounds(leftPanel_width_px, topPanel_height_px, actualMainViewWidth,
+                                actualMainViewHeight);
     }
 }
 } // namespace audio_plugin

@@ -12,17 +12,17 @@ class AudioPluginAudioProcessorEditor;
  */
 class TopPanel : public juce::Component {
   public:
-    TopPanel(int bar_width_px, const int topPanel_height_px,
+    TopPanel(float bar_width_px, const int topPanel_height_px,
              AudioPluginAudioProcessorEditor *editor, Parameters *params);
 
-    void changeBeatWidthPx(int new_bar_widt_px) {
-        bar_width_px = new_bar_widt_px;
-        this->setSize(params->get_num_bars() * bar_width_px, topPanel_height_px);
+    void changeBarWidthPx(float new_bar_width_px) {
+        bar_width_px = new_bar_width_px;
+        this->setSize(juce::roundToInt(params->get_num_bars() * bar_width_px), topPanel_height_px);
         repaint();
     }
 
     void numBarsChanged() {
-        this->setSize(params->get_num_bars() * bar_width_px, topPanel_height_px);
+        this->setSize(juce::roundToInt(params->get_num_bars() * bar_width_px), topPanel_height_px);
         repaint();
     }
 
@@ -39,7 +39,7 @@ class TopPanel : public juce::Component {
      * @return Adapted thickness
      */
     float adaptSize(float inputThickness) {
-        return inputThickness * std::min(1.0f, bar_width_px * 1.0f / init_bar_width_px);
+        return inputThickness * std::min(1.0f, bar_width_px / init_bar_width_px);
     }
 
     /**
@@ -59,8 +59,8 @@ class TopPanel : public juce::Component {
     Parameters *params;
 
     const int topPanel_height_px;
-    int init_bar_width_px;
-    int bar_width_px;
+    float init_bar_width_px;
+    float bar_width_px;
     float playHeadTime = 0.0f;
 
     const float zonePoint_collision_width_px = 14;

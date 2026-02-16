@@ -148,6 +148,11 @@ class MainViewport : public juce::Viewport {
     }
 
     /**
+     * @brief Set callback function to update viewport size
+     */
+    void setUpdateCallback(std::function<void()> callback) { updateCallback = callback; }
+
+    /**
      * @brief Update scrollbar colors to match current theme
      */
     void updateColors() {
@@ -174,18 +179,44 @@ class MainViewport : public juce::Viewport {
         setViewPosition(targetX, getViewPositionY());
     }
 
+    bool isVerticalScrollBarVisible() const {
+        auto *viewedComp = getViewedComponent();
+        if (viewedComp == nullptr)
+            return false;
+        return viewedComp->getHeight() > getViewHeight();
+    }
+
+    bool isHorizontalScrollBarVisible() const {
+        auto *viewedComp = getViewedComponent();
+        if (viewedComp == nullptr)
+            return false;
+        return viewedComp->getWidth() > getViewWidth();
+    }
+
   private:
     juce::Viewport *leftViewport;
     juce::Viewport *topViewport;
+    std::function<void()> updateCallback;
+    bool isUpdating = false; ///< Just in case, against infinite recursion
 
     /**
      * @brief Called when visible area changes, syncs with linked viewports
      * @param newVisibleArea New visible area rectangle
      */
     void visibleAreaChanged(const juce::Rectangle<int> &newVisibleArea) override {
+        if (isUpdating) {
+            return;
+        }
+        isUpdating = true;
         Viewport::visibleAreaChanged(newVisibleArea);
         leftViewport->setViewPosition(leftViewport->getViewPositionX(), newVisibleArea.getY());
         topViewport->setViewPosition(newVisibleArea.getX(), topViewport->getViewPositionY());
+
+        // Update mainViewport size based on scrollbar visibility
+        if (updateCallback != nullptr) {
+            updateCallback();
+        }
+        isUpdating = false;
     }
 };
 
@@ -201,17 +232,19 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     void repaintTopPanel() { topPanel->repaint(); }
 
-    void changeOctaveHeightPx(int new_octave_height_px) {
+    void changeOctaveHeightPx(float new_octave_height_px) {
         octave_height_px = new_octave_height_px;
         leftPanel->changeOctaveHeightPx(octave_height_px);
     }
 
-    void changeBeatWidthPx(int new_bar_width_px) {
+    void changeBarWidthPx(float new_bar_width_px) {
         bar_width_px = new_bar_width_px;
-        topPanel->changeBeatWidthPx(bar_width_px);
+        topPanel->changeBarWidthPx(bar_width_px);
     }
 
     void updateKeys(std::set<int> keys) { leftPanel->updateKeys(keys); }
+
+    void updateMainViewportSize();
 
     /**
      * @brief Show a popup message
@@ -391,8 +424,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     int ghostNotesTicker = 0;
     float playHeadTime = 0.0f;
 
-    int octave_height_px = 300;
-    int bar_width_px = 400;
+    float octave_height_px = 300.0f;
+    float bar_width_px = 400.0f;
     const int leftPanel_width_px = 150;
     const int topPanel_height_px = 50;
     const int slider_width_px = 8;

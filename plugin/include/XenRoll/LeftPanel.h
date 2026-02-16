@@ -13,12 +13,12 @@ class AudioPluginAudioProcessorEditor;
  */
 class LeftPanel : public juce::Component {
   public:
-    LeftPanel(int octave_height_px, int leftPanel_width_px, AudioPluginAudioProcessorEditor *editor,
-              Parameters *params);
+    LeftPanel(float octave_height_px, int leftPanel_width_px,
+              AudioPluginAudioProcessorEditor *editor, Parameters *params);
 
-    void changeOctaveHeightPx(int new_octave_height_px) {
+    void changeOctaveHeightPx(float new_octave_height_px) {
         octave_height_px = new_octave_height_px;
-        this->setSize(leftPanel_width_px, params->num_octaves * octave_height_px);
+        this->setSize(leftPanel_width_px, juce::roundToInt(params->num_octaves * octave_height_px));
         repaint();
     }
 
@@ -28,7 +28,7 @@ class LeftPanel : public juce::Component {
      * @return Adapted thickness
      */
     float adaptSize(float inputThickness) {
-        return inputThickness * std::min(1.0f, octave_height_px * 1.0f / init_octave_height_px);
+        return inputThickness * std::min(1.0f, octave_height_px / init_octave_height_px);
     }
 
     /**
@@ -92,8 +92,8 @@ class LeftPanel : public juce::Component {
 
   private:
     const int leftPanel_width_px;
-    int init_octave_height_px;
-    int octave_height_px;
+    float init_octave_height_px;
+    float octave_height_px;
     std::set<int> keys; ///< 0-1199 cents
 
     std::set<int> currPlayedNotesTotalCents;

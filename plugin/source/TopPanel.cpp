@@ -2,18 +2,18 @@
 #include "XenRoll/PluginEditor.h"
 
 namespace audio_plugin {
-TopPanel::TopPanel(int bar_width_px, const int topPanel_height_px,
+TopPanel::TopPanel(float bar_width_px, const int topPanel_height_px,
                    AudioPluginAudioProcessorEditor *editor, Parameters *params)
     : bar_width_px(bar_width_px), topPanel_height_px(topPanel_height_px), editor(editor),
       params(params), init_bar_width_px(bar_width_px) {
     setMouseCursor(juce::MouseCursor::PointingHandCursor);
-    this->setSize(params->get_num_bars() * bar_width_px, topPanel_height_px);
+    this->setSize(juce::roundToInt(params->get_num_bars() * bar_width_px), topPanel_height_px);
 }
 
 void TopPanel::mouseDown(const juce::MouseEvent &event) {
     editor->bringBackKeyboardFocus();
     juce::Point<int> point = event.getPosition();
-    float time = float(point.getX()) / bar_width_px;
+    float time = point.getX() / bar_width_px;
     float precision = zonePoint_collision_width_px / bar_width_px / 2;
 
     // Add zone point
@@ -117,19 +117,21 @@ void TopPanel::paint(juce::Graphics &g) {
 
     // Bars
     g.setColour(Theme::darkest);
-    int bar_i_start = clipX / bar_width_px;
-    int bar_i_end = std::min((clipX + clipWidth) / bar_width_px + 1, params->get_num_bars());
+    int bar_i_start = static_cast<int>(clipX / bar_width_px);
+    int bar_i_end =
+        std::min(static_cast<int>((clipX + clipWidth) / bar_width_px) + 1, params->get_num_bars());
     for (int i = bar_i_start; i <= bar_i_end; ++i) {
-        float xPos = float(i * bar_width_px);
+        float xPos = i * bar_width_px;
         g.drawLine(xPos, 0.0f, xPos, float(topPanel_height_px), adaptSize(Theme::wide));
     }
 
     // Bar number
     g.setFont(adaptFont(Theme::big));
     for (int i = bar_i_start; i < bar_i_end; ++i) {
-        int xPos = i * bar_width_px;
+        int xPos = juce::roundToInt(i * bar_width_px);
         g.drawText(juce::String(i + 1),
-                   juce::Rectangle<int>(xPos + adaptSize(10.0f), 0, bar_width_px - adaptSize(10.0f),
+                   juce::Rectangle<int>(xPos + static_cast<int>(adaptSize(10.0f)), 0,
+                                        static_cast<int>(bar_width_px - adaptSize(10.0f)),
                                         topPanel_height_px),
                    juce::Justification::centredLeft, false);
     }
@@ -139,12 +141,12 @@ void TopPanel::paint(juce::Graphics &g) {
         (playHeadTime * bar_width_px <= clipX + clipWidth + playHeadWidth / 2)) {
 
         juce::Path playHeadPath;
-        playHeadPath.startNewSubPath(float(playHeadTime * bar_width_px), float(topPanel_height_px));
-        playHeadPath.lineTo(float(playHeadTime * bar_width_px - playHeadWidth / 2),
+        playHeadPath.startNewSubPath(playHeadTime * bar_width_px, float(topPanel_height_px));
+        playHeadPath.lineTo(playHeadTime * bar_width_px - playHeadWidth / 2,
                             float(topPanel_height_px - playHeadHeight));
-        playHeadPath.lineTo(float(playHeadTime * bar_width_px + playHeadWidth / 2),
+        playHeadPath.lineTo(playHeadTime * bar_width_px + playHeadWidth / 2,
                             float(topPanel_height_px - playHeadHeight));
-        playHeadPath.lineTo(float(playHeadTime * bar_width_px), float(topPanel_height_px));
+        playHeadPath.lineTo(playHeadTime * bar_width_px, float(topPanel_height_px));
         playHeadPath.closeSubPath();
         // g.setColour(Theme::brighter.withAlpha(1.0f));
         g.setColour(Theme::activated.withAlpha(1.0f));

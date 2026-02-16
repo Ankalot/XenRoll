@@ -2,11 +2,11 @@
 #include "XenRoll/PluginEditor.h"
 
 namespace audio_plugin {
-LeftPanel::LeftPanel(int octave_height_px, int leftPanel_width_px,
+LeftPanel::LeftPanel(float octave_height_px, int leftPanel_width_px,
                      AudioPluginAudioProcessorEditor *editor, Parameters *params)
     : octave_height_px(octave_height_px), leftPanel_width_px(leftPanel_width_px), editor(editor),
       params(params), init_octave_height_px(octave_height_px) {
-    this->setSize(leftPanel_width_px, params->num_octaves * octave_height_px);
+    this->setSize(leftPanel_width_px, juce::roundToInt(params->num_octaves * octave_height_px));
     setWantsKeyboardFocus(false);
 }
 
@@ -37,7 +37,7 @@ void LeftPanel::paint(juce::Graphics &g) {
     // octaves
     g.setColour(Theme::darkest);
     for (int i = 0; i <= params->num_octaves; ++i) {
-        float yPos = float(i * octave_height_px);
+        float yPos = i * octave_height_px;
         g.drawLine(0, yPos, 40, yPos, adaptSize(Theme::wide));
         g.drawLine((float)leftPanel_width_px - 20, yPos, (float)leftPanel_width_px, yPos,
                    adaptSize(Theme::wide));
@@ -70,7 +70,7 @@ void LeftPanel::paint(juce::Graphics &g) {
             }
             g.drawText(keyText,
                        juce::Rectangle<int>(leftPanel_width_px - 145 + 42 * ((j + 1) % 2),
-                                            (int)yPos - 9, 80, 20),
+                                            static_cast<int>(yPos) - 9, 80, 20),
                        juce::Justification::right, false);
             j++;
         }
@@ -79,12 +79,13 @@ void LeftPanel::paint(juce::Graphics &g) {
     // octaves labels
     g.setFont(adaptFont(Theme::big));
     for (int i = 0; i < params->num_octaves; ++i) {
-        float yPos = float(i * octave_height_px);
+        float yPos = i * octave_height_px;
         juce::Graphics::ScopedSaveState state(g);
-        g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, 15,
+        g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, 15.0f,
                                                        yPos + octave_height_px / 2));
         g.drawText("OCTAVE " + juce::String(params->num_octaves - i - 1),
-                   juce::Rectangle<int>(-100, (int)yPos, 230, octave_height_px),
+                   juce::Rectangle<int>(-100, static_cast<int>(yPos), 230,
+                                        static_cast<int>(octave_height_px)),
                    juce::Justification::centred, false);
     }
 }
@@ -95,10 +96,10 @@ void LeftPanel::mouseDown(const juce::MouseEvent &event) {
             return;
         }
         juce::Point<int> point = event.getPosition();
-        int octave = params->num_octaves - 1 - point.getY() / octave_height_px;
+        int octave = params->num_octaves - 1 - static_cast<int>(point.getY() / octave_height_px);
         int cents =
-            static_cast<int>(round(
-                (1.0f - (point.getY() % octave_height_px) * 1.0f / octave_height_px) * 1200)) %
+            static_cast<int>(
+                round((1.0f - (fmodf(point.getY(), octave_height_px) / octave_height_px)) * 1200)) %
             1200;
         if (cents == 0) {
             octave += 1;
@@ -126,10 +127,10 @@ void LeftPanel::mouseDrag(const juce::MouseEvent &event) {
             return;
         }
         juce::Point<int> point = event.getPosition();
-        int octave = params->num_octaves - 1 - point.getY() / octave_height_px;
+        int octave = params->num_octaves - 1 - static_cast<int>(point.getY() / octave_height_px);
         int cents =
-            static_cast<int>(round(
-                (1.0f - (point.getY() % octave_height_px) * 1.0f / octave_height_px) * 1200)) %
+            static_cast<int>(
+                round((1.0f - (fmodf(point.getY(), octave_height_px) / octave_height_px)) * 1200)) %
             1200;
         if (cents == 0) {
             octave += 1;

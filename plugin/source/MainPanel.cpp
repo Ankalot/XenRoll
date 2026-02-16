@@ -3,11 +3,12 @@
 #include <random>
 
 namespace audio_plugin {
-MainPanel::MainPanel(int octave_height_px, int bar_width_px,
+MainPanel::MainPanel(float octave_height_px, float bar_width_px,
                      AudioPluginAudioProcessorEditor *editor, Parameters *params)
     : octave_height_px(octave_height_px), bar_width_px(bar_width_px), editor(editor),
       params(params), init_octave_height_px(octave_height_px), init_bar_width_px(bar_width_px) {
-    this->setSize(params->get_num_bars() * bar_width_px, params->num_octaves * octave_height_px);
+    this->setSize(juce::roundToInt(params->get_num_bars() * bar_width_px),
+                  juce::roundToInt(params->num_octaves * octave_height_px));
     setInterceptsMouseClicks(true, true);
 
     addKeyListener(this);
@@ -25,7 +26,7 @@ const juce::PathStrokeType MainPanel::outlineStroke(Theme::wide, juce::PathStrok
 MainPanel::~MainPanel() { removeKeyListener(this); }
 
 int MainPanel::totalCentsToY(int totalCents) {
-    return juce::roundToInt(octave_height_px * (params->num_octaves - totalCents / 1200.0));
+    return juce::roundToInt(octave_height_px * (params->num_octaves - totalCents / 1200.0f));
 }
 
 void MainPanel::updatePitchMemoryResults(const PitchMemoryResults &newPitchMemoryResults) {
@@ -60,19 +61,18 @@ void MainPanel::drawOutlinedText(juce::Graphics &g, const juce::String &text,
 }
 
 float MainPanel::adaptHor(float inputThickness) {
-    return inputThickness * std::min(1.0f, octave_height_px * 1.0f / init_octave_height_px);
+    return inputThickness * std::min(1.0f, octave_height_px / init_octave_height_px);
 }
 
 float MainPanel::adaptVert(float inputThickness) {
-    return inputThickness * std::min(1.0f, bar_width_px * 1.0f / init_bar_width_px);
+    return inputThickness * std::min(1.0f, bar_width_px / init_bar_width_px);
 }
 
 float MainPanel::adaptFont(float inputThickness) {
-    return inputThickness *
-           std::min(std::min(1.0f, (octave_height_px + 1.0f * init_octave_height_px) * (0.5f) /
-                                       init_octave_height_px),
-                    std::min(1.0f, (bar_width_px + 1.0f * init_bar_width_px) * (0.5f) /
-                                       init_bar_width_px));
+    return inputThickness * std::min(std::min(1.0f, (octave_height_px + init_octave_height_px) *
+                                                        (0.5f) / init_octave_height_px),
+                                     std::min(1.0f, (bar_width_px + init_bar_width_px) * (0.5f) /
+                                                        init_bar_width_px));
 }
 
 void MainPanel::paint(juce::Graphics &g) {
@@ -91,30 +91,32 @@ void MainPanel::paint(juce::Graphics &g) {
 
     g.setColour(Theme::darkest);
     // octaves
-    int octave_i_start = clipY / octave_height_px;
-    int octave_i_end = std::min((clipY + clipHeight) / octave_height_px + 1, params->num_octaves);
+    int octave_i_start = static_cast<int>(clipY / octave_height_px);
+    int octave_i_end = std::min(static_cast<int>((clipY + clipHeight) / octave_height_px) + 1,
+                                params->num_octaves);
     for (int i = octave_i_start; i <= octave_i_end; ++i) {
-        float yPos = float(i * octave_height_px);
+        float yPos = i * octave_height_px;
         g.drawLine(float(clipX), yPos, float(clipX + clipWidth), yPos, adaptHor(Theme::wide));
     }
     // bars
-    int bar_i_start = clipX / bar_width_px;
-    int bar_i_end = std::min((clipX + clipWidth) / bar_width_px + 1, params->get_num_bars());
+    int bar_i_start = static_cast<int>(clipX / bar_width_px);
+    int bar_i_end =
+        std::min(static_cast<int>((clipX + clipWidth) / bar_width_px) + 1, params->get_num_bars());
     for (int i = bar_i_start; i <= bar_i_end; ++i) {
-        float xPos = float(i * bar_width_px);
-        g.drawLine(xPos, 0.0f, xPos, float(octave_height_px * params->num_octaves),
+        float xPos = i * bar_width_px;
+        g.drawLine(xPos, 0.0f, xPos, octave_height_px * params->num_octaves,
                    adaptVert(Theme::wide));
     }
     // beats and subdivisions
     for (int i = bar_i_start; i < bar_i_end; ++i) {
         for (int j = 0; j < params->num_beats; ++j) {
             float xPos = (i + float(j) / params->num_beats) * bar_width_px;
-            g.drawLine(xPos, 0.0f, xPos, float(octave_height_px * params->num_octaves),
+            g.drawLine(xPos, 0.0f, xPos, octave_height_px * params->num_octaves,
                        adaptVert(Theme::narrow));
             for (int k = 1; k < params->num_subdivs; ++k) {
                 float xPosSub =
                     xPos + float(k) / (params->num_subdivs * params->num_beats) * bar_width_px;
-                g.drawLine(xPosSub, 0.0f, xPosSub, float(octave_height_px * params->num_octaves),
+                g.drawLine(xPosSub, 0.0f, xPosSub, octave_height_px * params->num_octaves,
                            adaptVert(Theme::narrower));
             }
         }
@@ -123,8 +125,7 @@ void MainPanel::paint(juce::Graphics &g) {
     for (const int &key : keys) {
         for (int j = octave_i_start; j < octave_i_end; ++j) {
             float yPos = (j + 1.0f - float(key) / 1200) * octave_height_px;
-            auto line =
-                juce::Line<float>(0.0f, yPos, float(params->get_num_bars() * bar_width_px), yPos);
+            auto line = juce::Line<float>(0.0f, yPos, params->get_num_bars() * bar_width_px, yPos);
             if (params->generateNewKeys && keyIsGenNew[key]) {
                 g.drawDashedLine(line, dashLengths, numDashLengths, adaptHor(Theme::narrow));
             } else {
@@ -138,8 +139,8 @@ void MainPanel::paint(juce::Graphics &g) {
         (playHeadTime * bar_width_px <= clipX + clipWidth)) {
         // g.setColour(Theme::brighter);
         g.setColour(Theme::activated);
-        g.drawLine(float(playHeadTime * bar_width_px), float(clipY),
-                   float(playHeadTime * bar_width_px), float(clipY + clipHeight), Theme::narrower);
+        g.drawLine(playHeadTime * bar_width_px, float(clipY), playHeadTime * bar_width_px,
+                   float(clipY + clipHeight), Theme::narrower);
     }
 
     auto clipFloat = clip.toFloat();
@@ -224,8 +225,8 @@ void MainPanel::paint(juce::Graphics &g) {
             if (i + 1 != numTimeStamps) {
                 timeEnd = timeStamps[i + 1];
             }
-            const int posXstart = timeStart * bar_width_px;
-            const int posXend = timeEnd * bar_width_px;
+            const int posXstart = juce::roundToInt(timeStart * bar_width_px);
+            const int posXend = juce::roundToInt(timeEnd * bar_width_px);
             if ((posXstart <= clipX + clipWidth) && (posXend >= clipX)) {
                 for (int j = 0; j < numPitches; ++j) {
                     const float traceValue = pts.second[j];
@@ -396,11 +397,14 @@ void MainPanel::numBarsChanged() {
     }
     std::erase_if(params->ratiosMarks,
                   [&](const auto &ratioMark) { return (ratioMark.time > params->get_num_bars()); });
-    int min_bar_width_px =
-        static_cast<int>(round(getParentComponent()->getWidth() / params->get_num_bars())) + 1;
-    if (bar_width_px < min_bar_width_px) {
-        bar_width_px = min_bar_width_px;
-        editor->changeBeatWidthPx(bar_width_px);
+    auto *viewport = findParentComponentOfClass<juce::Viewport>();
+    if (viewport != nullptr) {
+        float min_bar_width_px =
+            static_cast<float>(viewport->getViewWidth()) / params->get_num_bars();
+        if (bar_width_px < min_bar_width_px) {
+            bar_width_px = min_bar_width_px;
+            editor->changeBarWidthPx(bar_width_px);
+        }
     }
     remakeKeys();
     updateLayout();
@@ -439,18 +443,16 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
 
     float stretchFactor = 1.0f + wheel.deltaY * 0.5f;
     if (event.mods.isCtrlDown()) {
-        octave_height_px = static_cast<int>(round(octave_height_px * stretchFactor));
-        int min_octave_height_px =
-            static_cast<int>(round(viewport->getHeight() / params->num_octaves));
+        octave_height_px = octave_height_px * stretchFactor;
+        float min_octave_height_px = static_cast<float>(viewHeight) / params->num_octaves;
         octave_height_px =
             juce::jlimit(min_octave_height_px, 15 * min_octave_height_px, octave_height_px);
         editor->changeOctaveHeightPx(octave_height_px);
     } else {
-        bar_width_px = static_cast<int>(round(bar_width_px * stretchFactor));
-        int min_bar_width_px =
-            static_cast<int>(round(viewport->getWidth() / params->get_num_bars()));
+        bar_width_px = bar_width_px * stretchFactor;
+        float min_bar_width_px = static_cast<float>(viewWidth) / params->get_num_bars();
         bar_width_px = juce::jlimit(min_bar_width_px, max_bar_width_px, bar_width_px);
-        editor->changeBeatWidthPx(bar_width_px);
+        editor->changeBarWidthPx(bar_width_px);
     }
 
     updateLayout();
@@ -465,9 +467,9 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
 }
 
 std::pair<int, int> MainPanel::pointToOctaveCents(juce::Point<int> point) {
-    int octave = params->num_octaves - 1 - point.getY() / octave_height_px;
+    int octave = params->num_octaves - 1 - static_cast<int>(point.getY() / octave_height_px);
     int cents = static_cast<int>(round(
-                    (1.0f - (point.getY() % octave_height_px) * 1.0f / octave_height_px) * 1200)) %
+                    (1.0f - (fmodf(point.getY(), octave_height_px) / octave_height_px)) * 1200)) %
                 1200;
     if (cents == 0) {
         octave += 1;
@@ -586,7 +588,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             return;
         }
 
-        float time = float(point.getX()) / bar_width_px;
+        float time = point.getX() / bar_width_px;
         if (params->timeSnap) {
             time = timeToSnappedTime(time);
         }
@@ -723,7 +725,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
             notesHistory.push(notes);
         }
         wasResizing = true;
-        float delta_duration = float(delta.getX()) / bar_width_px;
+        float delta_duration = delta.getX() / bar_width_px;
         dtime += delta_duration;
         bool resized = false;
         float dt = 1.0f / (params->num_beats * params->num_subdivs);
@@ -758,7 +760,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
             return;
         }
 
-        float delta_time = float(delta.getX()) / bar_width_px;
+        float delta_time = delta.getX() / bar_width_px;
         dtime += delta_time;
         bool moved = false;
         float dt = 1.0f / (params->num_beats * params->num_subdivs);
@@ -790,9 +792,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         }
         wasMoving = true;
         needToUnselectAllNotesExcept = -1;
-        float delta_time = float(delta.getX()) / bar_width_px;
+        float delta_time = delta.getX() / bar_width_px;
         dtime += delta_time;
-        int delta_cents = (int)round(-delta.getY() * 1200.0 / octave_height_px);
+        int delta_cents = juce::roundToInt(-delta.getY() * 1200.0f / octave_height_px);
         if (event.mods.isShiftDown()) {
             delta_cents = juce::roundFloatToInt(delta_cents * vertMoveSlowCoef);
         }
@@ -967,7 +969,7 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
                     lastKeyTotalCents = x;
                 }
 
-                float time = float(ratioMarkStartPos.getX()) / bar_width_px;
+                float time = ratioMarkStartPos.getX() / bar_width_px;
                 if (params->timeSnap) {
                     time = timeToSnappedTime(time);
                 }
@@ -1031,13 +1033,13 @@ void MainPanel::deleteNote(int i) {
     int note_cents = notes[i].cents;
 
     int num_notes_cents_i = 0;
-    for (const auto& note: notes) {
+    for (const auto &note : notes) {
         if ((note.cents == note_cents) && (params->zones.isNoteInActiveZone(note)))
             num_notes_cents_i++;
     }
 
     int num_notes_cents_i_ghost_not_visible = 0;
-    for (const auto& note: ghostNotes) {
+    for (const auto &note : ghostNotes) {
         if (note.cents == note_cents) {
             if (params->showGhostNotesKeys && params->zones.isNoteInActiveZone(note)) {
                 num_notes_cents_i++;
@@ -1748,7 +1750,8 @@ int MainPanel::getCentsFromMessage() {
             int slashPos = text.indexOfChar(juce::juce_wchar('/'));
             int num = text.substring(0, slashPos).getIntValue();
             int den = text.substring(slashPos + 1).getIntValue();
-            return ((den != 0) && (num >= den)) ? (int)round(1200 * log2(float(num) / den)) : -1;
+            return ((den != 0) && (num >= den)) ? juce::roundToInt(1200 * log2(float(num) / den))
+                                                : -1;
         }
     }
 
@@ -1762,7 +1765,8 @@ void MainPanel::selectAllNotes() {
 }
 
 void MainPanel::updateLayout() {
-    this->setSize(params->get_num_bars() * bar_width_px, params->num_octaves * octave_height_px);
+    this->setSize(juce::roundToInt(params->get_num_bars() * bar_width_px),
+                  juce::roundToInt(params->num_octaves * octave_height_px));
     repaint();
 }
 
@@ -1904,7 +1908,7 @@ void MainPanel::createNotesFromGhostNotes() {
     notesHistory.push(notes);
     unselectAllNotes();
     int num_bars = params->get_num_bars();
-    for (Note note: ghostNotes) {
+    for (Note note : ghostNotes) {
         if (note.time + note.duration <= num_bars) {
             note.isSelected = true;
             notes.push_back(note);
