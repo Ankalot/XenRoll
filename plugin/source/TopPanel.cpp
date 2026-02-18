@@ -80,11 +80,11 @@ void TopPanel::paint(juce::Graphics &g) {
     g.setColour(Theme::dark);
     for (int i = 0; i < zpOnOff.size(); ++i) {
         if (!zpOnOff[i]) {
-            int leftPoint_px = juce::jmax(clipX, juce::roundToInt(zp[i] * bar_width_px));
-            int rightPoint_px =
-                juce::jmin(clipX + clipWidth, juce::roundToInt(zp[i + 1] * bar_width_px));
+            float leftPoint_px = juce::jmax(float(clipX), zp[i] * bar_width_px);
+            float rightPoint_px =
+                juce::jmin(float(clipX + clipWidth), zp[i + 1] * bar_width_px);
             if ((leftPoint_px < clipX + clipWidth) && (rightPoint_px > clipX)) {
-                g.fillRect(leftPoint_px, 0, rightPoint_px - leftPoint_px, topPanel_height_px);
+                g.fillRect(leftPoint_px, 0.0f, rightPoint_px - leftPoint_px, float(topPanel_height_px));
             }
         }
     }
@@ -94,20 +94,20 @@ void TopPanel::paint(juce::Graphics &g) {
     juce::Path trianglePath;
     const float zpw = adaptSize(zonePoint_collision_width_px);
     for (int i = 1; i < zp.size() - 1; ++i) {
-        int zp_px = juce::roundToInt(zp[i] * bar_width_px);
+        float zp_px = zp[i] * bar_width_px;
         if ((zp_px >= clipX) && (zp_px <= clipX + clipWidth)) {
-            trianglePath.startNewSubPath(float(zp_px),
+            trianglePath.startNewSubPath(zp_px,
                                          topPanel_height_px - zonePoint_collision_width_px);
             trianglePath.lineTo(zp_px - zpw / 2, float(topPanel_height_px));
             trianglePath.lineTo(zp_px + zpw / 2, float(topPanel_height_px));
-            trianglePath.lineTo(float(zp_px), topPanel_height_px - zonePoint_collision_width_px);
+            trianglePath.lineTo(zp_px, topPanel_height_px - zonePoint_collision_width_px);
             trianglePath.closeSubPath();
             g.fillPath(trianglePath);
 
-            trianglePath.startNewSubPath(float(zp_px), zonePoint_collision_width_px);
+            trianglePath.startNewSubPath(zp_px, zonePoint_collision_width_px);
             trianglePath.lineTo(zp_px - zpw / 2, 0.0f);
             trianglePath.lineTo(zp_px + zpw / 2, 0.0f);
-            trianglePath.lineTo(float(zp_px), zonePoint_collision_width_px);
+            trianglePath.lineTo(zp_px, zonePoint_collision_width_px);
             trianglePath.closeSubPath();
             g.fillPath(trianglePath);
 
