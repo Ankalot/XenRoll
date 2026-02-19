@@ -22,6 +22,7 @@
 #include "Theme.h"
 #include "TopPanel.h"
 #include "VelocityPanel.h"
+#include "VocalToNotesMenu.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace audio_plugin {
@@ -242,7 +243,10 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
         topPanel->changeBarWidthPx(bar_width_px);
     }
 
-    void updateKeys(std::set<int> keys) { leftPanel->updateKeys(keys); }
+    void updateKeys(std::set<int> keys) {
+        leftPanel->updateKeys(keys);
+        processorRef.updateKeys(keys);
+    }
 
     void updateMainViewportSize();
 
@@ -395,6 +399,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     std::unique_ptr<InstancesMenu> instancesMenu;
     std::unique_ptr<GenNewKeysMenu> genNewKeysMenu;
     std::unique_ptr<EditRatiosMarksMenu> editRatiosMarksMenu;
+    std::unique_ptr<VocalToNotesMenu> vocalToNotesMenu;
 
     std::unique_ptr<MoreToolsMenu> moreToolsMenu;
 
@@ -414,7 +419,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
         importButton, exportButton, camOnPlayHeadButton, turnOnAllZonesButton,
         turnOffAllZonesButton, dissonanceButton, pitchMemorySettingsButton, pitchMemoryButton,
         keysHarmonicityButton, ghostNotesKeysButton, ghostNotesTabButton, generateNewKeysButton,
-        hideCentsButton, editRatiosMarksButton, moreToolsTabButton, notesFromGhostNotesButton;
+        hideCentsButton, editRatiosMarksButton, moreToolsTabButton, notesFromGhostNotesButton,
+        vocalToNotesButton;
     std::unique_ptr<juce::Label> numSubdivsLabel, numBeatsLabel, numBarsLabel, midiChannelLabel;
     std::unique_ptr<IntegerInput> numSubdivsInput, numBeatsInput, numBarsInput;
 
@@ -429,9 +435,10 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     const int leftPanel_width_px = 150;
     const int topPanel_height_px = 50;
     const int slider_width_px = 8;
-    const int bottom_x = 15;
-    const int bottom_height_px = 32;
-    const int bottom_gap_height_px = 15;
+    const int bottom_x = 14;
+    const int bottom_height_px = 30;
+    const int buttons_gap_width_px = 14;
+    const int bottom_gap_height_px = 12;
     const int popup_width_px = 300;
     const int popup_height_px = 50;
     const int dnd_popup_width_px = 500;
@@ -439,6 +446,14 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     const int top_height_px = bottom_height_px;
     const int top_x = (topPanel_height_px - top_height_px) / 2;
     const int top_y = top_x;
+
+    // ============= vocal to notes =============
+    bool wasVocalToNotes = false;
+    int prevVocalNotesSize = -1;
+    bool wasRecNote = false;
+    float recVolume_dB = -60.0f;
+    bool wasPlaying = false;
+    // ==========================================
 
     const int velocity_width_px = 120;
     const int velocity_height_px = 40;

@@ -48,6 +48,15 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void createNotesFromGhostNotes();
     void remakeKeys();
 
+    ///< Add recorded vocal notes to normal notes (when recording is over)
+    void addVocalNotes(const std::vector<Note> &newVocalNotes);
+    ///< Update recorded vocal notes (but don't mix them with normal ones yet)
+    void updateVocalNotes(const std::vector<Note> &newVocalNotes);
+    ///< Hide currently recording vocal notes
+    void hideRecNote();
+    ///< Update currently recording vocal note
+    void updateRecNote(const Note &newRecNote);
+
     void changeBarWidthPx(float new_bar_width_px) {
         bar_width_px = new_bar_width_px;
         updateLayout();
@@ -82,7 +91,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     /**
      * @brief Find nearest key within maximum cents change
-     * @param key Total cents of the pitch
+     * @param key Cents of the key
      * @param maxCentsChange Maximum cents change allowed
      * @param keys Set of available keys
      * @return Optional total cents of nearest key, or nullopt if none found
@@ -158,6 +167,12 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     float lastDuration = 1.0f;
     float lastVelocity = 100.0f / 127;
     float vertMoveSlowCoef = 0.2f;
+
+    // ============================= VOCAL TO NOTES =============================
+    std::vector<Note> vocalNotes;
+    Note recNote;
+    bool showRecNote = false;
+    // ==========================================================================
 
     std::vector<Note> ghostNotes;
 

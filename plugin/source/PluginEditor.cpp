@@ -529,6 +529,33 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(moreToolsTabButton.get());
 
+    vocalToNotesMenu = std::make_unique<VocalToNotesMenu>(&processorRef.params, this);
+    addAndMakeVisible(vocalToNotesMenu.get());
+    vocalToNotesMenu->setVisible(false);
+
+    vocalToNotesButton = std::make_unique<SVGButton>(
+        BinaryData::Vocal_to_notes_svg, BinaryData::Vocal_to_notes_svgSize, true,
+        processorRef.params.vocalToNotes,
+        "Sing/humm while this mode is active, and the plugin will automatically create the "
+        "appropriate notes. You need to turn on recording on your track and press \"play\" in "
+        "DAW.\n(RMB to open settings)");
+
+    vocalToNotesButton->onClick = [this](const juce::MouseEvent &me) {
+        if (me.mods.isLeftButtonDown()) {
+            if (!processorRef.params.vocalToNotes) {
+                this->processorRef.startRecordingVocal();
+            } else {
+                this->processorRef.stopRecordingVocal();
+            }
+
+        } else if (me.mods.isRightButtonDown()) {
+            this->vocalToNotesMenu->setVisible(!this->vocalToNotesMenu->isVisible());
+            return false;
+        }
+        return true;
+    };
+    addAndMakeVisible(vocalToNotesButton.get());
+
     genNewKeysMenu = std::make_unique<GenNewKeysMenu>(&processorRef.params, this);
     addAndMakeVisible(genNewKeysMenu.get());
     genNewKeysMenu->setVisible(false);
@@ -611,13 +638,40 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
     juce::String text = midiChannelLabel->getText();
     juce::Font font = midiChannelLabel->getFont();
     int textWidth = juce::roundToInt(getTextWidth(text, font));
-    int bottom_x_pos = width - 15 * 5 - textWidth - 3 * bottom_height_px;
+    int bottom_x_pos = width - buttons_gap_width_px * 5 - textWidth - 3 * bottom_height_px;
 
     // Draw vertical separator lines
     g.setColour(Theme::darkest);
     g.drawLine(bottom_x_pos, bottom_y, bottom_x_pos, bottom_y + bottom_height_px, Theme::wider);
-    bottom_x_pos -= bottom_height_px * 4 + 15 * 5;
+    bottom_x_pos -= bottom_height_px * 4 + buttons_gap_width_px * 5;
     g.drawLine(bottom_x_pos, bottom_y, bottom_x_pos, bottom_y + bottom_height_px, Theme::wider);
+
+    // Draw volume level line over vocalToNotesButton when vocal recording (vocal to notes mode)
+    if (processorRef.params.vocalToNotes) {
+        const bool isPlaying = processorRef.isPlaying();
+        if (isPlaying || wasPlaying) {
+            wasPlaying = isPlaying;
+            // Calculate line width based on dB
+            float volumeRatio = (recVolume_dB - processorRef.params.minVocalVolume_dB) /
+                                (processorRef.params.maxVocalVolume_dB -
+                                 processorRef.params.minVocalVolume_dB); // 0.0 to 1.0
+            float lineWidth = volumeRatio * bottom_height_px;
+
+            // Get vocalToNotesButton position
+            juce::Rectangle<int> buttonBounds = vocalToNotesButton->getBounds();
+            float lineX = buttonBounds.getX();
+            float lineY = buttonBounds.getY() - bottom_gap_height_px / 2.0f;
+            float lineThickness = 4.0f;
+
+            // Create gradient: red (left) -> yellow (center) -> green (right)
+            juce::ColourGradient gradient(juce::Colours::red, lineX, lineY, juce::Colours::green,
+                                          lineX + bottom_height_px, lineY, false);
+            gradient.addColour(0.5, juce::Colours::yellow);
+
+            g.setGradientFill(gradient);
+            g.drawLine(lineX, lineY, lineX + lineWidth, lineY, lineThickness);
+        }
+    }
 }
 
 void AudioPluginAudioProcessorEditor::resized() {
@@ -628,8 +682,7 @@ void AudioPluginAudioProcessorEditor::resized() {
     const int leftView_height_px =
         height - topPanel_height_px - 2 * bottom_gap_height_px - bottom_height_px - slider_width_px;
     const int topView_width_px = width - leftPanel_width_px - slider_width_px;
-    const int bottom_y =
-        topPanel_height_px + leftView_height_px + slider_width_px + bottom_gap_height_px;
+    const int bottom_y = height - bottom_gap_height_px - bottom_height_px;
 
     const juce::Rectangle<int> allBesidesBottomRect =
         juce::Rectangle<int>(0, 0, width, height - bottom_height_px - 2 * bottom_gap_height_px);
@@ -671,20 +724,20 @@ void AudioPluginAudioProcessorEditor::resized() {
 
     int top_x_pos = top_x;
     camOnPlayHeadButton->setBounds(top_x_pos, top_y, top_height_px, top_height_px);
-    top_x_pos += top_height_px + 15;
+    top_x_pos += top_height_px + buttons_gap_width_px;
     turnOnAllZonesButton->setBounds(top_x_pos, top_y, top_height_px, top_height_px);
-    top_x_pos += top_height_px + 15;
+    top_x_pos += top_height_px + buttons_gap_width_px;
     turnOffAllZonesButton->setBounds(top_x_pos, top_y, top_height_px, top_height_px);
 
     int bottom_x_pos = bottom_x;
     settingsButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    bottom_x_pos += bottom_height_px + 15;
+    bottom_x_pos += bottom_height_px + buttons_gap_width_px;
     helpButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
 
     juce::String text = numBarsLabel->getText();
     juce::Font font = numBarsLabel->getFont();
     int textWidth = juce::roundToInt(getTextWidth(text, font));
-    bottom_x_pos += bottom_height_px + 15;
+    bottom_x_pos += bottom_height_px + buttons_gap_width_px;
     numBarsLabel->setBounds(bottom_x_pos, bottom_y, textWidth, bottom_height_px);
     bottom_x_pos += textWidth + 5;
     numBarsInput->setBounds(bottom_x_pos, bottom_y, 50, bottom_height_px);
@@ -705,23 +758,23 @@ void AudioPluginAudioProcessorEditor::resized() {
     bottom_x_pos += textWidth + 5;
     numSubdivsInput->setBounds(bottom_x_pos, bottom_y, 40, bottom_height_px);
 
-    bottom_x_pos += 40 + 15;
+    bottom_x_pos += 40 + buttons_gap_width_px;
     timeSnapButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    bottom_x_pos += bottom_height_px + 15;
+    bottom_x_pos += bottom_height_px + buttons_gap_width_px;
     keySnapButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    bottom_x_pos += bottom_height_px + 15;
+    bottom_x_pos += bottom_height_px + buttons_gap_width_px;
     editRatiosMarksButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     editRatiosMarksMenu->setBounds(
         bottom_x_pos + (bottom_height_px - editRatiosMarksMenu->getWidth()) / 2,
         bottom_y - editRatiosMarksMenu->getHeight() - 10, editRatiosMarksMenu->getWidth(),
         editRatiosMarksMenu->getHeight());
-    bottom_x_pos += bottom_height_px + 15;
+    bottom_x_pos += bottom_height_px + buttons_gap_width_px;
     hideCentsButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    bottom_x_pos += bottom_height_px + 15;
+    bottom_x_pos += bottom_height_px + buttons_gap_width_px;
     importButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    bottom_x_pos += bottom_height_px + 15;
+    bottom_x_pos += bottom_height_px + buttons_gap_width_px;
     exportButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    bottom_x_pos += bottom_height_px + 15;
+    bottom_x_pos += bottom_height_px + buttons_gap_width_px;
     moreToolsTabButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     moreToolsMenu->setBounds(bottom_x_pos + (bottom_height_px - moreToolsMenu->getWidth()) / 2,
                              bottom_y - moreToolsMenu->getHeight() - 10, moreToolsMenu->getWidth(),
@@ -730,34 +783,42 @@ void AudioPluginAudioProcessorEditor::resized() {
     text = midiChannelLabel->getText();
     font = midiChannelLabel->getFont();
     textWidth = juce::roundToInt(getTextWidth(text, font));
-    bottom_x_pos = width - 15 - textWidth;
-    midiChannelLabel->setBounds(width - 15 - textWidth, bottom_y, textWidth, bottom_height_px);
-    bottom_x_pos -= 15 + bottom_height_px;
+    bottom_x_pos = width - buttons_gap_width_px - textWidth;
+    midiChannelLabel->setBounds(width - buttons_gap_width_px - textWidth, bottom_y, textWidth,
+                                bottom_height_px);
+    bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
     ghostNotesKeysButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    bottom_x_pos -= 15 + bottom_height_px;
+    bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
     notesFromGhostNotesButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px,
                                          bottom_height_px);
-    bottom_x_pos -= 15 + bottom_height_px;
+    bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
     ghostNotesTabButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    bottom_x_pos -= 30 + bottom_height_px;
-
-    instancesMenu->setBounds(bottom_x_pos - 20, bottom_y - instancesMenu->getHeight() - 10,
-                             instancesMenu->getWidth(), instancesMenu->getHeight());
+    instancesMenu->setBounds(bottom_x_pos + (bottom_height_px - instancesMenu->getWidth()) / 2,
+                             bottom_y - instancesMenu->getHeight() - 10, instancesMenu->getWidth(),
+                             instancesMenu->getHeight());
+    bottom_x_pos -= 2 * buttons_gap_width_px + bottom_height_px;
 
     dissonanceButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    bottom_x_pos -= 15 + bottom_height_px;
+    bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
     pitchMemorySettingsButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px,
                                          bottom_height_px);
-    bottom_x_pos -= 15 + bottom_height_px;
+    bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
     pitchMemoryButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    bottom_x_pos -= 15 + bottom_height_px;
+    bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
     keysHarmonicityButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    bottom_x_pos -= 30 + bottom_height_px;
+    bottom_x_pos -= 2 * buttons_gap_width_px + bottom_height_px;
 
     generateNewKeysButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    bottom_x_pos -= 15 + bottom_height_px;
-    genNewKeysMenu->setBounds(bottom_x_pos - 64, bottom_y - genNewKeysMenu->getHeight() - 10,
+    genNewKeysMenu->setBounds(bottom_x_pos + (bottom_height_px - genNewKeysMenu->getWidth()) / 2,
+                              bottom_y - genNewKeysMenu->getHeight() - 10,
                               genNewKeysMenu->getWidth(), genNewKeysMenu->getHeight());
+    bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
+    vocalToNotesButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    vocalToNotesMenu->setBounds(bottom_x_pos +
+                                    (bottom_height_px - vocalToNotesMenu->getWidth()) / 2,
+                                bottom_y - vocalToNotesMenu->getHeight() - 10,
+                                vocalToNotesMenu->getWidth(), vocalToNotesMenu->getHeight());
+    bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
 
     velocityPanel->setBounds(leftPanel_width_px + (topView_width_px - velocity_width_px) / 2,
                              topPanel_height_px + leftView_height_px - velocity_height_px -
@@ -1352,6 +1413,14 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
     leftPanel.get()->setAllCurrPlayedNotesTotalCents(
         processorRef.getAllCurrPlayedNotesTotalCents());
     if (newPlayHeadTime != playHeadTime) {
+        const int currNumBars = processorRef.params.get_num_bars();
+        if (newPlayHeadTime > currNumBars) {
+            const int newNumBars = static_cast<int>(newPlayHeadTime) + 1;
+            if (newNumBars <= processorRef.params.max_num_bars) {
+                numBarsInput->setValue(newNumBars);
+                numBarsInput->onValueChanged(newNumBars);
+            }
+        }
         playHeadTime = newPlayHeadTime;
         mainPanel->setPlayHeadTime(playHeadTime);
         topPanel->setPlayHeadTime(playHeadTime);
@@ -1377,6 +1446,46 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
                 "FIX: remove some notes and/or don't manually play that many keys on which " +
                 "you don't have notes from the piano roll.",
             "OK");
+    }
+
+    if (!processorRef.params.vocalToNotes) {
+        if (wasVocalToNotes) {
+            // Stopped recording vocal right now
+            if (wasRecNote) {
+                mainPanel->hideRecNote();
+            }
+            auto vocalNotes = processorRef.getRecordedNotesFromVocal();
+            mainPanel->addVocalNotes(vocalNotes);
+            wasVocalToNotes = false;
+            prevVocalNotesSize = -1;
+            recVolume_dB = -60.0f;
+            repaint(); // Hide vocal volume
+        }
+    } else {
+        // Are recording vocal
+        wasVocalToNotes = true;
+        const int numVocalNotes = processorRef.getNumOfRecordedNotesFromVocal();
+        // It is better to check so as not to do unnecessary work
+        if (prevVocalNotesSize != numVocalNotes) {
+            prevVocalNotesSize = numVocalNotes;
+            mainPanel->updateVocalNotes(processorRef.getRecordedNotesFromVocal());
+        }
+        if (processorRef.getIsRecNote()) {
+            // Recording a note right now
+            wasRecNote = true;
+            mainPanel->updateRecNote(processorRef.getRecNote());
+        } else if (wasRecNote) {
+            // Stopped recording a note right now
+            mainPanel->hideRecNote();
+            wasRecNote = false;
+        }
+        const float currRecVolume_dB = processorRef.getCurrRecVolume();
+        if (currRecVolume_dB != recVolume_dB) {
+            recVolume_dB = currRecVolume_dB;
+            repaint(); // Show vocal volume
+        } else if (!processorRef.isPlaying()) {
+            repaint(); // Hide vocal volume
+        }
     }
 }
 

@@ -206,6 +206,23 @@ void MainPanel::paint(juce::Graphics &g) {
         }
     }
 
+    // vocal notes
+    if (params->vocalToNotes) {
+        // already recorded vocal notes (but the recording hasn't ended yet)
+        g.setColour(Theme::activated);
+        for (const Note &note : vocalNotes) {
+            juce::Path notePath = getNotePath(note);
+            g.fillPath(notePath);
+            g.strokePath(notePath, strokeType);
+        }
+        // currently recording vocal note
+        if (showRecNote) {
+            juce::Path notePath = getNotePath(recNote);
+            g.fillPath(notePath);
+            g.strokePath(notePath, strokeType);
+        }
+    }
+
     // Pitch traces
     if (params->showPitchesMemoryTraces && !params->pitchMemoryShowOnlyHarmonicity) {
         const auto &pitchTraces = pitchMemoryResults.first;
@@ -1883,6 +1900,38 @@ void MainPanel::setPlayHeadTime(float newPlayHeadTime) {
 void MainPanel::updateNotes(const std::vector<Note> &new_notes) {
     notes = new_notes;
     remakeKeys();
+    repaint();
+}
+
+void MainPanel::addVocalNotes(const std::vector<Note> &newVocalNotes) {
+    const int numBars = params->get_num_bars();
+    notesHistory.push(notes);
+    int numAddedNotes = 0;
+    for (auto note : newVocalNotes) {
+        if (note.time + note.duration <= numBars) {
+            notes.push_back(note);
+            numAddedNotes++;
+        }
+    }
+    editor->updateNotes(notes);
+    remakeKeys();
+    editor->showMessage("Recorded " + juce::String(numAddedNotes) + " notes!");
+    repaint();
+}
+
+void MainPanel::updateVocalNotes(const std::vector<Note> &newVocalNotes) {
+    vocalNotes = newVocalNotes;
+    repaint();
+}
+
+void MainPanel::hideRecNote() {
+    showRecNote = false;
+    repaint();
+}
+
+void MainPanel::updateRecNote(const Note &newRecNote) {
+    recNote = newRecNote;
+    showRecNote = true;
     repaint();
 }
 

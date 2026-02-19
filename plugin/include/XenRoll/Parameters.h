@@ -29,6 +29,11 @@ class Parameters {
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants ~~~~~~~~~~~~~~~~~~~~~~~~~~~
     static constexpr int num_octaves = 10;
+    // ===== Vocal to notes =====
+    static constexpr float minVocalNoteDuration = 1.0f / 128; ///< in beats
+    static constexpr float minVocalVolume_dB = -60.0f;
+    static constexpr float maxVocalVolume_dB = 0.0f;
+    // ==========================
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Minimum values ~~~~~~~~~~~~~~~~~~~~~~~~
     static constexpr int min_editorWidth = 1420;
@@ -55,7 +60,9 @@ class Parameters {
     static constexpr float min_pitchMemoryTVvalForZeroHV = 0.0f;
     static constexpr float min_pitchMemoryTVaddInfluence = 0.0f;
     static constexpr float min_pitchMemoryTVminNonzero = 0.0f;
-    // ==================================================
+    // ================= Vocal to notes =================
+    static constexpr int min_vocalToNotesDCents = 10;
+    static constexpr float min_micGain_dB = -24.0f;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Maximum values ~~~~~~~~~~~~~~~~~~~~~~~~
     static constexpr int max_editorWidth = 10000;
@@ -82,7 +89,9 @@ class Parameters {
     static constexpr float max_pitchMemoryTVvalForZeroHV = 0.5f;
     static constexpr float max_pitchMemoryTVaddInfluence = 1.0f;
     static constexpr float max_pitchMemoryTVminNonzero = 0.5f;
-    // ==================================================
+    // ================= Vocal to notes =================
+    static constexpr int max_vocalToNotesDcents = 90;
+    static constexpr float max_micGain_dB = 24.0f;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~ Saved params ~~~~~~~~~~~~~~~~~~~~~~~~~
     int editorWidth = 1420;
@@ -113,7 +122,12 @@ class Parameters {
     float pitchMemoryTVaddInfluence = 0.3f;
     float pitchMemoryTVminNonzero = 0.0f;
     bool pitchMemoryShowOnlyHarmonicity = true;
-    // ==================================================
+    // ================= Vocal to notes =================
+    // In fact, it's not necessary to save these parameters, but it's probably convenient.
+    std::atomic<int> vocalToNotesDCents = 50;
+    std::atomic<bool> vocalToNotesKeySnap = true;
+    std::atomic<bool> vocalToNotesMakeBends = true;
+    std::atomic<float> micGain_dB = 0.0f;
 
     /**
      * @brief Add partials for a specific tone
@@ -198,7 +212,8 @@ class Parameters {
     // Pitch memory
     bool showPitchesMemoryTraces = false;
     bool showKeysHarmonicity = false;
-    // ==================================================
+    // ================= Vocal to notes =================
+    std::atomic<bool> vocalToNotes = false;
 
     Parameters() : zones(true, float(num_bars)) {}
 

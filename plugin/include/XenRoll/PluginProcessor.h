@@ -4,10 +4,12 @@
 #include "Note.h"
 #include "Parameters.h"
 #include "PartialsFinder.h"
+#include "PitchDetectorMPM.h"
 #include "PluginInstanceManager.h"
 #include "RelevanceQueue.h"
 #include <algorithm>
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_events/juce_events.h>
 
 namespace audio_plugin {
 class AudioPluginAudioProcessor : public juce::AudioProcessor {
@@ -77,6 +79,36 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
      */
     bool getIsActive() { return isActive; }
 
+    // ====================================== VOCAL TO NOTES ======================================
+    void updateKeys(const std::set<int> &newKeys) {
+        std::scoped_lock lock(keysMutex);
+        keys = newKeys;
+    }
+
+    std::vector<Note> getRecordedNotesFromVocal() {
+        std::scoped_lock lock(recNotesVecMutex);
+        return recNotesVec;
+    }
+
+    int getNumOfRecordedNotesFromVocal() {
+        std::scoped_lock lock(recNotesVecMutex);
+        return recNotesVec.size();
+    }
+
+    bool getIsRecNote() { return isRecNote; }
+    Note getRecNote() {
+        std::scoped_lock lock(recNoteMutex);
+        return recNote;
+    }
+
+    void startRecordingVocal();
+    void stopRecordingVocal();
+
+    float getCurrRecVolume() { return currRecVolume; }
+
+    bool isPlaying() { return wasPlaying; }
+    // ============================================================================================
+
   private:
     // ====================================== INSTANCES SYNC ======================================
     std::unique_ptr<PluginInstanceManager> pluginInstanceManager;
@@ -101,6 +133,68 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     void tryStartRecording();
     // ============================================================================================
 
+    // ====================================== VOCAL TO NOTES ======================================
+    // rec = recording
+    std::mutex recNoteMutex;
+    Note recNote;                        ///< Note that is currently being recorded
+    std::atomic<bool> isRecNote = false; ///< Recording a note now?
+    std::mutex recNotesVecMutex;
+    std::vector<Note> recNotesVec; ///< All notes that have already been recorded in this session
+    std::atomic<float> currRecVolume = 0.0f; ///< Current detected volume in dB
+    std::set<int> recKeys;                   ///< Keys of recorded notes
+
+    // Pitch detector for vocal input
+    std::unique_ptr<pitch_detection::PitchDetectorMPM> pitchDetector;
+
+    // Keys from UI. Are needed only for `key snap` mode
+    std::mutex keysMutex;
+    std::set<int> keys;
+
+    // Vocal recording state
+    float currentVocalFreq = 0.0f;   ///< Current detected frequency in Hz
+    int recNoteStartTotalCents = -1; ///< Start pitch of current recording note in total cents
+    int recNoteMinTotalCents = -1;   ///< Min pitch of current recording note in total cents
+    int recNoteMaxTotalCents = -1;   ///< Max pitch of current recording note in total cents
+    int currentVocalTotalCents = -1; ///< Current detected pitch in total cents
+    float noteStartTime = 0.0f;      ///< Start time of current note being recorded (in beats)
+    ///< Time when min pitch was recorded for the note that is currently being recorded (in beats)
+    float noteMinPitchTime = 0.0f;
+    ///< Time when max pitch was recorded for the note that is currently being recorded (in beats)
+    float noteMaxPitchTime = 0.0f;
+
+    // Buffer for accumulating samples for FFT analysis
+    static constexpr int vocalFFTSize = 8192;
+    std::vector<float> vocalAccumBuffer; ///< Accumulation buffer for vocal input
+    int vocalAccumCount = 0;             ///< Number of samples currently in buffer
+
+    void processVocalInput(const juce::AudioBuffer<float> &buffer, int numSamples,
+                           double sampleRate, double beatsPerBlock, double playHeadTime,
+                           double bpm);
+    void updateRecordingNote();
+    void fixateRecordingNote(); ///< Before calling make sure that isRecNote == true
+    void startRecordingNote();
+
+    int freqToTotalCents(float freq);
+
+    /**
+     * @brief Find nearest key within maximum cents change
+     * @param key Cents of the key
+     * @param maxCentsChange Maximum cents change allowed
+     * @param keys Set of available keys (in cents)
+     * @return Optional total cents of nearest key, or nullopt if none found
+     */
+    std::optional<int> findNearestKeyWithLimit(int key, int maxCentsChange,
+                                               const std::set<int> &keys);
+
+    /**
+     * @brief Try to snap note to a key from keys set
+     * @param note Note
+     * @param keys Set of available keys (in cents)
+     * @return true if snapped
+     */
+    bool trySnapNote(Note &note, const std::set<int> &keys);
+    // ============================================================================================
+
     // INFO: totalCents = octave*1200 + cents
 
     std::vector<Note> notes;
@@ -115,7 +209,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     double freqs[128];
     ///< if midi note is bending it has != -1 original totalCents here
     int beforeBendTotalCents[128];
-    bool wasPlaying = false;
+    std::atomic<bool> wasPlaying = false;
 
     /**
      * TotalCents of notes from notes vector (so from piano roll) that are currently played (bends
