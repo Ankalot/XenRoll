@@ -280,6 +280,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     void randomizeSelectedNotesVelocity() { mainPanel->randomizeSelectedNotesVelocity(); }
 
+    void deleteAllRatiosMarks() { mainPanel->deleteAllRatiosMarks(); }
+
     /**
      * @brief Hide the current popup message
      */

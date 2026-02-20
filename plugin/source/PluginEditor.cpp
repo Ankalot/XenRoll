@@ -443,7 +443,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     editRatiosMarksButton = std::make_unique<SVGButton>(
         BinaryData::Edit_ratios_marks_svg, BinaryData::Edit_ratios_marks_svgSize, true,
         processorRef.params.editRatiosMarks,
-        "Create, move (holding LMB) and delete (click RMB) "
+        "Create, move (click, drag LMB) and delete (click/drag RMB) "
         "ratios marks between keys in a certain place on the canvas.\n(RMB to open "
         "settings)\nHOTKEY: ALT+D");
 

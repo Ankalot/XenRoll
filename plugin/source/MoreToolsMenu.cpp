@@ -26,6 +26,13 @@ MoreToolsMenu::MoreToolsMenu(AudioPluginAudioProcessorEditor *editor) : editor(e
     randSelNotesVelButton->onClick = [this, editor]() { editor->randomizeSelectedNotesVelocity(); };
     addAndMakeVisible(randSelNotesVelButton.get());
 
+    deleteAllRatiosMarksButton =
+        std::make_unique<juce::TextButton>("Delete all ratios marks");
+    deleteAllRatiosMarksButton->setLookAndFeel(&editor->smallLF);
+    deleteAllRatiosMarksButton->setClickingTogglesState(false);
+    deleteAllRatiosMarksButton->onClick = [this, editor]() { editor->deleteAllRatiosMarks(); };
+    addAndMakeVisible(deleteAllRatiosMarksButton.get());
+
     // Position elements
     int y = vertPadding;
     quantizeSelNotesButton->setBounds(horPadding, y, width - 2 * horPadding, rowHeight);
@@ -35,6 +42,9 @@ MoreToolsMenu::MoreToolsMenu(AudioPluginAudioProcessorEditor *editor) : editor(e
     y += rowHeight + rowSkip;
 
     randSelNotesVelButton->setBounds(horPadding, y, width - 2 * horPadding, rowHeight);
+    y += rowHeight + rowSkip;
+
+    deleteAllRatiosMarksButton->setBounds(horPadding, y, width - 2 * horPadding, rowHeight);
     y += rowHeight + rowSkip;
 
     const int totalHeight = y + vertPadding;

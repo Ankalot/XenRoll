@@ -42,6 +42,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void quantizeSelectedNotes();
     void randomizeSelectedNotesTiming();
     void randomizeSelectedNotesVelocity();
+    void deleteAllRatiosMarks();
 
     void updateNotes(const std::vector<Note> &new_notes);
     void updateGhostNotes(const std::vector<Note> &new_ghostNotes);
@@ -114,7 +115,9 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool wasMoving = false;
     bool isDrawingRatioMark = false;
     bool isMovingRatioMark = false;
+    bool prevDragPointIsActual = false;
     RatioMark *movingRatioMark;
+    juce::Point<int> prevDragPoint;
     juce::Point<int> lastDragPos;
     juce::Point<int> lastViewPos;
     juce::Point<int> selectStartPos;
@@ -246,6 +249,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void selectAllNotes();
 
     bool pointOnRatioMark(const RatioMark &ratioMark, const juce::Point<int> &point);
+    bool lineIntersectsRatioMark(const RatioMark &ratioMark, const juce::Line<int> &line);
 
     int totalCentsToY(int totalCents);
 

@@ -272,8 +272,8 @@ void MainPanel::paint(juce::Graphics &g) {
     g.setColour(Theme::activated);
     const auto fontSizeRatio = adaptFont(Theme::big);
     const auto fontSizeError = adaptFont(Theme::small_);
+    float wdth = adaptVert(Theme::wide);
     for (const auto ratioMark : params->ratiosMarks) {
-        float wdth = adaptVert(Theme::wide);
         float ratioMarkXPos = ratioMark.time * bar_width_px;
         if ((ratioMarkXPos >= clipX) && (ratioMarkXPos <= clipX + clipWidth)) {
 
@@ -403,6 +403,11 @@ void MainPanel::randomizeSelectedNotesVelocity() {
     repaint();
 }
 
+void MainPanel::deleteAllRatiosMarks() {
+    params->ratiosMarks.clear();
+    repaint();
+}
+
 void MainPanel::numBarsChanged() {
     size_t notesNum = notes.size();
     for (int i = 0; i < notesNum; ++i) {
@@ -515,6 +520,25 @@ bool MainPanel::pointOnRatioMark(const RatioMark &ratioMark, const juce::Point<i
         return (ratioMarkHighYPos < point.getY()) && (point.getY() < ratioMarkLowYPos);
     }
     return false;
+}
+
+bool MainPanel::lineIntersectsRatioMark(const RatioMark &ratioMark, const juce::Line<int> &line) {
+    float ratioMarkXPos = ratioMark.time * bar_width_px;
+    float ratioMarkHighYPos =
+        (params->num_octaves - float(ratioMark.getHigherKeyTotalCents()) / 1200) * octave_height_px;
+    float ratioMarkLowYPos =
+        (params->num_octaves - float(ratioMark.getLowerKeyTotalCents()) / 1200) * octave_height_px;
+    float ratioMarkHeight = ratioMarkLowYPos - ratioMarkHighYPos;
+    if (ratioMarkHeight < ratioMarkMinHeight) {
+        ratioMarkLowYPos += (ratioMarkMinHeight - ratioMarkHeight) / 2.0f;
+        ratioMarkHighYPos -= (ratioMarkMinHeight - ratioMarkHeight) / 2.0f;
+    }
+
+    auto ratioMarkRectangle =
+        juce::Rectangle<float>(ratioMarkXPos - ratioMarkHalfWidth, ratioMarkHighYPos,
+                             2 * ratioMarkHalfWidth, ratioMarkLowYPos - ratioMarkHighYPos);
+
+    return ratioMarkRectangle.intersects(line.toFloat());
 }
 
 void MainPanel::mouseDown(const juce::MouseEvent &event) {
@@ -672,10 +696,12 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
 
     if (event.mods.isRightButtonDown()) {
         if (params->editRatiosMarks) {
-            std::erase_if(params->ratiosMarks, [&](const auto &ratioMark) {
-                return pointOnRatioMark(ratioMark, point);
-            });
-            repaint();
+            // Delete ratios marks under cursor
+            if (std::erase_if(params->ratiosMarks, [&](const auto &ratioMark) {
+                    return pointOnRatioMark(ratioMark, point);
+                }) > 0) {
+                repaint();
+            }
             return;
         }
 
@@ -720,7 +746,8 @@ std::pair<int, int> MainPanel::findNearestKey(int cents, int octave) {
 
 void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     // Convert to parent (viewport) coordinates
-    auto currentPos = getParentComponent()->getLocalPoint(this, event.getPosition());
+    auto currDragPoint = event.getPosition();
+    auto currentPos = getParentComponent()->getLocalPoint(this, currDragPoint);
     auto delta = currentPos - lastDragPos;
     lastDragPos = currentPos;
 
@@ -772,11 +799,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         repaint();
     }
 
-    if (isMovingRatioMark) {
-        if (!movingRatioMark) {
-            return;
-        }
-
+    if (isMovingRatioMark && movingRatioMark) {
         float delta_time = delta.getX() / bar_width_px;
         dtime += delta_time;
         bool moved = false;
@@ -893,18 +916,37 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     }
 
     if (isSelecting) {
-        selectionRect = juce::Rectangle<int>(selectStartPos, event.getPosition());
+        selectionRect = juce::Rectangle<int>(selectStartPos, currDragPoint);
         repaint();
     }
 
     if (isDrawingRatioMark) {
-        ratioMarkLastPos = event.getPosition();
+        ratioMarkLastPos = currDragPoint;
         auto currentMods = juce::ModifierKeys::getCurrentModifiers();
         if (currentMods.isRightButtonDown()) {
             isDrawingRatioMark = false;
         }
         repaint();
     }
+
+    if (params->editRatiosMarks && event.mods.isRightButtonDown()) {
+        // Delete ratios marks under cursor
+        if (prevDragPointIsActual) {
+            if (std::erase_if(params->ratiosMarks, [&](const auto &ratioMark) {
+                    return lineIntersectsRatioMark(ratioMark,
+                                                   juce::Line<int>(prevDragPoint, currDragPoint));
+                }) > 0) {
+                repaint();
+            }
+        } else if (std::erase_if(params->ratiosMarks, [&](const auto &ratioMark) {
+                       return pointOnRatioMark(ratioMark, currDragPoint);
+                   }) > 0) {
+            repaint();
+        }
+    }
+
+    prevDragPoint = currDragPoint;
+    prevDragPointIsActual = true;
 }
 
 bool MainPanel::doesPathIntersectRect(const juce::Path &somePath,
@@ -945,6 +987,7 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
     isMovingRatioMark = false;
     dtime = 0.0f;
     dcents = 0;
+    prevDragPointIsActual = false;
     setMouseCursor(juce::MouseCursor::NormalCursor);
 
     if (needToUnselectAllNotesExcept != -1) {

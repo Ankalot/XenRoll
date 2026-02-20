@@ -24,7 +24,7 @@ class MoreToolsMenu : public juce::Component {
   private:
     AudioPluginAudioProcessorEditor *editor;
     std::unique_ptr<juce::Button> quantizeSelNotesButton, randSelNotesTimeButton,
-        randSelNotesVelButton;
+        randSelNotesVelButton, deleteAllRatiosMarksButton;
 
     const int width = 260;
     const int rowHeight = 32;
