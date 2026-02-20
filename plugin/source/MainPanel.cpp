@@ -536,7 +536,7 @@ bool MainPanel::lineIntersectsRatioMark(const RatioMark &ratioMark, const juce::
 
     auto ratioMarkRectangle =
         juce::Rectangle<float>(ratioMarkXPos - ratioMarkHalfWidth, ratioMarkHighYPos,
-                             2 * ratioMarkHalfWidth, ratioMarkLowYPos - ratioMarkHighYPos);
+                               2 * ratioMarkHalfWidth, ratioMarkLowYPos - ratioMarkHighYPos);
 
     return ratioMarkRectangle.intersects(line.toFloat());
 }
@@ -1876,8 +1876,13 @@ juce::Path MainPanel::getNotePath(const Note &note) {
     } else {
         // make hexagon
         if (dy > 0) {
-            float z = height * (sqrt(width * width + dy * dy - 2 * height * dy) - width) /
-                      (dy - 2 * height);
+            float denom = dy - 2 * height;
+            float z;
+            if (abs(denom) < 1e-6) {
+                z = dy * height / (2 * width);
+            } else {
+                z = height * (sqrt(width * width + dy * dy - 2 * height * dy) - width) / denom;
+            }
             path.startNewSubPath(x1, y1 - height / 2);
             path.lineTo(x2 - z, y2 - height / 2);
             path.lineTo(x2, y2 - height / 2);
@@ -1887,8 +1892,13 @@ juce::Path MainPanel::getNotePath(const Note &note) {
             path.closeSubPath();
         } else {
             dy = -dy;
-            float z = height * (sqrt(width * width + dy * dy - 2 * height * dy) - width) /
-                      (dy - 2 * height);
+            float denom = dy - 2 * height;
+            float z;
+            if (abs(denom) < 1e-6) {
+                z = dy * height / (2 * width);
+            } else {
+                z = height * (sqrt(width * width + dy * dy - 2 * height * dy) - width) / denom;
+            }
             path.startNewSubPath(x1, y1 - height / 2);
             path.lineTo(x1 + z, y1 - height / 2);
             path.lineTo(x2, y2 - height / 2);
