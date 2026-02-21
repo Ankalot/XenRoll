@@ -211,7 +211,7 @@ void AudioPluginAudioProcessor::fixateRecordingNote() {
         std::scoped_lock lock(recNoteMutex);
         currentNote = recNote;
     }
-    currentNote.duration = playHeadTime - currentNote.time;
+    currentNote.duration = pitchTime - currentNote.time;
 
     if (currentNote.duration >= params.vocalToMelodyMinNoteDuration) {
         if (params.vocalToMelodyKeySnap) {
@@ -234,7 +234,7 @@ void AudioPluginAudioProcessor::startRecordingNote() {
     Note newNote;
     newNote.octave = currentVocalTotalCents / 1200;
     newNote.cents = currentVocalTotalCents % 1200;
-    newNote.time = playHeadTime;
+    newNote.time = pitchTime;
     newNote.duration = 0.0f;
     newNote.velocity = 100.0f / 128; // Default velocity
     newNote.isSelected = false;
@@ -248,7 +248,7 @@ void AudioPluginAudioProcessor::startRecordingNote() {
         recNote = newNote;
     }
     isRecNote = true;
-    noteStartTime = playHeadTime;
+    noteStartTime = pitchTime;
     noteMinPitchTime = noteStartTime;
     noteMaxPitchTime = noteStartTime;
 }
@@ -274,15 +274,13 @@ void AudioPluginAudioProcessor::vocalIsSilent() {
     const int pitchCurveSize = pitchCurve.first.size();
     if ((pitchCurveSize > 0) && (pitchCurve.second[pitchCurveSize - 1] != -1)) {
         std::scoped_lock lock(pitchCurveMutex);
-        pitchCurve.first.push_back(playHeadTime);
+        pitchCurve.first.push_back(pitchTime);
         pitchCurve.second.push_back(-1);
     }
 }
 
 void AudioPluginAudioProcessor::processVocalInput(const juce::AudioBuffer<float> &buffer,
-                                                  int numSamples, double sampleRate,
-                                                  double beatsInBlock, double playHeadTime,
-                                                  double bpm) {
+                                                  int numSamples, double sampleRate) {
     if (!pitchDetector) {
         return;
     }
@@ -304,6 +302,7 @@ void AudioPluginAudioProcessor::processVocalInput(const juce::AudioBuffer<float>
     // Check if signal is too weak to be valid
     if (volume_dB <= params.minVocalVolume_dB) {
         vocalIsSilent();
+        vocalAccumCount = 0;
         return;
     }
 
@@ -339,7 +338,7 @@ void AudioPluginAudioProcessor::processVocalInput(const juce::AudioBuffer<float>
                     }
                     if (params.vocalToMelodyGenCurve) {
                         std::scoped_lock lock(pitchCurveMutex);
-                        pitchCurve.first.push_back(playHeadTime);
+                        pitchCurve.first.push_back(pitchTime);
                         pitchCurve.second.push_back(currentVocalTotalCents);
                     }
                 } else {
@@ -379,7 +378,7 @@ void AudioPluginAudioProcessor::updateRecordingNote() {
         int curr_start_pitchDiff = std::abs(currentVocalTotalCents - recNoteStartTotalCents);
         bool startNewNote = false;
         if (params.vocalToMelodyMakeBends) {
-            float currTime = playHeadTime;
+            float currTime = pitchTime;
             float slope =
                 (currentVocalTotalCents - recNoteStartTotalCents) / (currTime - noteStartTime);
 
@@ -404,7 +403,7 @@ void AudioPluginAudioProcessor::updateRecordingNote() {
 
         if (startNewNote) {
             // End current note and start a new one
-            currentNote.duration = playHeadTime - currentNote.time;
+            currentNote.duration = pitchTime - currentNote.time;
             fixateRecordingNote();
             startRecordingNote();
         } else {
@@ -420,13 +419,13 @@ void AudioPluginAudioProcessor::updateRecordingNote() {
                 currentNote.bend =
                     currentVocalTotalCents - (currentNote.octave * 1200 + currentNote.cents);
             }
-            currentNote.duration = playHeadTime - currentNote.time;
+            currentNote.duration = pitchTime - currentNote.time;
 
             if (currentVocalTotalCents > recNoteMaxTotalCents) {
-                noteMaxPitchTime = playHeadTime;
+                noteMaxPitchTime = pitchTime;
                 recNoteMaxTotalCents = currentVocalTotalCents;
             } else if (currentVocalTotalCents < recNoteMinTotalCents) {
-                noteMinPitchTime = playHeadTime;
+                noteMinPitchTime = pitchTime;
                 recNoteMinTotalCents = currentVocalTotalCents;
             }
 
@@ -582,7 +581,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
 
             // ============================= VOCAL TO MELODY ============================
             if (params.vocalToMelody && isPlaying) {
-                processVocalInput(buffer, numSamples, sampleRate, beatsInBlock, playHeadTime, bpm);
+                pitchTime = playHeadTime - vocalFFTSize / samplesPerBeat / beatsPerBar;
+                processVocalInput(buffer, numSamples, sampleRate);
             }
             // ==========================================================================
 

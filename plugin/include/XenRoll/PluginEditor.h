@@ -163,7 +163,7 @@ class MainViewport : public juce::Viewport {
 
     /**
      * @brief Center the viewport on the playhead position
-     * @param playHeadTime Current playhead time in beats
+     * @param playHeadTime Current playhead time in bars
      * @param bar_width_px Width of one bar in pixels
      */
     void setCamOnTime(float playHeadTime, int bar_width_px) {

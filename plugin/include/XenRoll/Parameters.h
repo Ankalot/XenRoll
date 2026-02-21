@@ -13,7 +13,7 @@
 
 namespace audio_plugin {
 /**
- * std::vector<float> is for storing time in beats
+ * std::vector<float> is for storing time in bars
  * std::vector<int> is for storing pitch in total cents (-1 represents absence of pitch, curve
  * breaks there)
  */
@@ -132,7 +132,7 @@ class Parameters {
     std::atomic<bool> vocalToMelodyGenCurve = true;
     std::atomic<bool> vocalToMelodyGenNotes = true;
     // Params for vocalToMelodyGenNotes:
-    std::atomic<float> vocalToMelodyMinNoteDuration = 1.0f / 128; ///< in beats
+    std::atomic<float> vocalToMelodyMinNoteDuration = 1.0f / 128; ///< in bars
     std::atomic<int> vocalToMelodyDCents = 50;
     std::atomic<bool> vocalToMelodyKeySnap = true;
     std::atomic<bool> vocalToMelodyMakeBends = true;

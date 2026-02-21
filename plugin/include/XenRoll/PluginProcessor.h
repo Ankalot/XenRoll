@@ -53,7 +53,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
 
     /**
      * @brief Get current playhead time
-     * @return Playhead time in beats
+     * @return Playhead time in bars
      */
     float getPlayHeadTime();
 
@@ -109,7 +109,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     bool isPlaying() { return wasPlaying; }
 
     /**
-     * @brief Update editor's pitch curve to match current pitch curve in processor 
+     * @brief Update editor's pitch curve to match current pitch curve in processor
      * @param pitchCurveFromEditor Pitch curve from editor
      * @return true if edited it and false otherwise
      */
@@ -186,20 +186,21 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     int recNoteMinTotalCents = -1;   ///< Min pitch of current recording note in total cents
     int recNoteMaxTotalCents = -1;   ///< Max pitch of current recording note in total cents
     int currentVocalTotalCents = -1; ///< Current detected pitch in total cents
-    float noteStartTime = 0.0f;      ///< Start time of current note being recorded (in beats)
-    ///< Time when min pitch was recorded for the note that is currently being recorded (in beats)
+    float noteStartTime = 0.0f;      ///< Start time of current note being recorded (in bars)
+    ///< Time when min pitch was recorded for the note that is currently being recorded (in bars)
     float noteMinPitchTime = 0.0f;
-    ///< Time when max pitch was recorded for the note that is currently being recorded (in beats)
+    ///< Time when max pitch was recorded for the note that is currently being recorded (in bars)
     float noteMaxPitchTime = 0.0f;
 
     // Buffer for accumulating samples for FFT analysis
     static constexpr int vocalFFTSize = 4096;
     std::vector<float> vocalAccumBuffer; ///< Accumulation buffer for vocal input
     int vocalAccumCount = 0;             ///< Number of samples currently in buffer
+    ///< It is playHeadTime but with delay that is caused by vocalAccumBuffer, in bars
+    double pitchTime;
 
     void processVocalInput(const juce::AudioBuffer<float> &buffer, int numSamples,
-                           double sampleRate, double beatsPerBlock, double playHeadTime,
-                           double bpm);
+                           double sampleRate);
     void updateRecordingNote();
     void fixateRecordingNote(); ///< Before calling make sure that isRecNote == true
     void startRecordingNote();
@@ -285,7 +286,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     bool pitchesOverflow = false;
     bool editorKnowsAboutOverflow = false;
 
-    std::atomic<double> playHeadTime = 0.0; ///< in beats
+    std::atomic<double> playHeadTime = 0.0; ///< in bars
 
     double getNoteFreq(const Note &note);
     double getFreqFromTotalCents(float totalCents);

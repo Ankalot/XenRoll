@@ -112,7 +112,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void updatePitchMemoryResults(const PitchMemoryResults &newPitchMemoryResults);
 
   private:
-    float playHeadTime; ///< In beats
+    float playHeadTime; ///< In bars
     const float max_bar_width_px = 1000.0f;
     float init_octave_height_px, init_bar_width_px;
     float octave_height_px, bar_width_px;
@@ -236,8 +236,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     /**
      * @brief Snap time to nearest subdivision
-     * @param time Input time in beats
-     * @return Snapped time in beats
+     * @param time Input time in bars
+     * @return Snapped time in bars
      */
     float timeToSnappedTime(float time);
 
