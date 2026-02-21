@@ -79,7 +79,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
      */
     bool getIsActive() { return isActive; }
 
-    // ====================================== VOCAL TO NOTES ======================================
+    // ====================================== VOCAL TO MELODY =====================================
     void updateKeys(const std::set<int> &newKeys) {
         std::scoped_lock lock(keysMutex);
         keys = newKeys;
@@ -107,6 +107,35 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     float getCurrRecVolume() { return currRecVolume; }
 
     bool isPlaying() { return wasPlaying; }
+
+    /**
+     * @brief Update editor's pitch curve to match current pitch curve in processor 
+     * @param pitchCurveFromEditor Pitch curve from editor
+     * @return true if edited it and false otherwise
+     */
+    bool updatePitchCurveForEditor(PitchCurve &pitchCurveFromEditor) {
+        const int pcfeSize = pitchCurveFromEditor.first.size();
+        std::scoped_lock lock(pitchCurveMutex);
+        const int pcSize = pitchCurve.first.size();
+        const int dSize = pcSize - pcfeSize;
+        if (dSize > 0) {
+            // Add new elements
+            pitchCurveFromEditor.first.insert(pitchCurveFromEditor.first.end(),
+                                              pitchCurve.first.end() - dSize,
+                                              pitchCurve.first.end());
+            pitchCurveFromEditor.second.insert(pitchCurveFromEditor.second.end(),
+                                               pitchCurve.second.end() - dSize,
+                                               pitchCurve.second.end());
+            return true;
+        } else if (dSize < 0) {
+            // This shouldn't happen in theory.
+            pitchCurveFromEditor.first = pitchCurve.first;
+            pitchCurveFromEditor.second = pitchCurve.second;
+            return true;
+        }
+        // if (pcSize == pcfeSize) they are equal, nothing to do
+        return false;
+    }
     // ============================================================================================
 
   private:
@@ -133,7 +162,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     void tryStartRecording();
     // ============================================================================================
 
-    // ====================================== VOCAL TO NOTES ======================================
+    // ====================================== VOCAL TO MELODY =====================================
     // rec = recording
     std::mutex recNoteMutex;
     Note recNote;                        ///< Note that is currently being recorded
@@ -141,7 +170,9 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     std::mutex recNotesVecMutex;
     std::vector<Note> recNotesVec; ///< All notes that have already been recorded in this session
     std::atomic<float> currRecVolume = 0.0f; ///< Current detected volume in dB
-    std::set<int> recKeys;                   ///< Keys of recorded notes
+    std::set<int> recKeys;                   ///< Keys of recorded notes (needed for snapping)
+    std::mutex pitchCurveMutex;
+    PitchCurve pitchCurve;
 
     // Pitch detector for vocal input
     std::unique_ptr<pitch_detection::PitchDetectorMPM> pitchDetector;
@@ -151,7 +182,6 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     std::set<int> keys;
 
     // Vocal recording state
-    float currentVocalFreq = 0.0f;   ///< Current detected frequency in Hz
     int recNoteStartTotalCents = -1; ///< Start pitch of current recording note in total cents
     int recNoteMinTotalCents = -1;   ///< Min pitch of current recording note in total cents
     int recNoteMaxTotalCents = -1;   ///< Max pitch of current recording note in total cents
@@ -163,7 +193,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     float noteMaxPitchTime = 0.0f;
 
     // Buffer for accumulating samples for FFT analysis
-    static constexpr int vocalFFTSize = 8192;
+    static constexpr int vocalFFTSize = 4096;
     std::vector<float> vocalAccumBuffer; ///< Accumulation buffer for vocal input
     int vocalAccumCount = 0;             ///< Number of samples currently in buffer
 
@@ -173,6 +203,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     void updateRecordingNote();
     void fixateRecordingNote(); ///< Before calling make sure that isRecNote == true
     void startRecordingNote();
+    void vocalIsSilent();
 
     int freqToTotalCents(float freq);
 

@@ -22,6 +22,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
               Parameters *params);
     ~MainPanel() override;
 
+    ///< NO REPAINT!
     void setPlayHeadTime(float newPlayHeadTime);
 
     void mouseWheelMove(const juce::MouseEvent &event,
@@ -49,14 +50,22 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void createNotesFromGhostNotes();
     void remakeKeys();
 
-    ///< Add recorded vocal notes to normal notes (when recording is over)
+    ///< Add recorded vocal notes to normal notes (when recording is over). NO REPAINT!
     void addVocalNotes(const std::vector<Note> &newVocalNotes);
-    ///< Update recorded vocal notes (but don't mix them with normal ones yet)
+    ///< Update recorded vocal notes (but don't mix them with normal ones yet). NO REPAINT!
     void updateVocalNotes(const std::vector<Note> &newVocalNotes);
-    ///< Hide currently recording vocal notes
+    ///< Hide currently recording vocal notes. NO REPAINT!
     void hideRecNote();
-    ///< Update currently recording vocal note
+    ///< Update currently recording vocal note. NO REPAINT!
     void updateRecNote(const Note &newRecNote);
+
+    void clearPitchCurve() {
+        pitchCurve.first.clear();
+        pitchCurve.second.clear();
+        repaint();
+    };
+
+    PitchCurve& getPitchCurveRef() { return pitchCurve; };
 
     void changeBarWidthPx(float new_bar_width_px) {
         bar_width_px = new_bar_width_px;
@@ -171,10 +180,11 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     float lastVelocity = 100.0f / 127;
     float vertMoveSlowCoef = 0.2f;
 
-    // ============================= VOCAL TO NOTES =============================
+    // ============================= VOCAL TO MELODY =============================
     std::vector<Note> vocalNotes;
     Note recNote;
     bool showRecNote = false;
+    PitchCurve pitchCurve;
     // ==========================================================================
 
     std::vector<Note> ghostNotes;

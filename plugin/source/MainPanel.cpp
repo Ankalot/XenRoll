@@ -94,42 +94,45 @@ void MainPanel::paint(juce::Graphics &g) {
     int octave_i_start = static_cast<int>(clipY / octave_height_px);
     int octave_i_end = std::min(static_cast<int>((clipY + clipHeight) / octave_height_px) + 1,
                                 params->num_octaves);
+    const float adaptedHorWide = adaptHor(Theme::wide);
     for (int i = octave_i_start; i <= octave_i_end; ++i) {
         float yPos = i * octave_height_px;
-        g.drawLine(float(clipX), yPos, float(clipX + clipWidth), yPos, adaptHor(Theme::wide));
+        g.drawLine(float(clipX), yPos, float(clipX + clipWidth), yPos, adaptedHorWide);
     }
     // bars
     int bar_i_start = static_cast<int>(clipX / bar_width_px);
     int bar_i_end =
         std::min(static_cast<int>((clipX + clipWidth) / bar_width_px) + 1, params->get_num_bars());
+    const float adaptedVertWide = adaptVert(Theme::wide);
     for (int i = bar_i_start; i <= bar_i_end; ++i) {
         float xPos = i * bar_width_px;
-        g.drawLine(xPos, 0.0f, xPos, octave_height_px * params->num_octaves,
-                   adaptVert(Theme::wide));
+        g.drawLine(xPos, 0.0f, xPos, octave_height_px * params->num_octaves, adaptedVertWide);
     }
     // beats and subdivisions
+    const float adaptedVertNarrow = adaptVert(Theme::narrow);
+    const float adaptedVertNarrower = adaptVert(Theme::narrower);
     for (int i = bar_i_start; i < bar_i_end; ++i) {
         for (int j = 0; j < params->num_beats; ++j) {
             float xPos = (i + float(j) / params->num_beats) * bar_width_px;
-            g.drawLine(xPos, 0.0f, xPos, octave_height_px * params->num_octaves,
-                       adaptVert(Theme::narrow));
+            g.drawLine(xPos, 0.0f, xPos, octave_height_px * params->num_octaves, adaptedVertNarrow);
             for (int k = 1; k < params->num_subdivs; ++k) {
                 float xPosSub =
                     xPos + float(k) / (params->num_subdivs * params->num_beats) * bar_width_px;
                 g.drawLine(xPosSub, 0.0f, xPosSub, octave_height_px * params->num_octaves,
-                           adaptVert(Theme::narrower));
+                           adaptedVertNarrower);
             }
         }
     }
     // keys
+    const float adaptedHorNarrow = adaptHor(Theme::narrow);
     for (const int &key : keys) {
         for (int j = octave_i_start; j < octave_i_end; ++j) {
             float yPos = (j + 1.0f - float(key) / 1200) * octave_height_px;
             auto line = juce::Line<float>(0.0f, yPos, params->get_num_bars() * bar_width_px, yPos);
             if (params->generateNewKeys && keyIsGenNew[key]) {
-                g.drawDashedLine(line, dashLengths, numDashLengths, adaptHor(Theme::narrow));
+                g.drawDashedLine(line, dashLengths, numDashLengths, adaptedHorNarrow);
             } else {
-                g.drawLine(line, adaptHor(Theme::narrow));
+                g.drawLine(line, adaptedHorNarrow);
             }
         }
     }
@@ -207,7 +210,7 @@ void MainPanel::paint(juce::Graphics &g) {
     }
 
     // vocal notes
-    if (params->vocalToNotes) {
+    if (params->vocalToMelody) {
         // already recorded vocal notes (but the recording hasn't ended yet)
         g.setColour(Theme::activated);
         for (const Note &note : vocalNotes) {
@@ -236,6 +239,7 @@ void MainPanel::paint(juce::Graphics &g) {
                        std::back_inserter(timeStamps), [](const auto &pair) { return pair.first; });
 
         int i = 0;
+        const float adaptedHorWider = adaptHor(Theme::wider);
         for (const auto &pts : pitchTraces.second) {
             const float timeStart = timeStamps[i];
             float timeEnd = params->get_num_bars();
@@ -251,7 +255,7 @@ void MainPanel::paint(juce::Graphics &g) {
                     if ((posY >= clipY) && (posY <= clipY + clipHeight)) {
                         const juce::uint8 brightness = juce::roundToInt(255 * traceValue);
                         g.setColour(juce::Colour::fromRGB(brightness, brightness, brightness));
-                        g.drawLine(posXstart, posY, posXend, posY, adaptHor(Theme::wider));
+                        g.drawLine(posXstart, posY, posXend, posY, adaptedHorWider);
                     }
                 }
             }
@@ -268,11 +272,66 @@ void MainPanel::paint(juce::Graphics &g) {
         g.drawRect(selectionRect, int(Theme::narrow));
     }
 
+    // pitch curve
+    // this is 100%: (pitchCurve.first.size() == pitchCurve.second.size())
+    const int pitchCurveSize = pitchCurve.first.size();
+    if (pitchCurveSize != 0) {
+        juce::Path path;
+        bool curveBreak = true;
+        const float adaptedHorWider = adaptHor(Theme::wider);
+        const int clipXleft = clipX - juce::roundToInt(clipWidth*0.05f);
+        const int clipXright = clipX + juce::roundToInt(clipWidth*1.05f);
+        for (int i = 0; i < pitchCurveSize; ++i) {
+            const int totalCents = pitchCurve.second[i];
+            const float pointX = pitchCurve.first[i] * bar_width_px;
+            if ((pointX >= clipXleft) && (pointX <= clipXright) && (totalCents != -1)) {
+                const float pointY = totalCentsToY(totalCents);
+                if (curveBreak) {
+                    bool nextIsGap = (i == pitchCurveSize - 1) || (pitchCurve.second[i + 1] == -1);
+                    if (nextIsGap) {
+                        // Draw single point
+                        // Draw outline
+                        g.setColour(Theme::darkest);
+                        g.fillEllipse(pointX - (adaptedHorWider + adaptedHorWide) / 2,
+                                      pointY - (adaptedHorWider + adaptedHorWide) / 2,
+                                      adaptedHorWider + adaptedHorWide,
+                                      adaptedHorWider + adaptedHorWide);
+                        // Draw main
+                        g.setColour(Theme::activated);
+                        g.fillEllipse(pointX - adaptedHorWider / 2,
+                                      pointY - adaptedHorWider / 2, adaptedHorWider,
+                                      adaptedHorWider);
+                    } else {
+                        // Start new segment
+                        path.startNewSubPath(juce::Point<float>(pointX, pointY));
+                    }
+                } else {
+                    // Add line to existing segment
+                    path.lineTo(juce::Point<float>(pointX, pointY));
+                }
+                curveBreak = false;
+            } else {
+                curveBreak = true;
+            }
+        }
+
+        // Draw the complete path
+        if (!path.isEmpty()) {
+            // Draw outline
+            g.setColour(Theme::darkest);
+            g.strokePath(path, juce::PathStrokeType(adaptedHorWider + adaptedHorWide));
+            // Draw main line
+            g.setColour(Theme::activated);
+            g.strokePath(path, juce::PathStrokeType(adaptedHorWider));
+        }
+    }
+
     // ratios marks
     g.setColour(Theme::activated);
     const auto fontSizeRatio = adaptFont(Theme::big);
     const auto fontSizeError = adaptFont(Theme::small_);
-    float wdth = adaptVert(Theme::wide);
+    const float adaptedGapX = adaptVert(5);
+    const float adaptedGapY = adaptHor(3);
     for (const auto ratioMark : params->ratiosMarks) {
         float ratioMarkXPos = ratioMark.time * bar_width_px;
         if ((ratioMarkXPos >= clipX) && (ratioMarkXPos <= clipX + clipWidth)) {
@@ -289,8 +348,10 @@ void MainPanel::paint(juce::Graphics &g) {
             const float midY = (lowerKeyY + higherKeyY) / 2.0f;
             const auto point2 = juce::Point<float>(ratioMarkXPos, (lowerKeyY + higherKeyY) / 2.0f);
             const auto point3 = juce::Point<float>(ratioMarkXPos, higherKeyY);
-            g.drawArrow(juce::Line<float>(point2, point1), wdth, wdth * 3, wdth * 3);
-            g.drawArrow(juce::Line<float>(point2, point3), wdth, wdth * 3, wdth * 3);
+            g.drawArrow(juce::Line<float>(point2, point1), adaptedVertWide, adaptedVertWide * 3,
+                        adaptedVertWide * 3);
+            g.drawArrow(juce::Line<float>(point2, point3), adaptedVertWide, adaptedVertWide * 3,
+                        adaptedVertWide * 3);
 
             // ratio
             int num, den;
@@ -298,7 +359,7 @@ void MainPanel::paint(juce::Graphics &g) {
             juce::String ratioMarkText = juce::String(num) + "/" + juce::String(den);
             g.setFont(fontSizeRatio);
             g.drawText(ratioMarkText,
-                       juce::Rectangle<float>(ratioMarkXPos + adaptVert(5), midY - fontSizeRatio,
+                       juce::Rectangle<float>(ratioMarkXPos + adaptedGapX, midY - fontSizeRatio,
                                               100, fontSizeRatio),
                        juce::Justification::centredLeft);
 
@@ -312,7 +373,7 @@ void MainPanel::paint(juce::Graphics &g) {
                 errorMarkText += juce::String(err) + "¢";
                 g.setFont(fontSizeError);
                 g.drawText(errorMarkText,
-                           juce::Rectangle<float>(ratioMarkXPos + adaptVert(5), midY + adaptHor(3),
+                           juce::Rectangle<float>(ratioMarkXPos + adaptedGapX, midY + adaptedGapY,
                                                   100, fontSizeError),
                            juce::Justification::centredLeft);
             }
@@ -322,13 +383,14 @@ void MainPanel::paint(juce::Graphics &g) {
     // ratio mark preline
     if (isDrawingRatioMark) {
         g.setColour(Theme::activated);
-        float wdth = adaptVert(Theme::wide);
         const auto point1 = ratioMarkStartPos.toFloat();
         const auto point2 = juce::Point<float>(
             ratioMarkStartPos.getX(), (ratioMarkStartPos.getY() + ratioMarkLastPos.getY()) / 2.0f);
         const auto point3 = juce::Point<float>(ratioMarkStartPos.getX(), ratioMarkLastPos.getY());
-        g.drawArrow(juce::Line<float>(point2, point1), wdth, wdth * 3, wdth * 3);
-        g.drawArrow(juce::Line<float>(point2, point3), wdth, wdth * 3, wdth * 3);
+        g.drawArrow(juce::Line<float>(point2, point1), adaptedVertWide, adaptedVertWide * 3,
+                    adaptedVertWide * 3);
+        g.drawArrow(juce::Line<float>(point2, point3), adaptedVertWide, adaptedVertWide * 3,
+                    adaptedVertWide * 3);
     }
 }
 
@@ -1945,10 +2007,7 @@ int MainPanel::getKeyIndex(int cents) {
     return -1;
 }
 
-void MainPanel::setPlayHeadTime(float newPlayHeadTime) {
-    playHeadTime = newPlayHeadTime;
-    repaint();
-}
+void MainPanel::setPlayHeadTime(float newPlayHeadTime) { playHeadTime = newPlayHeadTime; }
 
 void MainPanel::updateNotes(const std::vector<Note> &new_notes) {
     notes = new_notes;
@@ -1969,23 +2028,17 @@ void MainPanel::addVocalNotes(const std::vector<Note> &newVocalNotes) {
     editor->updateNotes(notes);
     remakeKeys();
     editor->showMessage("Recorded " + juce::String(numAddedNotes) + " notes!");
-    repaint();
 }
 
 void MainPanel::updateVocalNotes(const std::vector<Note> &newVocalNotes) {
     vocalNotes = newVocalNotes;
-    repaint();
 }
 
-void MainPanel::hideRecNote() {
-    showRecNote = false;
-    repaint();
-}
+void MainPanel::hideRecNote() { showRecNote = false; }
 
 void MainPanel::updateRecNote(const Note &newRecNote) {
     recNote = newRecNote;
     showRecNote = true;
-    repaint();
 }
 
 void MainPanel::updateGhostNotes(const std::vector<Note> &new_ghostNotes) {

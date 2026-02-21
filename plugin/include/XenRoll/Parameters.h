@@ -12,6 +12,13 @@
 // Ghost notes = notes from other instances of xenroll
 
 namespace audio_plugin {
+/**
+ * std::vector<float> is for storing time in beats
+ * std::vector<int> is for storing pitch in total cents (-1 represents absence of pitch, curve
+ * breaks there)
+ */
+using PitchCurve = std::pair<std::vector<float>, std::vector<int>>;
+
 class Parameters {
   public:
     enum GenNewKeysTactics { DiverseIntervals = 1, Random = 2 };
@@ -29,8 +36,7 @@ class Parameters {
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants ~~~~~~~~~~~~~~~~~~~~~~~~~~~
     static constexpr int num_octaves = 10;
-    // ===== Vocal to notes =====
-    static constexpr float minVocalNoteDuration = 1.0f / 128; ///< in beats
+    // ===== Vocal to melody =====
     static constexpr float minVocalVolume_dB = -60.0f;
     static constexpr float maxVocalVolume_dB = 0.0f;
     // ==========================
@@ -60,8 +66,8 @@ class Parameters {
     static constexpr float min_pitchMemoryTVvalForZeroHV = 0.0f;
     static constexpr float min_pitchMemoryTVaddInfluence = 0.0f;
     static constexpr float min_pitchMemoryTVminNonzero = 0.0f;
-    // ================= Vocal to notes =================
-    static constexpr int min_vocalToNotesDCents = 10;
+    // ================= Vocal to melody =================
+    static constexpr int min_vocalToMelodyDCents = 10;
     static constexpr float min_micGain_dB = -24.0f;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Maximum values ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -89,8 +95,8 @@ class Parameters {
     static constexpr float max_pitchMemoryTVvalForZeroHV = 0.5f;
     static constexpr float max_pitchMemoryTVaddInfluence = 1.0f;
     static constexpr float max_pitchMemoryTVminNonzero = 0.5f;
-    // ================= Vocal to notes =================
-    static constexpr int max_vocalToNotesDcents = 90;
+    // ================= Vocal to melody =================
+    static constexpr int max_vocalToMelodyDcents = 90;
     static constexpr float max_micGain_dB = 24.0f;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~ Saved params ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -122,11 +128,14 @@ class Parameters {
     float pitchMemoryTVaddInfluence = 0.3f;
     float pitchMemoryTVminNonzero = 0.0f;
     bool pitchMemoryShowOnlyHarmonicity = true;
-    // ================= Vocal to notes =================
-    // In fact, it's not necessary to save these parameters, but it's probably convenient.
-    std::atomic<int> vocalToNotesDCents = 50;
-    std::atomic<bool> vocalToNotesKeySnap = true;
-    std::atomic<bool> vocalToNotesMakeBends = true;
+    // ================= Vocal to melody =================
+    std::atomic<bool> vocalToMelodyGenCurve = true;
+    std::atomic<bool> vocalToMelodyGenNotes = true;
+    // Params for vocalToMelodyGenNotes:
+    std::atomic<float> vocalToMelodyMinNoteDuration = 1.0f / 128; ///< in beats
+    std::atomic<int> vocalToMelodyDCents = 50;
+    std::atomic<bool> vocalToMelodyKeySnap = true;
+    std::atomic<bool> vocalToMelodyMakeBends = true;
     std::atomic<float> micGain_dB = 0.0f;
 
     /**
@@ -212,8 +221,8 @@ class Parameters {
     // Pitch memory
     bool showPitchesMemoryTraces = false;
     bool showKeysHarmonicity = false;
-    // ================= Vocal to notes =================
-    std::atomic<bool> vocalToNotes = false;
+    // ================= Vocal to melody =================
+    std::atomic<bool> vocalToMelody = false;
 
     Parameters() : zones(true, float(num_bars)) {}
 

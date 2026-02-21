@@ -529,32 +529,33 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(moreToolsTabButton.get());
 
-    vocalToNotesMenu = std::make_unique<VocalToNotesMenu>(&processorRef.params, this);
-    addAndMakeVisible(vocalToNotesMenu.get());
-    vocalToNotesMenu->setVisible(false);
+    vocalToMelodyMenu = std::make_unique<VocalToMelodyMenu>(&processorRef.params, this);
+    addAndMakeVisible(vocalToMelodyMenu.get());
+    vocalToMelodyMenu->setVisible(false);
 
-    vocalToNotesButton = std::make_unique<SVGButton>(
-        BinaryData::Vocal_to_notes_svg, BinaryData::Vocal_to_notes_svgSize, true,
-        processorRef.params.vocalToNotes,
+    vocalToMelodyButton = std::make_unique<SVGButton>(
+        BinaryData::Vocal_to_melody_svg, BinaryData::Vocal_to_melody_svgSize, true,
+        processorRef.params.vocalToMelody,
         "Sing/humm while this mode is active, and the plugin will automatically create the "
-        "appropriate notes. You need to turn on recording on your track and press \"play\" in "
-        "DAW.\n(RMB to open settings)");
+        "appropriate notes and/or pitch curve. You need to turn on recording on your track and "
+        "press \"play\" in DAW.\n(RMB to open settings)");
 
-    vocalToNotesButton->onClick = [this](const juce::MouseEvent &me) {
+    vocalToMelodyButton->onClick = [this](const juce::MouseEvent &me) {
         if (me.mods.isLeftButtonDown()) {
-            if (!processorRef.params.vocalToNotes) {
+            if (!processorRef.params.vocalToMelody) {
+                this->mainPanel->clearPitchCurve();
                 this->processorRef.startRecordingVocal();
             } else {
                 this->processorRef.stopRecordingVocal();
             }
 
         } else if (me.mods.isRightButtonDown()) {
-            this->vocalToNotesMenu->setVisible(!this->vocalToNotesMenu->isVisible());
+            this->vocalToMelodyMenu->setVisible(!this->vocalToMelodyMenu->isVisible());
             return false;
         }
         return true;
     };
-    addAndMakeVisible(vocalToNotesButton.get());
+    addAndMakeVisible(vocalToMelodyButton.get());
 
     genNewKeysMenu = std::make_unique<GenNewKeysMenu>(&processorRef.params, this);
     addAndMakeVisible(genNewKeysMenu.get());
@@ -646,8 +647,8 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
     bottom_x_pos -= bottom_height_px * 4 + buttons_gap_width_px * 5;
     g.drawLine(bottom_x_pos, bottom_y, bottom_x_pos, bottom_y + bottom_height_px, Theme::wider);
 
-    // Draw volume level line over vocalToNotesButton when vocal recording (vocal to notes mode)
-    if (processorRef.params.vocalToNotes) {
+    // Draw volume level line over vocalToMelodyButton when vocal recording (vocal to melody mode)
+    if (processorRef.params.vocalToMelody) {
         const bool isPlaying = processorRef.isPlaying();
         if (isPlaying || wasPlaying) {
             wasPlaying = isPlaying;
@@ -657,18 +658,13 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
                                  processorRef.params.minVocalVolume_dB); // 0.0 to 1.0
             float lineWidth = volumeRatio * bottom_height_px;
 
-            // Get vocalToNotesButton position
-            juce::Rectangle<int> buttonBounds = vocalToNotesButton->getBounds();
+            // Get vocalToMelodyButton position
+            juce::Rectangle<int> buttonBounds = vocalToMelodyButton->getBounds();
             float lineX = buttonBounds.getX();
             float lineY = buttonBounds.getY() - bottom_gap_height_px / 2.0f;
             float lineThickness = 4.0f;
 
-            // Create gradient: red (left) -> yellow (center) -> green (right)
-            juce::ColourGradient gradient(juce::Colours::red, lineX, lineY, juce::Colours::green,
-                                          lineX + bottom_height_px, lineY, false);
-            gradient.addColour(0.5, juce::Colours::yellow);
-
-            g.setGradientFill(gradient);
+            g.setColour(Theme::activated);
             g.drawLine(lineX, lineY, lineX + lineWidth, lineY, lineThickness);
         }
     }
@@ -813,11 +809,11 @@ void AudioPluginAudioProcessorEditor::resized() {
                               bottom_y - genNewKeysMenu->getHeight() - 10,
                               genNewKeysMenu->getWidth(), genNewKeysMenu->getHeight());
     bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
-    vocalToNotesButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
-    vocalToNotesMenu->setBounds(bottom_x_pos +
-                                    (bottom_height_px - vocalToNotesMenu->getWidth()) / 2,
-                                bottom_y - vocalToNotesMenu->getHeight() - 10,
-                                vocalToNotesMenu->getWidth(), vocalToNotesMenu->getHeight());
+    vocalToMelodyButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    vocalToMelodyMenu->setBounds(bottom_x_pos +
+                                     (bottom_height_px - vocalToMelodyMenu->getWidth()) / 2,
+                                 bottom_y - vocalToMelodyMenu->getHeight() - 10,
+                                 vocalToMelodyMenu->getWidth(), vocalToMelodyMenu->getHeight());
     bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
 
     velocityPanel->setBounds(leftPanel_width_px + (topView_width_px - velocity_width_px) / 2,
@@ -1409,10 +1405,13 @@ void AudioPluginAudioProcessorEditor::updatePitchMemory() {
 }
 
 void AudioPluginAudioProcessorEditor::timerCallback() {
+    // This timer runs pretty fast so don't spam mainPanel with excessive repaints!
+    bool mainPanelNeedsRepaint = false;
     float newPlayHeadTime = processorRef.getPlayHeadTime();
     leftPanel.get()->setAllCurrPlayedNotesTotalCents(
         processorRef.getAllCurrPlayedNotesTotalCents());
     if (newPlayHeadTime != playHeadTime) {
+        mainPanelNeedsRepaint = true;
         const int currNumBars = processorRef.params.get_num_bars();
         if (newPlayHeadTime > currNumBars) {
             const int newNumBars = static_cast<int>(newPlayHeadTime) + 1;
@@ -1448,37 +1447,32 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
             "OK");
     }
 
-    if (!processorRef.params.vocalToNotes) {
-        if (wasVocalToNotes) {
+    if (!processorRef.params.vocalToMelody) {
+        if (wasVocalToMelody) {
             // Stopped recording vocal right now
+            wasVocalToMelody = false;
+            recVolume_dB = -60.0f;
+            repaint(); // Hide vocal volume
+            // ====================== NOTES ======================
             if (wasRecNote) {
                 mainPanel->hideRecNote();
+                wasRecNote = false;
             }
             auto vocalNotes = processorRef.getRecordedNotesFromVocal();
             mainPanel->addVocalNotes(vocalNotes);
-            wasVocalToNotes = false;
+            mainPanel->updateVocalNotes(std::vector<Note>());
             prevVocalNotesSize = -1;
-            recVolume_dB = -60.0f;
-            repaint(); // Hide vocal volume
+            mainPanelNeedsRepaint = true;
+            // =================== PITCH CURVE ===================
+            if (processorRef.params.vocalToMelodyGenCurve) {
+                if (processorRef.updatePitchCurveForEditor(mainPanel->getPitchCurveRef())) {
+                    mainPanelNeedsRepaint = true;
+                }
+            }
         }
     } else {
         // Are recording vocal
-        wasVocalToNotes = true;
-        const int numVocalNotes = processorRef.getNumOfRecordedNotesFromVocal();
-        // It is better to check so as not to do unnecessary work
-        if (prevVocalNotesSize != numVocalNotes) {
-            prevVocalNotesSize = numVocalNotes;
-            mainPanel->updateVocalNotes(processorRef.getRecordedNotesFromVocal());
-        }
-        if (processorRef.getIsRecNote()) {
-            // Recording a note right now
-            wasRecNote = true;
-            mainPanel->updateRecNote(processorRef.getRecNote());
-        } else if (wasRecNote) {
-            // Stopped recording a note right now
-            mainPanel->hideRecNote();
-            wasRecNote = false;
-        }
+        wasVocalToMelody = true;
         const float currRecVolume_dB = processorRef.getCurrRecVolume();
         if (currRecVolume_dB != recVolume_dB) {
             recVolume_dB = currRecVolume_dB;
@@ -1486,6 +1480,37 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
         } else if (!processorRef.isPlaying()) {
             repaint(); // Hide vocal volume
         }
+        // ====================== NOTES ======================
+        if (processorRef.params.vocalToMelodyGenNotes) {
+            const int numVocalNotes = processorRef.getNumOfRecordedNotesFromVocal();
+            // It is better to check so as not to do unnecessary work
+            if (prevVocalNotesSize != numVocalNotes) {
+                prevVocalNotesSize = numVocalNotes;
+                mainPanel->updateVocalNotes(processorRef.getRecordedNotesFromVocal());
+                mainPanelNeedsRepaint = true;
+            }
+            if (processorRef.getIsRecNote()) {
+                // Recording a note right now
+                wasRecNote = true;
+                mainPanel->updateRecNote(processorRef.getRecNote());
+                mainPanelNeedsRepaint = true;
+            } else if (wasRecNote) {
+                // Stopped recording a note right now
+                wasRecNote = false;
+                mainPanel->hideRecNote();
+                mainPanelNeedsRepaint = true;
+            }
+        }
+        // =================== PITCH CURVE ===================
+        if (processorRef.params.vocalToMelodyGenCurve) {
+            if (processorRef.updatePitchCurveForEditor(mainPanel->getPitchCurveRef())) {
+                mainPanelNeedsRepaint = true;
+            }
+        }
+    }
+
+    if (mainPanelNeedsRepaint) {
+        mainPanel->repaint();
     }
 }
 

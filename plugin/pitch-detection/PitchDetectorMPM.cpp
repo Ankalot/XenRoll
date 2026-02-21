@@ -5,7 +5,7 @@
 namespace pitch_detection {
 
 PitchDetectorMPM::PitchDetectorMPM(int fftSize)
-    : fftSize(fftSize), minVoiceFreq(70.0f), maxVoiceFreq(1300.0f) {
+    : fftSize(fftSize), minVoiceFreq(70.0f), maxVoiceFreq(1500.0f), peakCount(0) {
     // Initialize FFT
     fft = std::make_unique<juce::dsp::FFT>(std::log2(fftSize));
 
@@ -13,16 +13,25 @@ PitchDetectorMPM::PitchDetectorMPM(int fftSize)
     window = std::make_unique<juce::dsp::WindowingFunction<float>>(
         fftSize, juce::dsp::WindowingFunction<float>::hann);
 
-    // Allocate buffers
+    // Allocate buffers (pre-allocated to avoid real-time allocations)
     fftBuffer.resize(fftSize * 2);
     nsdfBuffer.resize(fftSize);
+    peakBuffer.resize(fftSize / 2); // Maximum possible peaks
 }
 
 PitchDetectorMPM::~PitchDetectorMPM() {}
 
+void PitchDetectorMPM::resetJumpsDetection() {
+    prevPitch = 0.0f;
+    prevPrevPitch = 0.0f;
+    numFixes = 0;
+}
+
 void PitchDetectorMPM::reset() {
     std::fill(fftBuffer.begin(), fftBuffer.end(), 0.0f);
     std::fill(nsdfBuffer.begin(), nsdfBuffer.end(), 0.0f);
+    peakCount = 0;
+    resetJumpsDetection();
 }
 
 void PitchDetectorMPM::setVoiceRange(float minFreq, float maxFreq) {
@@ -30,11 +39,9 @@ void PitchDetectorMPM::setVoiceRange(float minFreq, float maxFreq) {
     maxVoiceFreq = maxFreq;
 }
 
-std::vector<float> PitchDetectorMPM::calculateNSDF(const std::vector<float> &audioBuffer) {
+const std::vector<float>& PitchDetectorMPM::calculateNSDF(const std::vector<float> &audioBuffer) {
     const int bufferSize = static_cast<int>(audioBuffer.size());
     const int nsdfSize = bufferSize / 2;
-
-    std::vector<float> nsdf(nsdfSize, 0.0f);
 
     // Calculate autocorrelation using FFT
     // Copy audio data to FFT buffer and apply window
@@ -72,7 +79,9 @@ std::vector<float> PitchDetectorMPM::calculateNSDF(const std::vector<float> &aud
     float r0 = fftBuffer[0]; // Autocorrelation at lag 0
 
     if (r0 < 1e-10f) {
-        return nsdf; // Return zeros if signal is too weak
+        // Return zeros if signal is too weak
+        std::fill(nsdfBuffer.begin(), nsdfBuffer.begin() + nsdfSize, 0.0f);
+        return nsdfBuffer;
     }
 
     for (int tau = 0; tau < nsdfSize; ++tau) {
@@ -80,17 +89,17 @@ std::vector<float> PitchDetectorMPM::calculateNSDF(const std::vector<float> &aud
         float denominator = r0 + rTau;
 
         if (std::abs(denominator) < 1e-10f) {
-            nsdf[tau] = 0.0f;
+            nsdfBuffer[tau] = 0.0f;
         } else {
-            nsdf[tau] = 2.0f * rTau / denominator;
+            nsdfBuffer[tau] = 2.0f * rTau / denominator;
         }
     }
 
-    return nsdf;
+    return nsdfBuffer;
 }
 
-std::vector<int> PitchDetectorMPM::peakPicking(const std::vector<float> &nsdf) {
-    std::vector<int> maxPositions;
+const std::vector<int>& PitchDetectorMPM::peakPicking(const std::vector<float> &nsdf) {
+    peakCount = 0;
     int pos = 0;
     int curMaxPos = 0;
     int size = static_cast<int>(nsdf.size());
@@ -120,8 +129,8 @@ std::vector<int> PitchDetectorMPM::peakPicking(const std::vector<float> &nsdf) {
         pos++;
 
         if (pos < size - 1 && nsdf[pos] <= 0) {
-            if (curMaxPos > 0) {
-                maxPositions.push_back(curMaxPos);
+            if (curMaxPos > 0 && peakCount < static_cast<int>(peakBuffer.size())) {
+                peakBuffer[peakCount++] = curMaxPos;
                 curMaxPos = 0;
             }
 
@@ -131,11 +140,16 @@ std::vector<int> PitchDetectorMPM::peakPicking(const std::vector<float> &nsdf) {
         }
     }
 
-    if (curMaxPos > 0) {
-        maxPositions.push_back(curMaxPos);
+    if (curMaxPos > 0 && peakCount < static_cast<int>(peakBuffer.size())) {
+        peakBuffer[peakCount++] = curMaxPos;
     }
 
-    return maxPositions;
+    // Resize to actual number of peaks (this is cheap since we're shrinking)
+    // Note: In a real-time critical path, we could avoid this by tracking the count separately
+    // but for simplicity and correctness, we keep the resize
+    peakBuffer.resize(peakCount);
+
+    return peakBuffer;
 }
 
 std::pair<float, float> PitchDetectorMPM::parabolicInterpolation(const std::vector<float> &data,
@@ -161,42 +175,55 @@ std::pair<float, float> PitchDetectorMPM::parabolicInterpolation(const std::vect
     return {x, y};
 }
 
-float PitchDetectorMPM::detectPitch(const std::vector<float> &audioBuffer, double sampleRate) {
+float PitchDetectorMPM::detectPitch(const std::vector<float> &audioBuffer, double sampleRate,
+                                    bool wasSilence) {
     if (audioBuffer.empty() || sampleRate <= 0) {
+        resetJumpsDetection();
         return 0.0f;
     }
 
-    // Calculate NSDF
-    std::vector<float> nsdf = calculateNSDF(audioBuffer);
+    // Calculate NSDF (reuses nsdfBuffer)
+    const std::vector<float>& nsdf = calculateNSDF(audioBuffer);
 
-    // Find peaks
-    std::vector<int> maxPositions = peakPicking(nsdf);
+    // Find peaks (reuses peakBuffer)
+    const std::vector<int>& maxPositions = peakPicking(nsdf);
 
     if (maxPositions.empty()) {
+        resetJumpsDetection();
         return 0.0f;
     }
 
     // Find highest amplitude
     float highestAmplitude = -std::numeric_limits<float>::max();
-    for (int pos : maxPositions) {
-        highestAmplitude = std::max(highestAmplitude, nsdf[pos]);
+    for (int i = 0; i < peakCount; ++i) {
+        highestAmplitude = std::max(highestAmplitude, nsdf[maxPositions[i]]);
     }
 
     if (highestAmplitude < MPM_SMALL_CUTOFF) {
+        resetJumpsDetection();
         return 0.0f;
     }
 
     // Parabolic interpolation for all peaks above small cutoff
-    std::vector<std::pair<float, float>> estimates;
-    for (int pos : maxPositions) {
+    // Use fixed-size array to avoid dynamic allocation (max 20 peaks should be enough)
+    struct Estimate {
+        float period;
+        float amplitude;
+    };
+    Estimate estimates[20];
+    int estimateCount = 0;
+
+    for (int i = 0; i < peakCount && estimateCount < 20; ++i) {
+        int pos = maxPositions[i];
         if (nsdf[pos] > MPM_SMALL_CUTOFF) {
             auto x = parabolicInterpolation(nsdf, pos);
-            estimates.push_back(x);
+            estimates[estimateCount++] = Estimate{x.first, x.second};
             highestAmplitude = std::max(highestAmplitude, x.second);
         }
     }
 
-    if (estimates.empty()) {
+    if (estimateCount == 0) {
+        resetJumpsDetection();
         return 0.0f;
     }
 
@@ -204,14 +231,15 @@ float PitchDetectorMPM::detectPitch(const std::vector<float> &audioBuffer, doubl
     float actualCutoff = MPM_CUTOFF * highestAmplitude;
     float period = 0.0f;
 
-    for (const auto &estimate : estimates) {
-        if (estimate.second >= actualCutoff) {
-            period = estimate.first;
+    for (int i = 0; i < estimateCount; ++i) {
+        if (estimates[i].amplitude >= actualCutoff) {
+            period = estimates[i].period;
             break;
         }
     }
 
     if (period < 1.0f) {
+        resetJumpsDetection();
         return 0.0f;
     }
 
@@ -220,8 +248,29 @@ float PitchDetectorMPM::detectPitch(const std::vector<float> &audioBuffer, doubl
 
     // Apply voice range filtering
     if (pitchEstimate < minVoiceFreq || pitchEstimate > maxVoiceFreq) {
+        resetJumpsDetection();
         return 0.0f;
     }
+
+    if (wasSilence) {
+        resetJumpsDetection();
+    } else {
+        // Adjust the pitch if an unrealistic jump has occurred.
+        if ((numFixes <= maxNumFixes) && (prevPitch != 0.0f) &&
+            ((prevPitch / pitchEstimate > 1.9f) || (pitchEstimate / prevPitch > 1.9f))) {
+            if (prevPrevPitch != 0.0f) {
+                float newPitchEstimate = prevPrevPitch + 2 * (prevPitch - prevPrevPitch);
+                pitchEstimate = juce::jlimit(minVoiceFreq, maxVoiceFreq, newPitchEstimate);
+            } else {
+                pitchEstimate = prevPitch;
+            }
+            numFixes++;
+        } else {
+            numFixes = 0;
+        }
+        prevPrevPitch = prevPitch;
+    }
+    prevPitch = pitchEstimate;
 
     return pitchEstimate;
 }

@@ -28,7 +28,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     }
     partialsFinderBuffer = std::make_unique<AccumulatingBuffer>();
 
-    // VOCAL TO NOTES
+    // VOCAL TO MELODY
     pitchDetector = std::make_unique<pitch_detection::PitchDetectorMPM>(vocalFFTSize);
     vocalAccumBuffer.resize(vocalFFTSize);
     vocalAccumCount = 0;
@@ -161,7 +161,7 @@ void AudioPluginAudioProcessor::tryStartRecording() {
     }
 }
 
-// ====================================== VOCAL TO NOTES ======================================
+// ====================================== VOCAL TO MELODY ======================================
 
 std::optional<int> AudioPluginAudioProcessor::findNearestKeyWithLimit(int key, int maxCentsChange,
                                                                       const std::set<int> &keys) {
@@ -190,7 +190,7 @@ std::optional<int> AudioPluginAudioProcessor::findNearestKeyWithLimit(int key, i
 bool AudioPluginAudioProcessor::trySnapNote(Note &note, const std::set<int> &keys) {
     int noteCents = note.cents;
     int noteOctave = note.octave;
-    const int maxCentsChange = params.vocalToNotesDCents;
+    const int maxCentsChange = params.vocalToMelodyDCents;
     auto result = findNearestKeyWithLimit(noteCents, maxCentsChange, keys);
     if (result) {
         const int newNoteTotalCents = *result;
@@ -213,8 +213,8 @@ void AudioPluginAudioProcessor::fixateRecordingNote() {
     }
     currentNote.duration = playHeadTime - currentNote.time;
 
-    if (currentNote.duration >= params.minVocalNoteDuration) {
-        if (params.vocalToNotesKeySnap) {
+    if (currentNote.duration >= params.vocalToMelodyMinNoteDuration) {
+        if (params.vocalToMelodyKeySnap) {
             if (!trySnapNote(currentNote, keys)) {
                 trySnapNote(currentNote, recKeys);
             }
@@ -264,6 +264,21 @@ int AudioPluginAudioProcessor::freqToTotalCents(float freq) {
     return static_cast<int>(std::round(A4TotalCents + cents));
 }
 
+void AudioPluginAudioProcessor::vocalIsSilent() {
+    currentVocalTotalCents = -1;
+    if (isRecNote) {
+        fixateRecordingNote();
+    }
+    // Even if params.vocalToMelodyGenCurve is false (so everything will work properly
+    //    even if we turn this mode on and off while recording)
+    const int pitchCurveSize = pitchCurve.first.size();
+    if ((pitchCurveSize > 0) && (pitchCurve.second[pitchCurveSize - 1] != -1)) {
+        std::scoped_lock lock(pitchCurveMutex);
+        pitchCurve.first.push_back(playHeadTime);
+        pitchCurve.second.push_back(-1);
+    }
+}
+
 void AudioPluginAudioProcessor::processVocalInput(const juce::AudioBuffer<float> &buffer,
                                                   int numSamples, double sampleRate,
                                                   double beatsInBlock, double playHeadTime,
@@ -288,71 +303,65 @@ void AudioPluginAudioProcessor::processVocalInput(const juce::AudioBuffer<float>
 
     // Check if signal is too weak to be valid
     if (volume_dB <= params.minVocalVolume_dB) {
-        if (isRecNote) {
-            fixateRecordingNote();
-            currentVocalFreq = 0.0f;
-            currentVocalTotalCents = -1;
-            recNoteStartTotalCents = -1;
-            recNoteMinTotalCents = -1;
-            recNoteMaxTotalCents = -1;
-        }
+        vocalIsSilent();
         return;
     }
 
-    // Accumulate samples for FFT analysis
-    // Add new samples to the accumulation buffer
-    int spaceAvailable = vocalFFTSize - vocalAccumCount;
-    int samplesToAdd = std::min(numSamples, spaceAvailable);
+    int samplesProcessed = 0;
+    int inputOffset = 0;
 
-    for (int i = 0; i < samplesToAdd; ++i) {
-        vocalAccumBuffer[vocalAccumCount + i] = channelData[i] * gainLinear;
-    }
-    vocalAccumCount += samplesToAdd;
+    while (samplesProcessed < numSamples) {
+        int spaceAvailable = vocalFFTSize - vocalAccumCount;
+        int samplesToCopy = std::min(numSamples - samplesProcessed, spaceAvailable);
 
-    // When we have enough samples for FFT, perform analysis
-    if (vocalAccumCount >= vocalFFTSize) {
-        // Analyze pitch from the accumulated buffer using MPM
-        float detectedFreq = pitchDetector->detectPitch(vocalAccumBuffer, sampleRate);
+        for (int i = 0; i < samplesToCopy; ++i) {
+            vocalAccumBuffer[vocalAccumCount + i] = channelData[inputOffset + i] * gainLinear;
+        }
 
-        if (detectedFreq > 0.0f) {
-            currentVocalFreq = detectedFreq;
-            int newTotalCents = freqToTotalCents(detectedFreq);
-            if (newTotalCents >= 0) {
-                currentVocalTotalCents = newTotalCents;
-                updateRecordingNote();
-            } else {
-                // No clear pitch detected - treat as silence
-                currentVocalFreq = 0.0f;
-                currentVocalTotalCents = -1;
-                if (isRecNote) {
-                    fixateRecordingNote();
+        vocalAccumCount += samplesToCopy;
+        samplesProcessed += samplesToCopy;
+        inputOffset += samplesToCopy;
+
+        // When we have enough samples for FFT, perform analysis
+        if (vocalAccumCount >= vocalFFTSize) {
+            // Analyze pitch from the accumulated buffer using MPM
+            float detectedFreq = pitchDetector->detectPitch(vocalAccumBuffer, sampleRate,
+                                                            currentVocalTotalCents == -1);
+
+            if (detectedFreq > 0.0f) {
+                int newTotalCents = freqToTotalCents(detectedFreq);
+                if (newTotalCents >= 0) {
+                    currentVocalTotalCents = newTotalCents;
+                    if (params.vocalToMelodyGenNotes) {
+                        updateRecordingNote();
+                    } else if (isRecNote) {
+                        fixateRecordingNote();
+                    }
+                    if (params.vocalToMelodyGenCurve) {
+                        std::scoped_lock lock(pitchCurveMutex);
+                        pitchCurve.first.push_back(playHeadTime);
+                        pitchCurve.second.push_back(currentVocalTotalCents);
+                    }
+                } else {
+                    vocalIsSilent();
                 }
+            } else {
+                vocalIsSilent();
             }
-        } else {
-            // No clear pitch detected - treat as silence
-            currentVocalFreq = 0.0f;
-            currentVocalTotalCents = -1;
-            if (isRecNote) {
-                fixateRecordingNote();
+
+            // Shifting the buffer with overlap (hop size = numSamples for uniformity)
+            int hopSize = numSamples;
+            int samplesToKeep = vocalFFTSize - hopSize;
+
+            if (samplesToKeep > 0) {
+                // We leave the overlapping samples for the next analysis.
+                std::copy(vocalAccumBuffer.begin() + hopSize,
+                          vocalAccumBuffer.begin() + vocalFFTSize, vocalAccumBuffer.begin());
+                vocalAccumCount = samplesToKeep;
+            } else {
+                vocalAccumCount = 0;
             }
         }
-
-        // Shift buffer by hop size (numSamples)
-        // Move remaining samples to the beginning
-        int remainingSamples = vocalAccumCount - vocalFFTSize;
-        if (remainingSamples > 0) {
-            std::copy(vocalAccumBuffer.begin() + vocalFFTSize,
-                      vocalAccumBuffer.begin() + vocalFFTSize + remainingSamples,
-                      vocalAccumBuffer.begin());
-        }
-
-        // Add any samples that weren't processed yet (if numSamples > spaceAvailable)
-        int unprocessedSamples = numSamples - samplesToAdd;
-        for (int i = 0; i < unprocessedSamples; ++i) {
-            vocalAccumBuffer[remainingSamples + i] = channelData[samplesToAdd + i] * gainLinear;
-        }
-
-        vocalAccumCount = remainingSamples + unprocessedSamples;
     }
 }
 
@@ -361,7 +370,7 @@ void AudioPluginAudioProcessor::updateRecordingNote() {
         return;
     }
 
-    const int dCentsThreshold = params.vocalToNotesDCents;
+    const int dCentsThreshold = params.vocalToMelodyDCents;
 
     if (!isRecNote.load()) {
         startRecordingNote();
@@ -369,7 +378,7 @@ void AudioPluginAudioProcessor::updateRecordingNote() {
         // Check if pitch changed enough to start a new note
         int curr_start_pitchDiff = std::abs(currentVocalTotalCents - recNoteStartTotalCents);
         bool startNewNote = false;
-        if (params.vocalToNotesMakeBends) {
+        if (params.vocalToMelodyMakeBends) {
             float currTime = playHeadTime;
             float slope =
                 (currentVocalTotalCents - recNoteStartTotalCents) / (currTime - noteStartTime);
@@ -400,7 +409,7 @@ void AudioPluginAudioProcessor::updateRecordingNote() {
             startRecordingNote();
         } else {
             // Tweak pitch (base and/or bend)
-            if (!params.vocalToNotesMakeBends || (curr_start_pitchDiff < dCentsThreshold / 2)) {
+            if (!params.vocalToMelodyMakeBends || (curr_start_pitchDiff < dCentsThreshold / 2)) {
                 // Alter base pitch (if (no bends mode) OR (almost no bend))
                 const int alteredVocalTotalCents =
                     ((currentNote.octave * 1200 + currentNote.cents) + currentVocalTotalCents) / 2;
@@ -437,9 +446,15 @@ void AudioPluginAudioProcessor::startRecordingVocal() {
     // Clear recorded keys
     recKeys.clear();
 
+    // Clear pitch curve
+    {
+        std::scoped_lock lock(pitchCurveMutex);
+        pitchCurve.first.clear();
+        pitchCurve.second.clear();
+    }
+
     // Reset recording state
     isRecNote = false;
-    currentVocalFreq = 0.0f;
     recNoteStartTotalCents = -1;
     recNoteMinTotalCents = -1;
     recNoteMaxTotalCents = -1;
@@ -457,7 +472,7 @@ void AudioPluginAudioProcessor::startRecordingVocal() {
         pitchDetector->reset();
     }
 
-    params.vocalToNotes = true;
+    params.vocalToMelody = true;
 }
 
 void AudioPluginAudioProcessor::stopRecordingVocal() {
@@ -465,8 +480,7 @@ void AudioPluginAudioProcessor::stopRecordingVocal() {
         fixateRecordingNote();
     }
 
-    params.vocalToNotes = false;
-    currentVocalFreq = 0.0f;
+    params.vocalToMelody = false;
     currentVocalTotalCents = -1;
     recNoteStartTotalCents = -1;
     recNoteMinTotalCents = -1;
@@ -566,8 +580,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
             double barsInBlock = beatsInBlock / beatsPerBar;
             bool isPlaying = positionInfo->getIsPlaying();
 
-            // ============================= VOCAL TO NOTES =============================
-            if (params.vocalToNotes && isPlaying) {
+            // ============================= VOCAL TO MELODY ============================
+            if (params.vocalToMelody && isPlaying) {
                 processVocalInput(buffer, numSamples, sampleRate, beatsInBlock, playHeadTime, bpm);
             }
             // ==========================================================================
@@ -821,10 +835,13 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
     stream.writeInt(params.maxDenRatiosMarks);
     stream.writeInt(params.goodEnoughErrorRatiosMarks);
 
-    // Write vocal to notes params
-    stream.writeInt(params.vocalToNotesDCents);
-    stream.writeBool(params.vocalToNotesKeySnap);
-    stream.writeBool(params.vocalToNotesMakeBends);
+    // Write vocal to melody params
+    stream.writeBool(params.vocalToMelodyGenCurve);
+    stream.writeBool(params.vocalToMelodyGenNotes);
+    stream.writeFloat(params.vocalToMelodyMinNoteDuration);
+    stream.writeInt(params.vocalToMelodyDCents);
+    stream.writeBool(params.vocalToMelodyKeySnap);
+    stream.writeBool(params.vocalToMelodyMakeBends);
     stream.writeFloat(params.micGain_dB);
 }
 
@@ -950,11 +967,14 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         }
     }
 
-    // Read vocal to notes params
+    // Read vocal to melody params
     if (!stream.isExhausted()) {
-        params.vocalToNotesDCents = stream.readInt();
-        params.vocalToNotesKeySnap = stream.readBool();
-        params.vocalToNotesMakeBends = stream.readBool();
+        params.vocalToMelodyGenCurve = stream.readBool();
+        params.vocalToMelodyGenNotes = stream.readBool();
+        params.vocalToMelodyMinNoteDuration = stream.readFloat();
+        params.vocalToMelodyDCents = stream.readInt();
+        params.vocalToMelodyKeySnap = stream.readBool();
+        params.vocalToMelodyMakeBends = stream.readBool();
         params.micGain_dB = stream.readFloat();
     }
 

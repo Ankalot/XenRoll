@@ -74,7 +74,7 @@ set(SOURCE_FILES source/PluginEditor.cpp
     source/GenNewKeysMenu.cpp
     source/EditRatiosMarksMenu.cpp
     source/RatioMark.cpp
-    source/VocalToNotesMenu.cpp
+    source/VocalToMelodyMenu.cpp
     ${MTS_ESP_DIR}/libMTSMaster.cpp
     ${PITCH_DETECTOR_DIR}/PitchDetectorMPM.cpp)
 
@@ -111,7 +111,7 @@ set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h
     ${INCLUDE_DIR}/GenNewKeysMenu.h
     ${INCLUDE_DIR}/EditRatiosMarksMenu.h
     ${INCLUDE_DIR}/DragAndDropPopup.h
-    ${INCLUDE_DIR}/VocalToNotesMenu.h
+    ${INCLUDE_DIR}/VocalToMelodyMenu.h
     ${MTS_ESP_DIR}/libMTSMaster.h
     ${PITCH_DETECTOR_DIR}/PitchDetectorMPM.h)
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
@@ -186,7 +186,7 @@ juce_add_binary_data(
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Edit_ratios_marks.svg
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/More_tools.svg
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Notes_from_ghost.svg
-    ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Vocal_to_notes.svg
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Vocal_to_melody.svg
     HEADER_NAME BinaryData.h
 )
 

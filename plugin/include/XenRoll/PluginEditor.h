@@ -22,7 +22,7 @@
 #include "Theme.h"
 #include "TopPanel.h"
 #include "VelocityPanel.h"
-#include "VocalToNotesMenu.h"
+#include "VocalToMelodyMenu.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace audio_plugin {
@@ -282,6 +282,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     void deleteAllRatiosMarks() { mainPanel->deleteAllRatiosMarks(); }
 
+    void clearPitchCurve() { mainPanel->clearPitchCurve(); }
+
     /**
      * @brief Hide the current popup message
      */
@@ -401,7 +403,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     std::unique_ptr<InstancesMenu> instancesMenu;
     std::unique_ptr<GenNewKeysMenu> genNewKeysMenu;
     std::unique_ptr<EditRatiosMarksMenu> editRatiosMarksMenu;
-    std::unique_ptr<VocalToNotesMenu> vocalToNotesMenu;
+    std::unique_ptr<VocalToMelodyMenu> vocalToMelodyMenu;
 
     std::unique_ptr<MoreToolsMenu> moreToolsMenu;
 
@@ -422,7 +424,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
         turnOffAllZonesButton, dissonanceButton, pitchMemorySettingsButton, pitchMemoryButton,
         keysHarmonicityButton, ghostNotesKeysButton, ghostNotesTabButton, generateNewKeysButton,
         hideCentsButton, editRatiosMarksButton, moreToolsTabButton, notesFromGhostNotesButton,
-        vocalToNotesButton;
+        vocalToMelodyButton;
     std::unique_ptr<juce::Label> numSubdivsLabel, numBeatsLabel, numBarsLabel, midiChannelLabel;
     std::unique_ptr<IntegerInput> numSubdivsInput, numBeatsInput, numBarsInput;
 
@@ -449,8 +451,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     const int top_x = (topPanel_height_px - top_height_px) / 2;
     const int top_y = top_x;
 
-    // ============= vocal to notes =============
-    bool wasVocalToNotes = false;
+    // ============= vocal to melody =============
+    bool wasVocalToMelody = false;
     int prevVocalNotesSize = -1;
     bool wasRecNote = false;
     float recVolume_dB = -60.0f;
