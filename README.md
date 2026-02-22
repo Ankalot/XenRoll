@@ -6,6 +6,7 @@
 * You can choose pitch of notes with an accuracy of one cent, and there are as many as 1200 cents in an octave (so it's a 1200 EDO piano roll)! 
 * You can bend notes independently in a visible way.  
 * This plugin has a unique pitch memory model, which helps to understand tonality, stability, and consonance; knowledge of music theory is not necessary.  
+* You can generate notes and/or pitch curve in real time by singing/humming.
 * You can import and export tracks.
 * You can have several independent instances of this plugin in a single project and view ghost notes from other instances.
 * XenRoll is an MTS-ESP master.
