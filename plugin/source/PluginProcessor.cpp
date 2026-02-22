@@ -336,7 +336,7 @@ void AudioPluginAudioProcessor::processVocalInput(const juce::AudioBuffer<float>
                     } else if (isRecNote) {
                         fixateRecordingNote();
                     }
-                    if (params.vocalToMelodyGenCurve) {
+                    if (params.vocalToMelodyGenCurve && (pitchTime >= 0)) {
                         std::scoped_lock lock(pitchCurveMutex);
                         pitchCurve.first.push_back(pitchTime);
                         pitchCurve.second.push_back(currentVocalTotalCents);
@@ -372,7 +372,9 @@ void AudioPluginAudioProcessor::updateRecordingNote() {
     const int dCentsThreshold = params.vocalToMelodyDCents;
 
     if (!isRecNote.load()) {
-        startRecordingNote();
+        if (pitchTime >= 0) {
+            startRecordingNote();
+        }
     } else {
         // Check if pitch changed enough to start a new note
         int curr_start_pitchDiff = std::abs(currentVocalTotalCents - recNoteStartTotalCents);
@@ -464,6 +466,7 @@ void AudioPluginAudioProcessor::startRecordingVocal() {
 
     // Reset accumulation buffer
     vocalAccumCount = 0;
+    // this fill is not necessary but why not lol
     std::fill(vocalAccumBuffer.begin(), vocalAccumBuffer.end(), 0.0f);
 
     // Reset pitch detector
@@ -580,9 +583,32 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
             bool isPlaying = positionInfo->getIsPlaying();
 
             // ============================= VOCAL TO MELODY ============================
-            if (params.vocalToMelody && isPlaying) {
-                pitchTime = playHeadTime - vocalFFTSize / samplesPerBeat / beatsPerBar;
-                processVocalInput(buffer, numSamples, sampleRate);
+            if (params.vocalToMelody) {
+                if (isPlaying) {
+                    pitchTime = playHeadTime - vocalFFTSize / samplesPerBeat / beatsPerBar;
+                    processVocalInput(buffer, numSamples, sampleRate);
+                } else if (wasPlaying) {
+                    if (isRecNote) {
+                        {
+                            std::scoped_lock lock(recNoteMutex);
+                            pitchTime = recNote.time + recNote.duration;
+                        }
+                        fixateRecordingNote();
+
+                        // Add gap to pitch curve
+                        std::scoped_lock lock(pitchCurveMutex);
+                        pitchCurve.first.push_back(pitchTime + 1e-4);
+                        pitchCurve.second.push_back(-1);
+                    }
+
+                    // Reset accumulation buffer
+                    vocalAccumCount = 0;
+
+                    // Reset pitch detector
+                    if (pitchDetector) {
+                        pitchDetector->reset();
+                    }
+                }
             }
             // ==========================================================================
 
