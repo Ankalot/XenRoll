@@ -1506,17 +1506,29 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         notesHistory.push(notes);
         unselectAllNotes();
         editor->hideVelocityPanel();
+        bool needGenNewKeys = false;
+        bool needUpdateKeys = false;
         for (int i = 0; i < copiedNotes.size(); ++i) {
             notes.push_back(copiedNotes[i]);
             int cents = copiedNotes[i].cents;
-            keys.insert(cents);
+            if (params->zones.isNoteInActiveZone(copiedNotes[i])) {
+                auto [_, inserted] = keys.insert(cents);
+                if (inserted || keyIsGenNew[cents]) {
+                    keyIsGenNew[cents] = false;
+                    if (params->generateNewKeys) {
+                        needGenNewKeys = true;
+                    }
+                    needUpdateKeys = true;
+                }
+            }
             keysFromAllNotes.insert(cents);
-            keyIsGenNew[cents] = false;
         }
-        if (params->generateNewKeys) {
+        if (needGenNewKeys) {
             generateNewKeys();
         }
-        editor->updateKeys(keys);
+        if (needUpdateKeys) {
+            editor->updateKeys(keys);
+        }
         editor->showMessage(juce::String(copiedNotes.size()) + " note" +
                             (copiedNotes.size() == 1 ? "" : "s") + " pasted!");
         editor->updateNotes(notes);
