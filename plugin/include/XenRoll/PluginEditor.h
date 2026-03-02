@@ -320,9 +320,9 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
      */
     void rePrepareNotes() { processorRef.rePrepareNotes(); }
 
-    void setManuallyPlayedNotesTotalCents(const std::set<int> &manuallyPlayedNotesTotalCents) {
-        processorRef.setManuallyPlayedNotesTotalCents(manuallyPlayedNotesTotalCents);
-    }
+    ///< mode = "keyboard" | "left" | "drag"
+    void setManuallyPlayedKeysTotalCents(const std::set<int> &manuallyPlayedKeysTotalCents,
+                                         const std::string &mode);
 
     const std::vector<Note> &getNotes() { return processorRef.getNotes(); }
 
@@ -379,6 +379,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     void fileDragExit(const juce::StringArray &files) override;
     void filesDropped(const juce::StringArray &files, int x, int y) override;
 
+    std::vector<Note> &getRecordedManuallyPlayedNotes() { return recordedManuallyPlayedNotes; }
+
     SmallLookAndFeel smallLF;
 
   private:
@@ -424,7 +426,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
         turnOffAllZonesButton, dissonanceButton, pitchMemorySettingsButton, pitchMemoryButton,
         keysHarmonicityButton, ghostNotesKeysButton, ghostNotesTabButton, generateNewKeysButton,
         hideCentsButton, editRatiosMarksButton, moreToolsTabButton, notesFromGhostNotesButton,
-        vocalToMelodyButton;
+        vocalToMelodyButton, recordManuallyPlayedNotesButton;
     std::unique_ptr<juce::Label> numSubdivsLabel, numBeatsLabel, numBarsLabel, midiChannelLabel;
     std::unique_ptr<IntegerInput> numSubdivsInput, numBeatsInput, numBarsInput;
 
@@ -451,13 +453,24 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     const int top_x = (topPanel_height_px - top_height_px) / 2;
     const int top_y = top_x;
 
+    std::set<int> leftManuallyPlayedKeysTotalCents, keyboardManuallyPlayedKeysTotalCents,
+        dragManuallyPlayedKeysTotalCents;
+
     // ============= vocal to melody =============
     bool wasVocalToMelody = false;
     int prevVocalNotesSize = -1;
     bool wasRecNote = false;
     float recVolume_dB = -60.0f;
     bool wasPlaying = false;
-    // ==========================================
+    // ===========================================
+
+    // ===== recording manually played notes =====
+    ///< isSelected = note has already been played (not pressed rn)
+    std::vector<Note> recordedManuallyPlayedNotes;
+    void startRecordingManuallyPlayedNotes();
+    void endRecordingManuallyPlayedNotes();
+    bool wasPlayingRMPN = false;
+    // ===========================================
 
     const int velocity_width_px = 120;
     const int velocity_height_px = 40;

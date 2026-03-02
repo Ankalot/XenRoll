@@ -38,6 +38,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
                           const juce::Font &font);
     void paint(juce::Graphics &g) override;
 
+    ///< NO REPAINT!
     void unselectAllNotes();
 
     void quantizeSelectedNotes();
@@ -50,8 +51,14 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void createNotesFromGhostNotes();
     void remakeKeys();
 
-    ///< Add recorded vocal notes to normal notes (when recording is over). NO REPAINT!
-    void addVocalNotes(const std::vector<Note> &newVocalNotes);
+    /**
+     * @brief Add recorded notes to normal notes (when recordnig is over). This
+     * method is for both vocal notes and manually played notes.
+     * @note Automatically unselects all other notes. NO REPAINT!
+     * @param newVocalNotes Recorded notes, must be selected.
+     */
+    void addRecordedNotes(const std::vector<Note> &recordedNotes);
+
     ///< Update recorded vocal notes (but don't mix them with normal ones yet). NO REPAINT!
     void updateVocalNotes(const std::vector<Note> &newVocalNotes);
     ///< Hide currently recording vocal notes. NO REPAINT!
@@ -65,7 +72,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
         repaint();
     };
 
-    PitchCurve& getPitchCurveRef() { return pitchCurve; };
+    PitchCurve &getPitchCurveRef() { return pitchCurve; };
 
     void changeBarWidthPx(float new_bar_width_px) {
         bar_width_px = new_bar_width_px;
@@ -145,7 +152,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     PitchMemoryResults pitchMemoryResults = {{}, {}};
 
     const juce::String keysPlaySet = "zxcvbnm,./asdfghjkl;qwertyuiop";
-    std::set<int> manuallyPlayedKeysTotalCents;
+    std::set<int> keyboardManuallyPlayedKeysTotalCents, dragManuallyPlayedKeysTotalCents;
     std::map<juce::juce_wchar, int> wasKeyDown; ///< char and totalCents
 
     // new should be added at the end (with push_back) (don't remember why lol)

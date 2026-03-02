@@ -42,7 +42,7 @@ class Parameters {
     // ==========================
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Minimum values ~~~~~~~~~~~~~~~~~~~~~~~~
-    static constexpr int min_editorWidth = 1420;
+    static constexpr int min_editorWidth = 1450;
     static constexpr int min_editorHeight = 600;
     static constexpr int min_num_bars = 1;
     static constexpr int min_num_beats = 1;
@@ -100,7 +100,7 @@ class Parameters {
     static constexpr float max_micGain_dB = 24.0f;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~ Saved params ~~~~~~~~~~~~~~~~~~~~~~~~~
-    int editorWidth = 1420;
+    int editorWidth = 1450;
     int editorHeight = 700;
     int num_beats = 4;
     int num_subdivs = 4;
@@ -212,6 +212,7 @@ class Parameters {
     int minDistBetweenNewKeys = 40;
     GenNewKeysTactics genNewKeysTactics = GenNewKeysTactics::DiverseIntervals;
     std::set<int> ghostNotesChannels = {};
+    bool recordManuallyPlayedNotes = false;
     // ================== Intellectual ==================
     // Partials/dissonance
     std::atomic<bool> findPartialsMode = false;

@@ -533,6 +533,22 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(vocalToMelodyMenu.get());
     vocalToMelodyMenu->setVisible(false);
 
+    recordManuallyPlayedNotesButton =
+        std::make_unique<SVGButton>(BinaryData::Record_notes_svg, BinaryData::Record_notes_svgSize,
+                                    true, processorRef.params.recordManuallyPlayedNotes,
+                                    "Record manually played notes (using keyboard or pressing keys "
+                                    "on left panel). You need to press \"play\" in DAW.");
+
+    recordManuallyPlayedNotesButton->onClick = [this](const juce::MouseEvent &me) {
+        if (!processorRef.params.recordManuallyPlayedNotes) {
+            startRecordingManuallyPlayedNotes();
+        } else {
+            endRecordingManuallyPlayedNotes();
+        }
+        return true;
+    };
+    addAndMakeVisible(recordManuallyPlayedNotesButton.get());
+
     vocalToMelodyButton = std::make_unique<SVGButton>(
         BinaryData::Vocal_to_melody_svg, BinaryData::Vocal_to_melody_svgSize, true,
         processorRef.params.vocalToMelody,
@@ -620,6 +636,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
     stopTimer(); // Ensure timer is stopped before destruction
+    processorRef.setManuallyPlayedNotesTotalCents({});
     processorRef.params.editorWidth = getWidth();
     processorRef.params.editorHeight = getHeight();
 }
@@ -815,6 +832,9 @@ void AudioPluginAudioProcessorEditor::resized() {
                                  bottom_y - vocalToMelodyMenu->getHeight() - 10,
                                  vocalToMelodyMenu->getWidth(), vocalToMelodyMenu->getHeight());
     bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
+    recordManuallyPlayedNotesButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px,
+                                               bottom_height_px);
+    bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
 
     velocityPanel->setBounds(leftPanel_width_px + (topView_width_px - velocity_width_px) / 2,
                              topPanel_height_px + leftView_height_px - velocity_height_px -
@@ -822,6 +842,91 @@ void AudioPluginAudioProcessorEditor::resized() {
                              velocity_width_px, velocity_height_px);
 
     repaint();
+}
+
+void AudioPluginAudioProcessorEditor::setManuallyPlayedKeysTotalCents(
+    const std::set<int> &manuallyPlayedKeysTotalCents, const std::string &mode) {
+
+    if (mode == "keyboard") {
+        keyboardManuallyPlayedKeysTotalCents = manuallyPlayedKeysTotalCents;
+    } else if (mode == "drag") {
+        dragManuallyPlayedKeysTotalCents = manuallyPlayedKeysTotalCents;
+    } else if (mode == "left") {
+        leftManuallyPlayedKeysTotalCents = manuallyPlayedKeysTotalCents;
+    }
+
+    std::set<int> allManuallyPlayedKeysTotalCents;
+    allManuallyPlayedKeysTotalCents.insert(keyboardManuallyPlayedKeysTotalCents.begin(),
+                                           keyboardManuallyPlayedKeysTotalCents.end());
+    allManuallyPlayedKeysTotalCents.insert(leftManuallyPlayedKeysTotalCents.begin(),
+                                           leftManuallyPlayedKeysTotalCents.end());
+
+    if ((mode != "drag") && processorRef.params.recordManuallyPlayedNotes &&
+        processorRef.isPlaying()) {
+        float currPlayHeadTime = processorRef.getPlayHeadTime();
+
+        // stop recording released notes
+        for (auto &note : recordedManuallyPlayedNotes) {
+            if (!note.isSelected &&
+                !allManuallyPlayedKeysTotalCents.contains(note.octave * 1200 + note.cents)) {
+                note.isSelected = true;
+                note.duration = currPlayHeadTime - note.time;
+            }
+        }
+
+        // start recording new notes
+        for (auto mpntc : allManuallyPlayedKeysTotalCents) {
+            bool recordNewNote = true;
+            for (auto &note : recordedManuallyPlayedNotes) {
+                if (!note.isSelected && (note.octave * 1200 + note.cents == mpntc)) {
+                    recordNewNote = false;
+                    continue;
+                }
+            }
+            if (recordNewNote) {
+                Note newNote;
+                newNote.octave = mpntc / 1200;
+                newNote.cents = mpntc % 1200;
+                newNote.time = currPlayHeadTime;
+                newNote.duration = 0.0f;
+                newNote.velocity = 100.0f / 128; // Default velocity
+                newNote.isSelected = false;
+                newNote.bend = 0;
+                recordedManuallyPlayedNotes.push_back(newNote);
+            }
+        }
+    }
+
+    allManuallyPlayedKeysTotalCents.insert(dragManuallyPlayedKeysTotalCents.begin(),
+                                           dragManuallyPlayedKeysTotalCents.end());
+    processorRef.setManuallyPlayedNotesTotalCents(allManuallyPlayedKeysTotalCents);
+}
+
+void AudioPluginAudioProcessorEditor::startRecordingManuallyPlayedNotes() {
+    recordedManuallyPlayedNotes.clear();
+    processorRef.params.recordManuallyPlayedNotes = true;
+    mainPanel->repaint();
+}
+
+void AudioPluginAudioProcessorEditor::endRecordingManuallyPlayedNotes() {
+    if (processorRef.isPlaying()) {
+        float currPlayHeadTime = processorRef.getPlayHeadTime();
+        for (auto &note : recordedManuallyPlayedNotes) {
+            if (!note.isSelected) {
+                note.duration = currPlayHeadTime - note.time;
+                note.isSelected = true;
+            }
+        }
+    } else {
+        for (auto &note : recordedManuallyPlayedNotes) {
+            note.isSelected = true;
+        }
+    }
+
+    mainPanel->addRecordedNotes(recordedManuallyPlayedNotes);
+    recordedManuallyPlayedNotes.clear();
+    processorRef.params.recordManuallyPlayedNotes = false;
+    mainPanel->repaint();
 }
 
 std::optional<std::vector<int>> parseSclFile(const juce::File &file) {
@@ -1447,6 +1552,23 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
             "OK");
     }
 
+    if (processorRef.params.recordManuallyPlayedNotes) {
+        const bool isPlaying = processorRef.isPlaying();
+        if (isPlaying) {
+            for (auto &note : recordedManuallyPlayedNotes) {
+                if (!note.isSelected) {
+                    note.duration = playHeadTime - note.time;
+                }
+            }
+            wasPlayingRMPN = true;
+        } else if (wasPlayingRMPN) {
+            for (auto &note : recordedManuallyPlayedNotes) {
+                note.isSelected = true;
+            }
+            wasPlayingRMPN = false;
+        }
+    }
+
     if (!processorRef.params.vocalToMelody) {
         if (wasVocalToMelody) {
             // Stopped recording vocal right now
@@ -1459,7 +1581,7 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
                 wasRecNote = false;
             }
             auto vocalNotes = processorRef.getRecordedNotesFromVocal();
-            mainPanel->addVocalNotes(vocalNotes);
+            mainPanel->addRecordedNotes(vocalNotes);
             mainPanel->updateVocalNotes(std::vector<Note>());
             prevVocalNotesSize = -1;
             mainPanelNeedsRepaint = true;

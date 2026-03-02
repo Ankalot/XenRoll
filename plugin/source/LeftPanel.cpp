@@ -108,16 +108,16 @@ void LeftPanel::mouseDown(const juce::MouseEvent &event) {
             }
         }
         std::tie(octave, cents) = centsToKeysCents(octave, cents);
-        manuallyPlayedNoteTotalCents.insert(octave * 1200 + cents);
-        editor->setManuallyPlayedNotesTotalCents(manuallyPlayedNoteTotalCents);
+        manuallyPlayedKeyTotalCents.insert(octave * 1200 + cents);
+        editor->setManuallyPlayedKeysTotalCents(manuallyPlayedKeyTotalCents, "left");
     }
     editor->bringBackKeyboardFocus();
 }
 
 void LeftPanel::mouseUp(const juce::MouseEvent &event) {
     if (event.mods.isLeftButtonDown()) {
-        manuallyPlayedNoteTotalCents.clear();
-        editor->setManuallyPlayedNotesTotalCents(manuallyPlayedNoteTotalCents);
+        manuallyPlayedKeyTotalCents.clear();
+        editor->setManuallyPlayedKeysTotalCents(manuallyPlayedKeyTotalCents, "left");
     }
 }
 
@@ -140,10 +140,10 @@ void LeftPanel::mouseDrag(const juce::MouseEvent &event) {
         }
         std::tie(octave, cents) = centsToKeysCents(octave, cents);
         int totalCents = octave * 1200 + cents;
-        if (!manuallyPlayedNoteTotalCents.contains(totalCents)) {
-            manuallyPlayedNoteTotalCents.clear();
-            manuallyPlayedNoteTotalCents.insert(totalCents);
-            editor->setManuallyPlayedNotesTotalCents(manuallyPlayedNoteTotalCents);
+        if (!manuallyPlayedKeyTotalCents.contains(totalCents)) {
+            manuallyPlayedKeyTotalCents.clear();
+            manuallyPlayedKeyTotalCents.insert(totalCents);
+            editor->setManuallyPlayedKeysTotalCents(manuallyPlayedKeyTotalCents, "left");
         }
     }
 }

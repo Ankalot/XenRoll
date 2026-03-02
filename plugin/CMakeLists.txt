@@ -187,6 +187,7 @@ juce_add_binary_data(
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/More_tools.svg
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Notes_from_ghost.svg
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Vocal_to_melody.svg
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/SVG/Record_notes.svg
     HEADER_NAME BinaryData.h
 )
 

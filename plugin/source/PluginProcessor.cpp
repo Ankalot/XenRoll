@@ -237,7 +237,7 @@ void AudioPluginAudioProcessor::startRecordingNote() {
     newNote.time = pitchTime;
     newNote.duration = 0.0f;
     newNote.velocity = 100.0f / 128; // Default velocity
-    newNote.isSelected = false;
+    newNote.isSelected = true;
     newNote.bend = 0;
 
     recNoteStartTotalCents = currentVocalTotalCents;

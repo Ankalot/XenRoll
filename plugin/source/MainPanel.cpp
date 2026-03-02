@@ -226,6 +226,16 @@ void MainPanel::paint(juce::Graphics &g) {
         }
     }
 
+    // manually played notes
+    if (params->recordManuallyPlayedNotes) {
+        g.setColour(Theme::activated);
+        for (const Note &note : editor->getRecordedManuallyPlayedNotes()) {
+            juce::Path notePath = getNotePath(note);
+            g.fillPath(notePath);
+            g.strokePath(notePath, strokeType);
+        }
+    }
+
     // Pitch traces
     if (params->showPitchesMemoryTraces && !params->pitchMemoryShowOnlyHarmonicity) {
         const auto &pitchTraces = pitchMemoryResults.first;
@@ -279,8 +289,8 @@ void MainPanel::paint(juce::Graphics &g) {
         juce::Path path;
         bool curveBreak = true;
         const float adaptedHorWider = adaptHor(Theme::wider);
-        const int clipXleft = clipX - juce::roundToInt(clipWidth*0.05f);
-        const int clipXright = clipX + juce::roundToInt(clipWidth*1.05f);
+        const int clipXleft = clipX - juce::roundToInt(clipWidth * 0.05f);
+        const int clipXright = clipX + juce::roundToInt(clipWidth * 1.05f);
         for (int i = 0; i < pitchCurveSize; ++i) {
             const int totalCents = pitchCurve.second[i];
             const float pointX = pitchCurve.first[i] * bar_width_px;
@@ -298,9 +308,8 @@ void MainPanel::paint(juce::Graphics &g) {
                                       adaptedHorWider + adaptedHorWide);
                         // Draw main
                         g.setColour(Theme::activated);
-                        g.fillEllipse(pointX - adaptedHorWider / 2,
-                                      pointY - adaptedHorWider / 2, adaptedHorWider,
-                                      adaptedHorWider);
+                        g.fillEllipse(pointX - adaptedHorWider / 2, pointY - adaptedHorWider / 2,
+                                      adaptedHorWider, adaptedHorWider);
                     } else {
                         // Start new segment
                         path.startNewSubPath(juce::Point<float>(pointX, pointY));
@@ -398,7 +407,6 @@ void MainPanel::unselectAllNotes() {
     for (int i = 0; i < notes.size(); ++i) {
         notes[i].isSelected = false;
     }
-    repaint();
 }
 
 void MainPanel::quantizeSelectedNotes() {
@@ -675,10 +683,12 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                     std::lock_guard<std::mutex> lock(mptcMtx);
                     for (const Note &note : notes) {
                         if (note.isSelected) {
-                            manuallyPlayedKeysTotalCents.insert(note.cents + note.octave * 1200);
+                            dragManuallyPlayedKeysTotalCents.insert(note.cents +
+                                                                    note.octave * 1200);
                         }
                     }
-                    editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
+                    editor->setManuallyPlayedKeysTotalCents(dragManuallyPlayedKeysTotalCents,
+                                                            "drag");
                 }
                 return;
             }
@@ -687,6 +697,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         bool thereAreSelNotes = thereAreSelectedNotes();
         unselectAllNotes();
         if (thereAreSelNotes) {
+            repaint();
             editor->hideVelocityPanel();
             return;
         }
@@ -728,11 +739,12 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             {
                 std::lock_guard<std::mutex> lock(mptcMtx);
                 // we need to do this for playing a key that is already been played
-                if (manuallyPlayedKeysTotalCents.erase(totalCents) != 0) {
-                    editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
+                if (dragManuallyPlayedKeysTotalCents.erase(totalCents) != 0) {
+                    editor->setManuallyPlayedKeysTotalCents(dragManuallyPlayedKeysTotalCents,
+                                                            "drag");
                 }
-                manuallyPlayedKeysTotalCents.insert(totalCents);
-                editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
+                dragManuallyPlayedKeysTotalCents.insert(totalCents);
+                editor->setManuallyPlayedKeysTotalCents(dragManuallyPlayedKeysTotalCents, "drag");
                 placedNoteKeyCounter[totalCents]++;
             }
 
@@ -747,9 +759,9 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                         std::lock_guard<std::mutex> lock(safeThis->mptcMtx);
                         safeThis->placedNoteKeyCounter[totalCents]--;
                         if (safeThis->placedNoteKeyCounter[totalCents] == 0) {
-                            safeThis->manuallyPlayedKeysTotalCents.erase(totalCents);
-                            safeThis->editor->setManuallyPlayedNotesTotalCents(
-                                safeThis->manuallyPlayedKeysTotalCents);
+                            safeThis->dragManuallyPlayedKeysTotalCents.erase(totalCents);
+                            safeThis->editor->setManuallyPlayedKeysTotalCents(
+                                safeThis->dragManuallyPlayedKeysTotalCents, "drag");
                         }
                     }
                 });
@@ -951,9 +963,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                     if ((new_cents != notes[i].cents) || (new_octave != notes[i].octave)) {
                         if (params->playDraggedNotes) {
                             std::lock_guard<std::mutex> lock(mptcMtx);
-                            manuallyPlayedKeysTotalCents.erase(notes[i].cents +
-                                                               notes[i].octave * 1200);
-                            manuallyPlayedKeysTotalCents.insert(new_cents + new_octave * 1200);
+                            dragManuallyPlayedKeysTotalCents.erase(notes[i].cents +
+                                                                   notes[i].octave * 1200);
+                            dragManuallyPlayedKeysTotalCents.insert(new_cents + new_octave * 1200);
                             updatedManuallyPlayedKeys = true;
                         }
                         moved = true;
@@ -972,7 +984,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         }
         if (updatedManuallyPlayedKeys) {
             std::lock_guard<std::mutex> lock(mptcMtx);
-            editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
+            editor->setManuallyPlayedKeysTotalCents(dragManuallyPlayedKeysTotalCents, "drag");
         }
         repaint();
     }
@@ -1035,10 +1047,10 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
         std::lock_guard<std::mutex> lock(mptcMtx);
         for (const Note &note : notes) {
             if (note.isSelected) {
-                manuallyPlayedKeysTotalCents.erase(note.cents + note.octave * 1200);
+                dragManuallyPlayedKeysTotalCents.erase(note.cents + note.octave * 1200);
             }
         }
-        editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
+        editor->setManuallyPlayedKeysTotalCents(dragManuallyPlayedKeysTotalCents, "drag");
     }
 
     isDragging = false;
@@ -1469,6 +1481,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     // unselect all notes
     if (key == juce::KeyPress::escapeKey) {
         unselectAllNotes();
+        repaint();
         editor->hideVelocityPanel();
         return true;
     }
@@ -1826,8 +1839,9 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             int cents = *(std::next(keys.begin(), keyInd % numKeys));
             int totalCents = octave * 1200 + cents;
             std::lock_guard<std::mutex> lock(mptcMtx);
-            manuallyPlayedKeysTotalCents.insert(totalCents);
-            editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
+            keyboardManuallyPlayedKeysTotalCents.insert(totalCents);
+            editor->setManuallyPlayedKeysTotalCents(keyboardManuallyPlayedKeysTotalCents,
+                                                    "keyboard");
             wasKeyDown[keyChar] = totalCents;
         }
         return true;
@@ -1851,8 +1865,9 @@ bool MainPanel::keyStateChanged(bool isKeyDown) {
                 int totalCents = octave * 1200 + cents;*/
                 int totalCents = wasKeyDown[keyChar];
                 std::lock_guard<std::mutex> lock(mptcMtx);
-                manuallyPlayedKeysTotalCents.erase(totalCents);
-                editor->setManuallyPlayedNotesTotalCents(manuallyPlayedKeysTotalCents);
+                keyboardManuallyPlayedKeysTotalCents.erase(totalCents);
+                editor->setManuallyPlayedKeysTotalCents(keyboardManuallyPlayedKeysTotalCents,
+                                                        "keyboard");
                 wasKeyDown.erase(keyChar);
                 werePlaying = true;
             }
@@ -2027,11 +2042,12 @@ void MainPanel::updateNotes(const std::vector<Note> &new_notes) {
     repaint();
 }
 
-void MainPanel::addVocalNotes(const std::vector<Note> &newVocalNotes) {
+void MainPanel::addRecordedNotes(const std::vector<Note> &recordedNotes) {
+    unselectAllNotes();
     const int numBars = params->get_num_bars();
     notesHistory.push(notes);
     int numAddedNotes = 0;
-    for (auto note : newVocalNotes) {
+    for (auto note : recordedNotes) {
         if (note.time + note.duration <= numBars) {
             notes.push_back(note);
             numAddedNotes++;
