@@ -80,7 +80,7 @@ EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters *params,
 
     autoCorrectLabel->setBounds(horPadding, y, width - 2 * horPadding, rowHeight);
     autoCorrectCheckbox->setBounds(horPadding, y, rowHeight, rowHeight);
-    y += rowHeight + rowSkip;
+    y += rowHeight;
 
     const int totalHeight = y + vertPadding;
     setSize(width, totalHeight);

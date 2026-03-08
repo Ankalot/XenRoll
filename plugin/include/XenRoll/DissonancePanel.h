@@ -47,7 +47,7 @@ class DissonancePanel : public juce::Component {
     std::unique_ptr<juce::FileChooser> partialsFileChooser;
 
     const int padding = 15;
-    const int lowComponentHeight = 32;
+    const int lowComponentHeight = 28;
     const int octaveInputWidth = 25;
     const int centsInputWidth = 60;
     const int strategyComboBoxWidth = 340;

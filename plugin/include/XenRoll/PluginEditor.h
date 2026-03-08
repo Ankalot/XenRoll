@@ -439,19 +439,20 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     float octave_height_px = 300.0f;
     float bar_width_px = 400.0f;
     const int leftPanel_width_px = 150;
-    const int topPanel_height_px = 50;
+    const int topPanel_height_px = 48;
     const int slider_width_px = 8;
     const int bottom_x = 14;
-    const int bottom_height_px = 30;
-    const int buttons_gap_width_px = 14;
-    const int bottom_gap_height_px = 12;
+    const int bottom_height_px = 28;
+    const int buttons_gap_width_px = 12;
+    const int bottom_gap_height_px = 10;
     const int popup_width_px = 300;
     const int popup_height_px = 50;
     const int dnd_popup_width_px = 500;
     const int dnd_popup_height_px = 250;
     const int top_height_px = bottom_height_px;
-    const int top_x = (topPanel_height_px - top_height_px) / 2;
-    const int top_y = top_x;
+    const int top_gap_width_px = (leftPanel_width_px - 3*top_height_px)/4;
+    const int top_x = top_gap_width_px;
+    const int top_y = (topPanel_height_px - top_height_px) / 2;
 
     std::set<int> leftManuallyPlayedKeysTotalCents, keyboardManuallyPlayedKeysTotalCents,
         dragManuallyPlayedKeysTotalCents;

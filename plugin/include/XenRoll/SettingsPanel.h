@@ -31,7 +31,7 @@ class SettingsPanel : public juce::Component {
     std::unique_ptr<juce::ToggleButton> playDraggedNotesCheckbox;
 
     const int padding = 15;
-    const int rowHeight = 32;
+    const int rowHeight = 28;
     const int labelWidth = 350;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SettingsPanel)

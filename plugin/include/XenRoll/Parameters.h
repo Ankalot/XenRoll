@@ -43,7 +43,7 @@ class Parameters {
     static constexpr float defaultVelocity =  100.0f / 127;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Minimum values ~~~~~~~~~~~~~~~~~~~~~~~~
-    static constexpr int min_editorWidth = 1450;
+    static constexpr int min_editorWidth = 1400;
     static constexpr int min_editorHeight = 600;
     static constexpr int min_num_bars = 1;
     static constexpr int min_num_beats = 1;
@@ -101,7 +101,7 @@ class Parameters {
     static constexpr float max_micGain_dB = 24.0f;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~ Saved params ~~~~~~~~~~~~~~~~~~~~~~~~~
-    int editorWidth = 1450;
+    int editorWidth = 1400;
     int editorHeight = 700;
     int num_beats = 4;
     int num_subdivs = 4;

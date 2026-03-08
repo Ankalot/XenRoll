@@ -215,24 +215,30 @@ void MainPanel::paint(juce::Graphics &g) {
         g.setColour(Theme::activated);
         for (const Note &note : vocalNotes) {
             juce::Path notePath = getNotePath(note);
-            g.fillPath(notePath);
-            g.strokePath(notePath, strokeType);
+            if (notePath.getBounds().intersects(clipFloat)) {
+                g.fillPath(notePath);
+                g.strokePath(notePath, strokeType);
+            }
         }
         // currently recording vocal note
         if (showRecNote) {
             juce::Path notePath = getNotePath(recNote);
-            g.fillPath(notePath);
-            g.strokePath(notePath, strokeType);
+            if (notePath.getBounds().intersects(clipFloat)) {
+                g.fillPath(notePath);
+                g.strokePath(notePath, strokeType);
+            }
         }
     }
 
-    // manually played notes
+    // recorded manually played notes
     if (params->recordManuallyPlayedNotes) {
         g.setColour(Theme::activated);
         for (const Note &note : editor->getRecordedManuallyPlayedNotes()) {
             juce::Path notePath = getNotePath(note);
-            g.fillPath(notePath);
-            g.strokePath(notePath, strokeType);
+            if (notePath.getBounds().intersects(clipFloat)) {
+                g.fillPath(notePath);
+                g.strokePath(notePath, strokeType);
+            }
         }
     }
 

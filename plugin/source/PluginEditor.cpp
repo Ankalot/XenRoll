@@ -737,9 +737,9 @@ void AudioPluginAudioProcessorEditor::resized() {
 
     int top_x_pos = top_x;
     camOnPlayHeadButton->setBounds(top_x_pos, top_y, top_height_px, top_height_px);
-    top_x_pos += top_height_px + buttons_gap_width_px;
+    top_x_pos += top_height_px + top_gap_width_px;
     turnOnAllZonesButton->setBounds(top_x_pos, top_y, top_height_px, top_height_px);
-    top_x_pos += top_height_px + buttons_gap_width_px;
+    top_x_pos += top_height_px + top_gap_width_px;
     turnOffAllZonesButton->setBounds(top_x_pos, top_y, top_height_px, top_height_px);
 
     int bottom_x_pos = bottom_x;
