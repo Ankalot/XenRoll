@@ -211,7 +211,10 @@ void AudioPluginAudioProcessor::fixateRecordingNote() {
         std::scoped_lock lock(recNoteMutex);
         currentNote = recNote;
     }
-    currentNote.duration = pitchTime - currentNote.time;
+    float finalDuration = pitchTime - currentNote.time;
+    if (finalDuration > 0) {
+        currentNote.duration = finalDuration;
+    }
 
     if (currentNote.duration >= params.vocalToMelodyMinNoteDuration) {
         if (params.vocalToMelodyKeySnap) {
@@ -236,7 +239,7 @@ void AudioPluginAudioProcessor::startRecordingNote() {
     newNote.cents = currentVocalTotalCents % 1200;
     newNote.time = pitchTime;
     newNote.duration = 0.0f;
-    newNote.velocity = 100.0f / 128; // Default velocity
+    newNote.velocity = params.defaultVelocity;
     newNote.isSelected = true;
     newNote.bend = 0;
 
@@ -403,11 +406,20 @@ void AudioPluginAudioProcessor::updateRecordingNote() {
             currentNote = recNote;
         }
 
+        float currentDuration = pitchTime - currentNote.time;
+        if (currentDuration < 0) {
+            startNewNote = true;
+            std::scoped_lock lock(pitchCurveMutex);
+            pitchCurve.first.push_back(recNote.time + recNote.duration + 1e-4);
+            pitchCurve.second.push_back(-1);
+        }
+
         if (startNewNote) {
             // End current note and start a new one
-            currentNote.duration = pitchTime - currentNote.time;
             fixateRecordingNote();
-            startRecordingNote();
+            if (pitchTime >= 0) {
+                startRecordingNote();
+            }
         } else {
             // Tweak pitch (base and/or bend)
             if (!params.vocalToMelodyMakeBends || (curr_start_pitchDiff < dCentsThreshold / 2)) {
@@ -421,7 +433,7 @@ void AudioPluginAudioProcessor::updateRecordingNote() {
                 currentNote.bend =
                     currentVocalTotalCents - (currentNote.octave * 1200 + currentNote.cents);
             }
-            currentNote.duration = pitchTime - currentNote.time;
+            currentNote.duration = currentDuration;
 
             if (currentVocalTotalCents > recNoteMaxTotalCents) {
                 noteMaxPitchTime = pitchTime;
@@ -619,7 +631,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     if (manuallyPlayedNotesAreNew[i]) {
                         int freqInd = manuallyPlayedNotesIndexes[i];
                         juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
-                            params.channelIndex + 1, freqInd, 100.0f / 127);
+                            params.channelIndex + 1, freqInd, params.defaultVelocity);
                         midiMessages.addEvent(noteOn, 0);
                         currPlayedNotesIndexes.insert(freqInd);
                     }

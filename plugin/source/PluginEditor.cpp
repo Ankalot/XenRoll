@@ -889,7 +889,7 @@ void AudioPluginAudioProcessorEditor::setManuallyPlayedKeysTotalCents(
                 newNote.cents = mpntc % 1200;
                 newNote.time = currPlayHeadTime;
                 newNote.duration = 0.0f;
-                newNote.velocity = 100.0f / 128; // Default velocity
+                newNote.velocity = processorRef.params.defaultVelocity;
                 newNote.isSelected = false;
                 newNote.bend = 0;
                 recordedManuallyPlayedNotes.push_back(newNote);
@@ -1515,6 +1515,7 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
     float newPlayHeadTime = processorRef.getPlayHeadTime();
     leftPanel.get()->setAllCurrPlayedNotesTotalCents(
         processorRef.getAllCurrPlayedNotesTotalCents());
+    float prevPlayHeadTime = playHeadTime;
     if (newPlayHeadTime != playHeadTime) {
         mainPanelNeedsRepaint = true;
         const int currNumBars = processorRef.params.get_num_bars();
@@ -1555,10 +1556,31 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
     if (processorRef.params.recordManuallyPlayedNotes) {
         const bool isPlaying = processorRef.isPlaying();
         if (isPlaying) {
-            for (auto &note : recordedManuallyPlayedNotes) {
-                if (!note.isSelected) {
-                    note.duration = playHeadTime - note.time;
+            if (playHeadTime > prevPlayHeadTime) {
+                for (auto &note : recordedManuallyPlayedNotes) {
+                    if (!note.isSelected) {
+                        note.duration = playHeadTime - note.time;
+                    }
                 }
+            } else if (playHeadTime < prevPlayHeadTime) {
+                std::set<int> totalCentsRmk;
+                for (auto &note : recordedManuallyPlayedNotes) {
+                    if (!note.isSelected) {
+                        note.isSelected = true;
+                        totalCentsRmk.insert(note.octave*1200 + note.cents);
+                    }
+                }
+                for (int tcrmk: totalCentsRmk) {
+                    Note newNote;
+                    newNote.octave = tcrmk / 1200;
+                    newNote.cents = tcrmk % 1200;
+                    newNote.time = playHeadTime;
+                    newNote.duration = 0.0f;
+                    newNote.velocity = processorRef.params.defaultVelocity;
+                    newNote.isSelected = false;
+                    newNote.bend = 0;
+                    recordedManuallyPlayedNotes.push_back(newNote);
+                } 
             }
             wasPlayingRMPN = true;
         } else if (wasPlayingRMPN) {
