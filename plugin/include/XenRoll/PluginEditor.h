@@ -35,6 +35,11 @@ class CustomLookAndFeel : public juce::LookAndFeel_V4 {
         updateColors();
     }
 
+    // Partly fixes freeze when opening ComboBox menu (on windows 10)
+    int getMenuWindowFlags() override {
+        return 0;
+    }
+
     void updateColors();
 
     juce::Typeface::Ptr getTypefaceForFont(const juce::Font &) override {
@@ -110,6 +115,11 @@ class SmallLookAndFeel : public juce::LookAndFeel_V4 {
             BinaryData::CambriaMath_ttf, BinaryData::CambriaMath_ttfSize);
         setDefaultSansSerifTypeface(cambriaMathTypeface);
         updateColors();
+    }
+
+    // Partly fixes freeze when opening ComboBox menu (on windows 10)
+    int getMenuWindowFlags() {
+        return 0;
     }
 
     void updateColors();
