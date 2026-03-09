@@ -79,6 +79,8 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
      */
     bool getIsActive() { return isActive; }
 
+    bool isPlaying() { return wasPlaying; }
+
     // ====================================== VOCAL TO MELODY =====================================
     void updateKeys(const std::set<int> &newKeys) {
         std::scoped_lock lock(keysMutex);
@@ -105,8 +107,6 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     void stopRecordingVocal();
 
     float getCurrRecVolume() { return currRecVolume; }
-
-    bool isPlaying() { return wasPlaying; }
 
     /**
      * @brief Update editor's pitch curve to match current pitch curve in processor

@@ -881,6 +881,8 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
     stream.writeBool(params.vocalToMelodyKeySnap);
     stream.writeBool(params.vocalToMelodyMakeBends);
     stream.writeFloat(params.micGain_dB);
+
+    stream.writeFloat(params.maxChordDtimeClockDiagram);
 }
 
 void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeInBytes) {
@@ -1014,6 +1016,10 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         params.vocalToMelodyKeySnap = stream.readBool();
         params.vocalToMelodyMakeBends = stream.readBool();
         params.micGain_dB = stream.readFloat();
+    }
+
+    if (!stream.isExhausted()) {
+        params.maxChordDtimeClockDiagram = stream.readFloat();
     }
 
     // UPDATE NOTES

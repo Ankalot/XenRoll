@@ -192,6 +192,11 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     mainPanel->setPlayHeadTime(playHeadTime);
     addAndMakeVisible(mainViewport.get());
 
+    clockDiagramPanel =
+        std::make_unique<ClockDiagramPanel>(&(processorRef.params), this, mainPanel->getNotes());
+    addAndMakeVisible(clockDiagramPanel.get());
+    clockDiagramPanel->setVisible(processorRef.params.showClockDiagram);
+
     helpPanel = std::make_unique<HelpPanel>();
     helpViewport = std::make_unique<HelpViewport>();
     helpViewport->setViewedComponent(helpPanel.get(), false);
@@ -592,6 +597,28 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(generateNewKeysButton.get());
 
+    clockDiagramMenu = std::make_unique<ClockDiagramMenu>(&processorRef.params, this);
+    addAndMakeVisible(clockDiagramMenu.get());
+    clockDiagramMenu->setVisible(false);
+
+    clockDiagramButton = std::make_unique<SVGButton>(
+        BinaryData::Clock_diagram_svg, BinaryData::Clock_diagram_svgSize, true,
+        processorRef.params.showClockDiagram,
+        "Enable/disable clock diagram.\n(RMB to open settings)");
+
+    clockDiagramButton->onClick = [this](const juce::MouseEvent &me) {
+        if (me.mods.isLeftButtonDown()) {
+            processorRef.params.showClockDiagram = !processorRef.params.showClockDiagram;
+            clockDiagramPanel->setTime(playHeadTime);
+            clockDiagramPanel->setVisible(processorRef.params.showClockDiagram);
+        } else if (me.mods.isRightButtonDown()) {
+            this->clockDiagramMenu->setVisible(!this->clockDiagramMenu->isVisible());
+            return false;
+        }
+        return true;
+    };
+    addAndMakeVisible(clockDiagramButton.get());
+
     popup = std::make_unique<PopupMessage>(3000, 0.7f);
     addChildComponent(popup.get());
 
@@ -662,6 +689,8 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
     g.setColour(Theme::darkest);
     g.drawLine(bottom_x_pos, bottom_y, bottom_x_pos, bottom_y + bottom_height_px, Theme::wider);
     bottom_x_pos -= bottom_height_px * 4 + buttons_gap_width_px * 5;
+    g.drawLine(bottom_x_pos, bottom_y, bottom_x_pos, bottom_y + bottom_height_px, Theme::wider);
+    bottom_x_pos -= bottom_height_px + buttons_gap_width_px * 2;
     g.drawLine(bottom_x_pos, bottom_y, bottom_x_pos, bottom_y + bottom_height_px, Theme::wider);
 
     // Draw volume level line over vocalToMelodyButton when vocal recording (vocal to melody mode)
@@ -821,6 +850,13 @@ void AudioPluginAudioProcessorEditor::resized() {
     keysHarmonicityButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     bottom_x_pos -= 2 * buttons_gap_width_px + bottom_height_px;
 
+    clockDiagramButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
+    clockDiagramMenu->setBounds(bottom_x_pos +
+                                    (bottom_height_px - clockDiagramMenu->getWidth()) / 2,
+                                bottom_y - clockDiagramMenu->getHeight() - 10,
+                                clockDiagramMenu->getWidth(), clockDiagramMenu->getHeight());
+    bottom_x_pos -= 2 * buttons_gap_width_px + bottom_height_px;
+
     generateNewKeysButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     genNewKeysMenu->setBounds(bottom_x_pos + (bottom_height_px - genNewKeysMenu->getWidth()) / 2,
                               bottom_y - genNewKeysMenu->getHeight() - 10,
@@ -840,6 +876,11 @@ void AudioPluginAudioProcessorEditor::resized() {
                              topPanel_height_px + leftView_height_px - velocity_height_px -
                                  velocity_bot_gap_px,
                              velocity_width_px, velocity_height_px);
+
+    clockDiagramPanel->setBounds(leftPanel_width_px + topView_width_px -
+                                     clockDiagramPanel->getWidth() - clockDiagramPanel_margin,
+                                 topPanel_height_px + clockDiagramPanel_margin,
+                                 clockDiagramPanel->getWidth(), clockDiagramPanel->getHeight());
 
     repaint();
 }
@@ -1532,6 +1573,10 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
         if (processorRef.params.isCamFixedOnPlayHead) {
             mainViewport->setCamOnTime(playHeadTime, bar_width_px);
         }
+
+        if (processorRef.params.showClockDiagram && processorRef.isPlaying()) {
+            clockDiagramPanel->setTime(playHeadTime);
+        }
     }
 
     if (ghostNotesTicker == 0) {
@@ -1567,10 +1612,10 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
                 for (auto &note : recordedManuallyPlayedNotes) {
                     if (!note.isSelected) {
                         note.isSelected = true;
-                        totalCentsRmk.insert(note.octave*1200 + note.cents);
+                        totalCentsRmk.insert(note.octave * 1200 + note.cents);
                     }
                 }
-                for (int tcrmk: totalCentsRmk) {
+                for (int tcrmk : totalCentsRmk) {
                     Note newNote;
                     newNote.octave = tcrmk / 1200;
                     newNote.cents = tcrmk % 1200;
@@ -1580,7 +1625,7 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
                     newNote.isSelected = false;
                     newNote.bend = 0;
                     recordedManuallyPlayedNotes.push_back(newNote);
-                } 
+                }
             }
             wasPlayingRMPN = true;
         } else if (wasPlayingRMPN) {

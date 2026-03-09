@@ -1125,6 +1125,10 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
 }
 
 void MainPanel::mouseMove(const juce::MouseEvent &event) {
+    if (params->showClockDiagram && !editor->isPlaying()) {
+        editor->setTimeClockDiagramPanel(event.getPosition().toFloat().getX() / bar_width_px);
+    }
+
     if (isDragging || isMoving || isResizing || isSelecting || isMovingRatioMark)
         return;
 

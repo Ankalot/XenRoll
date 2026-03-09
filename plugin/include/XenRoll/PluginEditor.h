@@ -1,6 +1,8 @@
 #pragma once
 
 #include "BinaryData.h"
+#include "ClockDiagramMenu.h"
+#include "ClockDiagramPanel.h"
 #include "DissonanceMeter.h"
 #include "DissonancePanel.h"
 #include "DragAndDropPopup.h"
@@ -36,9 +38,7 @@ class CustomLookAndFeel : public juce::LookAndFeel_V4 {
     }
 
     // Partly fixes freeze when opening ComboBox menu (on windows 10)
-    int getMenuWindowFlags() override {
-        return 0;
-    }
+    int getMenuWindowFlags() override { return 0; }
 
     void updateColors();
 
@@ -118,9 +118,7 @@ class SmallLookAndFeel : public juce::LookAndFeel_V4 {
     }
 
     // Partly fixes freeze when opening ComboBox menu (on windows 10)
-    int getMenuWindowFlags() {
-        return 0;
-    }
+    int getMenuWindowFlags() { return 0; }
 
     void updateColors();
 
@@ -318,6 +316,9 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     void updateNotes(const std::vector<Note> &new_notes) {
         processorRef.updateNotes(new_notes);
         updatePitchMemory();
+        if (processorRef.params.showClockDiagram && !processorRef.isPlaying()) {
+            clockDiagramPanel->refresh();
+        }
     }
 
     /**
@@ -389,6 +390,10 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     void fileDragExit(const juce::StringArray &files) override;
     void filesDropped(const juce::StringArray &files, int x, int y) override;
 
+    void setTimeClockDiagramPanel(float time) { clockDiagramPanel->setTime(time); }
+    void refreshClockDiagramPanel() { clockDiagramPanel->refresh(); }
+    bool isPlaying() { return processorRef.isPlaying(); }
+
     std::vector<Note> &getRecordedManuallyPlayedNotes() { return recordedManuallyPlayedNotes; }
 
     SmallLookAndFeel smallLF;
@@ -416,10 +421,13 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     std::unique_ptr<GenNewKeysMenu> genNewKeysMenu;
     std::unique_ptr<EditRatiosMarksMenu> editRatiosMarksMenu;
     std::unique_ptr<VocalToMelodyMenu> vocalToMelodyMenu;
+    std::unique_ptr<ClockDiagramMenu> clockDiagramMenu;
 
     std::unique_ptr<MoreToolsMenu> moreToolsMenu;
 
     std::unique_ptr<VelocityPanel> velocityPanel;
+
+    std::unique_ptr<ClockDiagramPanel> clockDiagramPanel;
 
     std::unique_ptr<juce::FileChooser> importFileChooser, exportFileChooser;
 
@@ -436,7 +444,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
         turnOffAllZonesButton, dissonanceButton, pitchMemorySettingsButton, pitchMemoryButton,
         keysHarmonicityButton, ghostNotesKeysButton, ghostNotesTabButton, generateNewKeysButton,
         hideCentsButton, editRatiosMarksButton, moreToolsTabButton, notesFromGhostNotesButton,
-        vocalToMelodyButton, recordManuallyPlayedNotesButton;
+        vocalToMelodyButton, recordManuallyPlayedNotesButton, clockDiagramButton;
     std::unique_ptr<juce::Label> numSubdivsLabel, numBeatsLabel, numBarsLabel, midiChannelLabel;
     std::unique_ptr<IntegerInput> numSubdivsInput, numBeatsInput, numBarsInput;
 
@@ -460,9 +468,10 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     const int dnd_popup_width_px = 500;
     const int dnd_popup_height_px = 250;
     const int top_height_px = bottom_height_px;
-    const int top_gap_width_px = (leftPanel_width_px - 3*top_height_px)/4;
+    const int top_gap_width_px = (leftPanel_width_px - 3 * top_height_px) / 4;
     const int top_x = top_gap_width_px;
     const int top_y = (topPanel_height_px - top_height_px) / 2;
+    const int clockDiagramPanel_margin = 10;
 
     std::set<int> leftManuallyPlayedKeysTotalCents, keyboardManuallyPlayedKeysTotalCents,
         dragManuallyPlayedKeysTotalCents;

@@ -118,6 +118,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     void updatePitchMemoryResults(const PitchMemoryResults &newPitchMemoryResults);
 
+    const std::vector<Note> &getNotes() { return notes; }
+
   private:
     float playHeadTime; ///< In bars
     const float max_bar_width_px = 1000.0f;
