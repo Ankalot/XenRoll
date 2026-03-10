@@ -831,6 +831,10 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     auto delta = currentPos - lastDragPos;
     lastDragPos = currentPos;
 
+    if (params->showClockDiagram && !editor->isPlaying()) {
+        editor->setTimeClockDiagramPanel(currDragPoint.toFloat().getX() / bar_width_px);
+    }
+
     if (isDragging) {
         if (params->isCamFixedOnPlayHead) {
             delta.setX(0);
@@ -1125,12 +1129,14 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
 }
 
 void MainPanel::mouseMove(const juce::MouseEvent &event) {
+    // It seems that mouseMove isn't triggered if there is mouse drag, so there is no need in
+    // this if statement, but I'll leave it just in case.
+    if (isDragging || isMoving || isResizing || isSelecting || isMovingRatioMark)
+        return;
+
     if (params->showClockDiagram && !editor->isPlaying()) {
         editor->setTimeClockDiagramPanel(event.getPosition().toFloat().getX() / bar_width_px);
     }
-
-    if (isDragging || isMoving || isResizing || isSelecting || isMovingRatioMark)
-        return;
 
     if (params->editRatiosMarks) {
         bool isOverRatioMark = false;

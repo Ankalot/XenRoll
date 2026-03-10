@@ -7,6 +7,7 @@
 * You can bend notes independently in a visible way.  
 * This plugin has a unique pitch memory model, which helps to understand tonality, stability, and consonance; knowledge of music theory is not necessary.  
 * You can generate notes and/or pitch curve in real time by singing/humming.
+* You can display a clock diagram that will show notes, intervals, and chords in a convenient and beautiful way in real time.
 * You can import and export tracks.
 * You can have several independent instances of this plugin in a single project and view ghost notes from other instances.
 * XenRoll is an MTS-ESP master.
