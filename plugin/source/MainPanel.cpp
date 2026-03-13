@@ -1973,11 +1973,19 @@ juce::Path MainPanel::getNotePath(const Note &note) {
         path.closeSubPath();
     } else if (height >= width) {
         // make vertical rectangle
-        path.startNewSubPath(x1, y1 - height / 2);
-        path.lineTo(x2, y1 - height / 2);
-        path.lineTo(x2, y2 + height / 2);
-        path.lineTo(x1, y2 + height / 2);
-        path.closeSubPath();
+        if (y2 > y1) {
+            path.startNewSubPath(x1, y1 - height / 2);
+            path.lineTo(x2, y1 - height / 2);
+            path.lineTo(x2, y2 + height / 2);
+            path.lineTo(x1, y2 + height / 2);
+            path.closeSubPath();
+        } else {
+            path.startNewSubPath(x1, y1 + height / 2);
+            path.lineTo(x2, y1 + height / 2);
+            path.lineTo(x2, y2 - height / 2);
+            path.lineTo(x1, y2 - height / 2);
+            path.closeSubPath();
+        }
     } else {
         // make hexagon
         if (dy > 0) {
