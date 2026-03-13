@@ -37,26 +37,19 @@ jobs:
         restore-keys: |
           cpm-deps-${{ runner.os }}-
 
+    - name: Setup vcpkg (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git
+        ./vcpkg/bootstrap-vcpkg.sh
+      shell: bash
+
     - name: Setup vcpkg (Windows)
       if: matrix.os == 'windows-latest'
-      uses: lukka/run-vcpkg@v11
-      with:
-        vcpkgGitCommitId: 'a34c873a9717a888f58dc05268dea15592c2f0ff'
-        vcpkgJsonGlob: '**/vcpkg.json'
-
-    - name: Setup vcpkg (macOS)
-      if: matrix.os == 'macos-14'
-      uses: lukka/run-vcpkg@v11
-      with:
-        vcpkgGitCommitId: 'a34c873a9717a888f58dc05268dea15592c2f0ff'
-        vcpkgJsonGlob: '**/vcpkg.json'
-
-    - name: Setup vcpkg (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      uses: lukka/run-vcpkg@v11
-      with:
-        vcpkgGitCommitId: 'a34c873a9717a888f58dc05268dea15592c2f0ff'
-        vcpkgJsonGlob: '**/vcpkg.json'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git
+        .\vcpkg\bootstrap-vcpkg.bat
+      shell: cmd
 
     - name: Install JUCE dependencies (Linux)
       if: matrix.os == 'ubuntu-latest'
@@ -73,16 +66,7 @@ jobs:
           libgl1-mesa-dev \
           pkg-config
 
-    - name: Configure CMake (Windows)
-      if: matrix.os == 'windows-latest'
-      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
-
-    - name: Configure CMake (macOS)
-      if: matrix.os == 'macos-14'
-      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
-
-    - name: Configure CMake (Linux)
-      if: matrix.os == 'ubuntu-latest'
+    - name: Configure CMake
       run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build
