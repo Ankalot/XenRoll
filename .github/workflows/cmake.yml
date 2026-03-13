@@ -44,9 +44,12 @@ jobs:
         vcpkgGitCommitId: 'a34c873a9717a888f58dc05268dea15592c2f0ff'
         vcpkgJsonGlob: '**/vcpkg.json'
 
-    - name: Install Boost (macOS)
+    - name: Setup vcpkg (macOS)
       if: matrix.os == 'macos-14'
-      run: brew install boost
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgGitCommitId: 'a34c873a9717a888f58dc05268dea15592c2f0ff'
+        vcpkgJsonGlob: '**/vcpkg.json'
 
     - name: Install dependencies (Linux)
       if: matrix.os == 'ubuntu-latest'
@@ -70,7 +73,7 @@ jobs:
 
     - name: Configure CMake (macOS)
       if: matrix.os == 'macos-14'
-      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Configure CMake (Linux)
       if: matrix.os == 'ubuntu-latest'
