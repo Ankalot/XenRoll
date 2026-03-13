@@ -13,7 +13,7 @@
 * XenRoll is an MTS-ESP master.
 
 ## How to get it?
-So far there are only VST3 versions for Windows and for Linux.
+So far there are only VST3 versions for Windows, Linux and macOS.
 Go to the releases tab and download the corresponding archive. There will be instructions inside.
 
 ## How to use it?
