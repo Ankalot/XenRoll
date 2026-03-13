@@ -37,14 +37,12 @@ jobs:
         restore-keys: |
           cpm-deps-${{ runner.os }}-
 
-    - name: Install Boost (Windows)
+    - name: Setup vcpkg (Windows)
       if: matrix.os == 'windows-latest'
-      uses: MarkusJx/install-boost@v2.4.5
-      id: install-boost-windows
+      uses: lukka/run-vcpkg@v11
       with:
-        boost_version: 1.86.0
-        platform_version: 2022
-        toolset: msvc
+        vcpkgGitCommitId: 'a34c873a9717a888f58dc05268dea15592c2f0ff'
+        vcpkgJsonGlob: '**/vcpkg.json'
 
     - name: Install Boost (macOS)
       if: matrix.os == 'macos-14'
@@ -68,7 +66,7 @@ jobs:
 
     - name: Configure CMake (Windows)
       if: matrix.os == 'windows-latest'
-      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBOOST_ROOT=${{ steps.install-boost-windows.outputs.BOOST_ROOT }}
+      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Configure CMake (macOS)
       if: matrix.os == 'macos-14'
