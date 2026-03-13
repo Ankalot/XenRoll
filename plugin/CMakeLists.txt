@@ -125,7 +125,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/in
 
 # Links to all necessary dependencies. The present ones are recommended by JUCE.
 # If you use one of the additional modules, like the DSP module, you need to specify it here.
-find_package(Boost CONFIG REQUIRED COMPONENTS interprocess)
+find_package(Boost REQUIRED COMPONENTS interprocess)
 target_link_libraries_system(
     ${PROJECT_NAME}
     PUBLIC

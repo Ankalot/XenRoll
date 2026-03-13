@@ -51,12 +51,18 @@ jobs:
         vcpkgGitCommitId: 'a34c873a9717a888f58dc05268dea15592c2f0ff'
         vcpkgJsonGlob: '**/vcpkg.json'
 
-    - name: Install dependencies (Linux)
+    - name: Setup vcpkg (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgGitCommitId: 'a34c873a9717a888f58dc05268dea15592c2f0ff'
+        vcpkgJsonGlob: '**/vcpkg.json'
+
+    - name: Install JUCE dependencies (Linux)
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          libboost-dev \
           libasound2-dev \
           libfreetype6-dev \
           libfontconfig1-dev \
@@ -77,7 +83,7 @@ jobs:
 
     - name: Configure CMake (Linux)
       if: matrix.os == 'ubuntu-latest'
-      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build
       # Build your program with the given configuration
