@@ -10,8 +10,8 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
-        build_type: [Debug, Release]
+        os: [macos-14, windows-latest, ubuntu-latest]
+        build_type: [Release]
 
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
@@ -72,6 +72,15 @@ jobs:
     - name: Build
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}
+
+    - name: Upload VST3 artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: XenRoll-${{ matrix.os }}-${{ matrix.build_type }}
+        path: |
+          ${{github.workspace}}/build/**/XenRoll.vst3/**
+          ${{github.workspace}}/build/XenRoll_artefacts/**/VST3/*.vst3/**
+        if-no-files-found: warn
 
     - name: Test
       working-directory: ${{github.workspace}}/build
