@@ -209,7 +209,7 @@ void MainPanel::paint(juce::Graphics &g) {
             if (notePath.getBounds().intersects(clipFloat)) {
                 if ((note.bend != 0) && note.isSelected) {
                     juce::String bendText = juce::String::formatted(
-                        "%s%d", (note.bend > 0 ? "+" : "-"), abs(note.bend));
+                        "%c%d", (note.bend > 0 ? '+' : '-'), abs(note.bend));
                     drawOutlinedText(g, bendText, notePath.getBounds(), bendFont);
                 }
             }
@@ -423,7 +423,6 @@ void MainPanel::unselectAllNotes() {
 }
 
 void MainPanel::quantizeSelectedNotes() {
-    saveNotesState();
     float dt = 1.0f / (params->num_beats * params->num_subdivs);
 
     for (auto &note : notes) {
@@ -438,13 +437,13 @@ void MainPanel::quantizeSelectedNotes() {
         }
     }
 
+    saveNotesState();
     editor->updateNotes(notes);
     remakeKeys();
     repaint();
 }
 
 void MainPanel::randomizeSelectedNotesTiming() {
-    saveNotesState();
     float dt = 1.0f / (params->num_beats * params->num_subdivs);
     const float maxJitter = dt * 0.15f;
 
@@ -462,13 +461,13 @@ void MainPanel::randomizeSelectedNotesTiming() {
         }
     }
 
+    saveNotesState();
     editor->updateNotes(notes);
     remakeKeys();
     repaint();
 }
 
 void MainPanel::randomizeSelectedNotesVelocity() {
-    saveNotesState();
     const float maxJitter = 0.12f;
 
     static std::random_device rd;
@@ -482,6 +481,7 @@ void MainPanel::randomizeSelectedNotesVelocity() {
         }
     }
 
+    saveNotesState();
     editor->updateNotes(notes);
     repaint();
 }
@@ -517,10 +517,7 @@ void MainPanel::numBarsChanged() {
 void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
                                const juce::MouseWheelDetails &wheel) {
     if (event.mods.isAltDown()) {
-        if (!startedPitchBend) {
-            saveNotesState();
-            startedPitchBend = true;
-        }
+        wasBending = true;
         int multiplier = 1;
         if (event.mods.isShiftDown()) {
             multiplier = 10;
@@ -665,7 +662,6 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             return;
         }
 
-        startedPitchBend = false;
         for (int i = int(notes.size()) - 1; i >= 0; --i) {
             juce::Path notePath = getNotePath(notes[i]);
             if (notePath.contains(point.toFloat())) {
@@ -732,7 +728,6 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         if (params->keySnap && !keys.empty()) {
             std::tie(octave, cents) = centsToKeysCents(octave, cents);
         }
-        saveNotesState();
         notes.push_back({octave, cents, time, false, duration, params->lastVelocity});
         keysFromAllNotes.insert(cents);
         if (params->zones.isNoteInActiveZone(*(notes.rbegin()))) {
@@ -745,6 +740,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                 editor->updateKeys(keys);
             }
         }
+        saveNotesState();
         editor->updateNotes(notes);
         repaint();
 
@@ -794,14 +790,13 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             return;
         }
 
-        startedPitchBend = false;
         selectStartPos = point;
         juce::Point<float> pointFloat = event.getPosition().toFloat();
         for (int i = int(notes.size()) - 1; i >= 0; --i) {
             juce::Path notePath = getNotePath(notes[i]);
             if (notePath.contains(pointFloat)) {
-                saveNotesState();
                 deleteNote(i);
+                saveNotesState();
                 editor->updateNotes(notes);
                 repaint();
                 return;
@@ -859,9 +854,6 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     }
 
     if (isResizing) {
-        if (!wasResizing) {
-            saveNotesState();
-        }
         wasResizing = true;
         float delta_duration = delta.getX() / bar_width_px;
         dtime += delta_duration;
@@ -921,9 +913,6 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     }
 
     if (isMoving) {
-        if (!wasMoving) {
-            saveNotesState();
-        }
         wasMoving = true;
         needToUnselectAllNotesExcept = -1;
         float delta_time = delta.getX() / bar_width_px;
@@ -1071,6 +1060,10 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
             }
         }
         editor->setManuallyPlayedKeysTotalCents(dragManuallyPlayedKeysTotalCents, "drag");
+    }
+
+    if (wasResizing || wasMoving) {
+        saveNotesState();
     }
 
     isDragging = false;
@@ -1495,6 +1488,15 @@ int python_mod(int a, int b) {
     return result >= 0 ? result : result + std::abs(b);
 }
 
+void MainPanel::restoreNotesState() {
+    notes = params->notesHistory.getCurrent();
+    unselectAllNotes();
+    editor->hideVelocityPanel();
+    remakeKeys();
+    editor->updateNotes(notes);
+    repaint();
+}
+
 bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originatingComponent) {
     juce::ignoreUnused(originatingComponent);
 
@@ -1514,7 +1516,6 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
 
     // delete selected notes
     if (key == juce::KeyPress::deleteKey) {
-        saveNotesState();
         int numNotes = int(notes.size());
         for (int i = 0; i < numNotes; ++i) {
             if (notes[i].isSelected) {
@@ -1523,6 +1524,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
                 numNotes--;
             }
         }
+        saveNotesState();
         editor->updateNotes(notes);
         repaint();
         return true;
@@ -1542,7 +1544,6 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
 
     // paste copied notes
     if (key == juce::KeyPress('v', juce::ModifierKeys::commandModifier, 0)) {
-        saveNotesState();
         unselectAllNotes();
         editor->hideVelocityPanel();
         bool needGenNewKeys = false;
@@ -1570,22 +1571,26 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         }
         editor->showMessage(juce::String(copiedNotes.size()) + " note" +
                             (copiedNotes.size() == 1 ? "" : "s") + " pasted!");
+        saveNotesState();
         editor->updateNotes(notes);
         repaint();
         return true;
     }
 
-    // reverse previous state
+    // Undo
     if (key == juce::KeyPress('z', juce::ModifierKeys::commandModifier, 0)) {
-        startedPitchBend = false;
-        if (!params->notesHistory.empty()) {
-            notes = params->notesHistory.top();
-            params->notesHistory.pop();
-            unselectAllNotes();
-            editor->hideVelocityPanel();
-            remakeKeys();
-            editor->updateNotes(notes);
-            repaint();
+        if (params->notesHistory.canUndo()) {
+            params->notesHistory.undo();
+            restoreNotesState();
+        }
+        return true;
+    }
+
+    // Redo
+    if (key == juce::KeyPress('y', juce::ModifierKeys::commandModifier, 0)) {
+        if (params->notesHistory.canRedo()) {
+            params->notesHistory.redo();
+            restoreNotesState();
         }
         return true;
     }
@@ -1615,7 +1620,6 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
 
     // set cents for selected notes
     if (key == juce::KeyPress::returnKey) {
-        saveNotesState();
         int cents = getCentsFromMessage();
         if (cents != -1) {
             cents = cents % 1200;
@@ -1625,6 +1629,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
                 }
             }
             remakeKeys();
+            saveNotesState();
             editor->updateNotes(notes);
             repaint();
         }
@@ -1633,7 +1638,6 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
 
     // increase the pitch of selected notes by cents
     if (key == juce::KeyPress(juce::KeyPress::returnKey, juce::ModifierKeys::shiftModifier, 0)) {
-        saveNotesState();
         int cents = getCentsFromMessage();
         if (cents != -1) {
             for (int i = 0; i < notes.size(); ++i) {
@@ -1652,6 +1656,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
                 }
             }
             remakeKeys();
+            saveNotesState();
             editor->updateNotes(notes);
             repaint();
         }
@@ -1660,7 +1665,6 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
 
     // decrease the pitch of selected notes by cents
     if (key == juce::KeyPress(juce::KeyPress::returnKey, juce::ModifierKeys::ctrlModifier, 0)) {
-        saveNotesState();
         int cents = getCentsFromMessage();
         if (cents != -1) {
             for (int i = 0; i < notes.size(); ++i) {
@@ -1681,6 +1685,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
                 }
             }
             remakeKeys();
+            saveNotesState();
             editor->updateNotes(notes);
             repaint();
         }
@@ -1698,7 +1703,6 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             dMoveTime = 1.0f;
         }
         int numBars = params->get_num_bars();
-        saveNotesState();
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected) {
                 if (notes[i].time + notes[i].duration + dMoveTime <= numBars) {
@@ -1707,6 +1711,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             }
         }
         remakeKeys(); // because notes can enter/leave time active/disabled zones
+        saveNotesState();
         editor->updateNotes(notes);
         repaint();
         return true;
@@ -1721,7 +1726,6 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             dMoveTime = 1.0f;
         }
         int numBars = params->get_num_bars();
-        saveNotesState();
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected) {
                 if (notes[i].time - dMoveTime >= 0) {
@@ -1730,6 +1734,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             }
         }
         remakeKeys(); // because notes can enter/leave active/disabled time zones
+        saveNotesState();
         editor->updateNotes(notes);
         repaint();
         return true;
@@ -1740,7 +1745,6 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         if (!thereAreSelectedNotes()) {
             return false;
         }
-        saveNotesState();
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected) {
                 if (params->keySnap) {
@@ -1768,6 +1772,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             }
         }
         remakeKeys();
+        saveNotesState();
         editor->updateNotes(notes);
         repaint();
         return true;
@@ -1776,7 +1781,6 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         if (!thereAreSelectedNotes()) {
             return false;
         }
-        saveNotesState();
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected) {
                 if (params->keySnap) {
@@ -1803,6 +1807,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             }
         }
         remakeKeys();
+        saveNotesState();
         editor->updateNotes(notes);
         repaint();
         return true;
@@ -1810,21 +1815,21 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
 
     // raising or lowering selected notes by an octave
     if (key == juce::KeyPress(juce::KeyPress::upKey, juce::ModifierKeys::shiftModifier, 0)) {
-        saveNotesState();
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected && (notes[i].octave != params->num_octaves - 1))
                 notes[i].octave += 1;
         }
+        saveNotesState();
         editor->updateNotes(notes);
         repaint();
         return true;
     }
     if (key == juce::KeyPress(juce::KeyPress::downKey, juce::ModifierKeys::shiftModifier, 0)) {
-        saveNotesState();
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected && (notes[i].octave != 0))
                 notes[i].octave -= 1;
         }
+        saveNotesState();
         editor->updateNotes(notes);
         repaint();
         return true;
@@ -1875,6 +1880,13 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     }
 
     return false;
+}
+
+void MainPanel::modifierKeysChanged(const juce::ModifierKeys &modifiers) {
+    if (wasBending && !modifiers.isAltDown()) {
+        wasBending = false;
+        saveNotesState();
+    }
 }
 
 bool MainPanel::keyStateChanged(bool isKeyDown) {
@@ -2080,7 +2092,6 @@ void MainPanel::updateNotes(const std::vector<Note> &new_notes) {
 void MainPanel::addRecordedNotes(const std::vector<Note> &recordedNotes) {
     unselectAllNotes();
     const int numBars = params->get_num_bars();
-    saveNotesState();
     int numAddedNotes = 0;
     for (auto note : recordedNotes) {
         if (note.time + note.duration <= numBars) {
@@ -2088,6 +2099,7 @@ void MainPanel::addRecordedNotes(const std::vector<Note> &recordedNotes) {
             numAddedNotes++;
         }
     }
+    saveNotesState();
     editor->updateNotes(notes);
     remakeKeys();
     editor->showMessage("Recorded " + juce::String(numAddedNotes) + " notes!");
@@ -2123,7 +2135,6 @@ void MainPanel::updateGhostNotes(const std::vector<Note> &new_ghostNotes) {
 }
 
 void MainPanel::createNotesFromGhostNotes() {
-    saveNotesState();
     unselectAllNotes();
     int num_bars = params->get_num_bars();
     for (Note note : ghostNotes) {
@@ -2132,6 +2143,7 @@ void MainPanel::createNotesFromGhostNotes() {
             notes.push_back(note);
         }
     }
+    saveNotesState();
     editor->updateNotes(notes);
     if (!params->showGhostNotesKeys) {
         remakeKeys();

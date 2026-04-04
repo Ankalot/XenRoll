@@ -984,6 +984,7 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         note.bend = stream.readInt();
         notes.push_back(note);
     }
+    params.notesHistory.push(notes);
 
     // Read other things
     if (!stream.isExhausted()) {

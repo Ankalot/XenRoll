@@ -7,6 +7,7 @@ template <typename T> class CircularStack {
   private:
     std::deque<T> data;
     const size_t max_size;
+    int currentIndex = -1; // Current position in the stack
 
   public:
     /**
@@ -21,29 +22,42 @@ template <typename T> class CircularStack {
      * @note If stack is full, oldest element is removed
      */
     void push(T value) {
+        // Remove any elements after current index (clear redo history)
+        while (data.size() > (size_t)(currentIndex + 1)) {
+            data.pop_back();
+        }
+
         if (data.size() >= max_size) {
             data.pop_front();
         }
         data.push_back(value);
+        currentIndex = (int)data.size() - 1;
     }
 
-    /**
-     * @brief Pop the top element from the stack
-     * @warning Not safe if stack is empty
-     */
-    void pop() { data.pop_back(); }
+    void undo() {
+        if (canUndo()) {
+            currentIndex--;
+        }
+    }
 
-    /**
-     * @brief Get the top (newest) element
-     * @warning Not safe if stack is empty
-     * @return Reference to the top element
-     */
-    T &top() { return data.back(); }
+    void redo() {
+        if (canRedo()) {
+            currentIndex++;
+        }
+    }
 
-    /**
-     * @brief Check if the stack is empty
-     * @return true if stack is empty
-     */
+    bool canUndo() const { return currentIndex > 0; }
+    bool canRedo() const { return currentIndex < (int)data.size() - 1; }
+
+    T &getCurrent() { return data[currentIndex]; }
+    const T &getCurrent() const { return data[currentIndex]; }
+
+    void clearRedo() {
+        while (data.size() > (size_t)(currentIndex + 1)) {
+            data.pop_back();
+        }
+    }
+
     bool empty() const { return data.empty(); }
 
     /**

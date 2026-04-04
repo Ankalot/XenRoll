@@ -34,6 +34,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void mouseMove(const juce::MouseEvent &) override;
     bool keyPressed(const juce::KeyPress &key, juce::Component *originatingComponent) override;
     bool keyStateChanged(bool isKeyDown) override;
+    void modifierKeysChanged(const juce::ModifierKeys &modifiers) override;
 
     void drawOutlinedText(juce::Graphics &g, const juce::String &text, juce::Rectangle<float> area,
                           const juce::Font &font);
@@ -121,10 +122,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     const std::vector<Note> &getNotes() { return notes; }
 
-    void saveNotesState() {
-        startedPitchBend = false;
-        params->notesHistory.push(notes);
-    }
+    void saveNotesState() { params->notesHistory.push(notes); }
 
   private:
     float playHeadTime; ///< In bars
@@ -140,7 +138,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool isDrawingRatioMark = false;
     bool isMovingRatioMark = false;
     bool prevDragPointIsActual = false;
-    bool startedPitchBend = false;
+    bool wasBending = false;
     RatioMark *movingRatioMark;
     juce::Point<int> prevDragPoint;
     juce::Point<int> lastDragPos;
@@ -275,6 +273,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool lineIntersectsRatioMark(const RatioMark &ratioMark, const juce::Line<int> &line);
 
     int totalCentsToY(int totalCents);
+
+    void restoreNotesState();
 
     float dtime = 0.0f;
     int dcents = 0;
