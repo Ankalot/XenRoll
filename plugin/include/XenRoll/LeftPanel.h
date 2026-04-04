@@ -13,8 +13,7 @@ class AudioPluginAudioProcessorEditor;
  */
 class LeftPanel : public juce::Component {
   public:
-    LeftPanel(float octave_height_px, int leftPanel_width_px,
-              AudioPluginAudioProcessorEditor *editor, Parameters *params);
+    LeftPanel(int leftPanel_width_px, AudioPluginAudioProcessorEditor *editor, Parameters *params);
 
     void changeOctaveHeightPx(float new_octave_height_px) {
         octave_height_px = new_octave_height_px;

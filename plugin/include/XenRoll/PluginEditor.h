@@ -242,13 +242,13 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     void repaintTopPanel() { topPanel->repaint(); }
 
     void changeOctaveHeightPx(float new_octave_height_px) {
-        octave_height_px = new_octave_height_px;
-        leftPanel->changeOctaveHeightPx(octave_height_px);
+        processorRef.params.octave_height_px = new_octave_height_px;
+        leftPanel->changeOctaveHeightPx(new_octave_height_px);
     }
 
     void changeBarWidthPx(float new_bar_width_px) {
-        bar_width_px = new_bar_width_px;
-        topPanel->changeBarWidthPx(bar_width_px);
+        processorRef.params.bar_width_px = new_bar_width_px;
+        topPanel->changeBarWidthPx(new_bar_width_px);
     }
 
     void updateKeys(std::set<int> keys) {
@@ -454,8 +454,6 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     int ghostNotesTicker = 0;
     float playHeadTime = 0.0f;
 
-    float octave_height_px = 300.0f;
-    float bar_width_px = 400.0f;
     const int leftPanel_width_px = 150;
     const int topPanel_height_px = 48;
     const int slider_width_px = 8;

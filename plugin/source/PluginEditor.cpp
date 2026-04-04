@@ -169,26 +169,24 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 300);
 
-    leftPanel = std::make_unique<LeftPanel>(octave_height_px, leftPanel_width_px, this,
-                                            &(processorRef.params));
+    leftPanel = std::make_unique<LeftPanel>(leftPanel_width_px, this, &(processorRef.params));
     leftViewport = std::make_unique<juce::Viewport>();
     leftViewport->setScrollBarsShown(false, false);
     leftViewport->setViewedComponent(leftPanel.get(), false);
     addAndMakeVisible(leftViewport.get());
 
-    topPanel =
-        std::make_unique<TopPanel>(bar_width_px, topPanel_height_px, this, &(processorRef.params));
+    topPanel = std::make_unique<TopPanel>(topPanel_height_px, this, &(processorRef.params));
     topViewport = std::make_unique<juce::Viewport>();
     topViewport->setScrollBarsShown(false, false);
     topViewport->setViewedComponent(topPanel.get(), false);
     addAndMakeVisible(topViewport.get());
 
-    mainPanel =
-        std::make_unique<MainPanel>(octave_height_px, bar_width_px, this, &(processorRef.params));
+    mainPanel = std::make_unique<MainPanel>(this, &(processorRef.params));
     mainViewport = std::make_unique<MainViewport>(leftViewport.get(), topViewport.get());
     mainViewport->setUpdateCallback([this]() { this->updateMainViewportSize(); });
     mainViewport->setScrollBarsShown(true, true);
     mainViewport->setViewedComponent(mainPanel.get(), false);
+    mainPanel->initViewport();
     mainPanel->setPlayHeadTime(playHeadTime);
     addAndMakeVisible(mainViewport.get());
 
@@ -740,14 +738,14 @@ void AudioPluginAudioProcessorEditor::resized() {
 
     // If we resize while mainPanel has max zoom out, we need a correction:
     if (mainPanel->getWidth() < topView_width_px) {
-        bar_width_px = topView_width_px * 1.0f / processorRef.params.get_num_bars();
-        mainPanel->changeBarWidthPx(bar_width_px);
-        topPanel->changeBarWidthPx(bar_width_px);
+        float new_bar_width_px = topView_width_px * 1.0f / processorRef.params.get_num_bars();
+        changeBarWidthPx(new_bar_width_px);
+        mainPanel->changeBarWidthPx(new_bar_width_px);
     }
     if (mainPanel->getHeight() < leftView_height_px) {
-        octave_height_px = leftView_height_px * 1.0f / processorRef.params.num_octaves;
-        mainPanel->changeOctaveHeightPx(octave_height_px);
-        leftPanel->changeOctaveHeightPx(octave_height_px);
+        float new_octave_height_px = leftView_height_px * 1.0f / processorRef.params.num_octaves;
+        changeOctaveHeightPx(new_octave_height_px);
+        mainPanel->changeOctaveHeightPx(new_octave_height_px);
     }
 
     popup->setBounds(leftPanel_width_px + (topView_width_px - popup_width_px) / 2,
@@ -1571,7 +1569,7 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
         mainPanel->setPlayHeadTime(playHeadTime);
         topPanel->setPlayHeadTime(playHeadTime);
         if (processorRef.params.isCamFixedOnPlayHead) {
-            mainViewport->setCamOnTime(playHeadTime, bar_width_px);
+            mainViewport->setCamOnTime(playHeadTime, processorRef.params.bar_width_px);
         }
 
         if (processorRef.params.showClockDiagram && processorRef.isPlaying()) {

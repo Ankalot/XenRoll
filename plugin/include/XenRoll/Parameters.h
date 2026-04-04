@@ -36,6 +36,8 @@ class Parameters {
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants ~~~~~~~~~~~~~~~~~~~~~~~~~~~
     static constexpr int num_octaves = 10;
+    static constexpr float init_octave_height_px = 300.0f;
+    static constexpr float init_bar_width_px = 400.0f;
     // ===== Vocal to melody =====
     static constexpr float minVocalVolume_dB = -60.0f;
     static constexpr float maxVocalVolume_dB = 0.0f;
@@ -106,6 +108,13 @@ class Parameters {
     int num_beats = 4;
     int num_subdivs = 4;
     int start_octave = 2;
+    float lastDuration = 1.0f;
+    float lastVelocity = defaultVelocity;
+    juce::Point<int> lastViewPos = {0, 0};
+    float octave_height_px = init_octave_height_px;
+    float bar_width_px = init_bar_width_px;
+    bool showGhostNotesKeys = true;
+    std::set<int> ghostNotesChannels = {};
     std::atomic<double> A4Freq = 440.0;
     float noteRectHeightCoef = 0.04f;
     Zones zones;
@@ -207,13 +216,11 @@ class Parameters {
     bool keySnap = false;
     bool editRatiosMarks = false;
     bool hideCents = false;
-    bool showGhostNotesKeys = true;
     bool generateNewKeys = false;
     int numNewGenKeys = 3;
     int minDistExistNewKeys = 20;
     int minDistBetweenNewKeys = 40;
     GenNewKeysTactics genNewKeysTactics = GenNewKeysTactics::DiverseIntervals;
-    std::set<int> ghostNotesChannels = {};
     bool recordManuallyPlayedNotes = false;
     bool showClockDiagram = false;
     // ================== Intellectual ==================

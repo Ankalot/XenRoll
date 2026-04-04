@@ -13,8 +13,7 @@ class VelocityPanel : public juce::Component {
         setAlwaysOnTop(true);
 
         velocitySlider = std::make_unique<juce::Slider>();
-        velocitySlider->setRange(0.0, 127.0, 1.0);
-        velocitySlider->setValue(100.0);
+        velocitySlider->setRange(0.0, 1.0, 1.0 / 127);
         velocitySlider->setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
         velocitySlider->setSliderStyle(juce::Slider::LinearHorizontal);
         velocitySlider->onValueChange = onValueChange;
@@ -27,13 +26,13 @@ class VelocityPanel : public juce::Component {
      * @brief Set the velocity value
      * @param vel Velocity value (0-1)
      */
-    void setVelocity(float vel) { velocitySlider->setValue(vel * 127.0); }
+    void setVelocity(float vel) { velocitySlider->setValue(vel, juce::dontSendNotification); }
 
     /**
      * @brief Get the current velocity value
      * @return Velocity value (0-1)
      */
-    float getVelocity() { return float(velocitySlider->getValue() / 127.0); }
+    float getVelocity() { return float(velocitySlider->getValue()); }
 
     void paint(juce::Graphics &g) override {
         g.setColour(Theme::bright);

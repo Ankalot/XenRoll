@@ -2,10 +2,12 @@
 #include "XenRoll/PluginEditor.h"
 
 namespace audio_plugin {
-LeftPanel::LeftPanel(float octave_height_px, int leftPanel_width_px,
-                     AudioPluginAudioProcessorEditor *editor, Parameters *params)
-    : octave_height_px(octave_height_px), leftPanel_width_px(leftPanel_width_px), editor(editor),
-      params(params), init_octave_height_px(octave_height_px) {
+LeftPanel::LeftPanel(int leftPanel_width_px, AudioPluginAudioProcessorEditor *editor,
+                     Parameters *params)
+    : leftPanel_width_px(leftPanel_width_px), editor(editor), params(params) {
+    octave_height_px = params->octave_height_px;
+    init_octave_height_px = params->init_octave_height_px;
+
     this->setSize(leftPanel_width_px, juce::roundToInt(params->num_octaves * octave_height_px));
     setWantsKeyboardFocus(false);
 }

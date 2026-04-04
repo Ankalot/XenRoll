@@ -3,10 +3,13 @@
 #include <random>
 
 namespace audio_plugin {
-MainPanel::MainPanel(float octave_height_px, float bar_width_px,
-                     AudioPluginAudioProcessorEditor *editor, Parameters *params)
-    : octave_height_px(octave_height_px), bar_width_px(bar_width_px), editor(editor),
-      params(params), init_octave_height_px(octave_height_px), init_bar_width_px(bar_width_px) {
+MainPanel::MainPanel(AudioPluginAudioProcessorEditor *editor, Parameters *params)
+    : editor(editor), params(params) {
+    octave_height_px = params->octave_height_px;
+    bar_width_px = params->bar_width_px;
+    init_octave_height_px = params->init_octave_height_px;
+    init_bar_width_px = params->init_bar_width_px;
+
     this->setSize(juce::roundToInt(params->get_num_bars() * bar_width_px),
                   juce::roundToInt(params->num_octaves * octave_height_px));
     setInterceptsMouseClicks(true, true);
@@ -21,9 +24,14 @@ MainPanel::MainPanel(float octave_height_px, float bar_width_px,
     bendFont = juce::Font(getLookAndFeel().getTypefaceForFont(NULL)).withPointHeight(Theme::small_);
 }
 
-const juce::PathStrokeType MainPanel::outlineStroke(Theme::wide, juce::PathStrokeType::mitered);
-
 MainPanel::~MainPanel() { removeKeyListener(this); }
+
+void MainPanel::initViewport() {
+    viewport = findParentComponentOfClass<juce::Viewport>();
+    viewport->setViewPosition(params->lastViewPos);
+}
+
+const juce::PathStrokeType MainPanel::outlineStroke(Theme::wide, juce::PathStrokeType::mitered);
 
 int MainPanel::totalCentsToY(int totalCents) {
     return juce::roundToInt(octave_height_px * (params->num_octaves - totalCents / 1200.0f));
@@ -78,7 +86,6 @@ float MainPanel::adaptFont(float inputThickness) {
 void MainPanel::paint(juce::Graphics &g) {
     // We paint only visible area
 
-    auto *viewport = findParentComponentOfClass<juce::Viewport>();
     if (viewport == nullptr)
         return;
     juce::Rectangle<int> clip = viewport->getViewArea();
@@ -495,7 +502,6 @@ void MainPanel::numBarsChanged() {
     }
     std::erase_if(params->ratiosMarks,
                   [&](const auto &ratioMark) { return (ratioMark.time > params->get_num_bars()); });
-    auto *viewport = findParentComponentOfClass<juce::Viewport>();
     if (viewport != nullptr) {
         float min_bar_width_px =
             static_cast<float>(viewport->getViewWidth()) / params->get_num_bars();
@@ -526,7 +532,6 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
         return;
     }
 
-    auto *viewport = findParentComponentOfClass<juce::Viewport>();
     if (viewport == nullptr)
         return;
 
@@ -712,19 +717,19 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         if (params->timeSnap) {
             time = timeToSnappedTime(time);
         }
-        float duration = std::min(lastDuration, params->get_num_bars() - time);
+        float duration = std::min(params->lastDuration, params->get_num_bars() - time);
         if (params->timeSnap) {
             duration = std::max(timeToSnappedTime(duration),
                                 1.0f / (params->num_beats * params->num_subdivs));
         }
-        lastDuration = duration;
+        params->lastDuration = duration;
         int octave, cents;
         std::tie(octave, cents) = pointToOctaveCents(point);
         if (params->keySnap && !keys.empty()) {
             std::tie(octave, cents) = centsToKeysCents(octave, cents);
         }
         notesHistory.push(notes);
-        notes.push_back({octave, cents, time, false, duration, lastVelocity});
+        notes.push_back({octave, cents, time, false, duration, params->lastVelocity});
         keysFromAllNotes.insert(cents);
         if (params->zones.isNoteInActiveZone(*(notes.rbegin()))) {
             auto [_, inserted] = keys.insert(cents);
@@ -839,9 +844,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         if (params->isCamFixedOnPlayHead) {
             delta.setX(0);
         }
-        if (auto *viewport = findParentComponentOfClass<juce::Viewport>()) {
+        if (viewport != nullptr) {
             auto newPos = viewport->getViewPosition() - delta;
-            lastViewPos = newPos;
+            params->lastViewPos = newPos;
             viewport->setViewPosition(newPos);
         }
         editor->repaintTopPanel();
@@ -870,7 +875,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                     notes[i].duration += delta_duration;
                     resized = true;
                 }
-                lastDuration = notes[i].duration;
+                params->lastDuration = notes[i].duration;
             }
         }
         if (abs(dtime) >= dt) {
@@ -2134,7 +2139,7 @@ void MainPanel::setVelocitiesOfSelectedNotes(float vel) {
             note.velocity = vel;
         }
     }
-    lastVelocity = vel;
+    params->lastVelocity = vel;
     editor->updateNotes(notes);
     repaint();
 }

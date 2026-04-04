@@ -18,9 +18,11 @@ class AudioPluginAudioProcessorEditor;
  */
 class MainPanel : public juce::Component, public juce::KeyListener {
   public:
-    MainPanel(float octave_height_px, float bar_width_px, AudioPluginAudioProcessorEditor *editor,
-              Parameters *params);
+    MainPanel(AudioPluginAudioProcessorEditor *editor, Parameters *params);
     ~MainPanel() override;
+
+    ///< CALL RIGHT AFTER CREATING MainViewport AND ASSIGNING MainPanel TO IT
+    void initViewport();
 
     ///< NO REPAINT!
     void setPlayHeadTime(float newPlayHeadTime);
@@ -137,13 +139,13 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     RatioMark *movingRatioMark;
     juce::Point<int> prevDragPoint;
     juce::Point<int> lastDragPos;
-    juce::Point<int> lastViewPos;
     juce::Point<int> selectStartPos;
     juce::Rectangle<int> selectionRect;
     juce::Point<int> ratioMarkStartPos;
     juce::Point<int> ratioMarkLastPos;
     AudioPluginAudioProcessorEditor *editor;
     Parameters *params;
+    juce::Viewport *viewport;
 
     ///< is needed when placing a note with params->playDraggedNotes
     std::map<int, int> placedNoteKeyCounter;
@@ -185,8 +187,6 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     const int ratioMarkHalfWidth = 5;
     const int ratioMarkMinHeight = 10; ///< is needed for deleting small ratio marks like 1/1
     int needToUnselectAllNotesExcept = -1;
-    float lastDuration = 1.0f;
-    float lastVelocity = 100.0f / 127;
     float vertMoveSlowCoef = 0.2f;
 
     // ============================= VOCAL TO MELODY =============================

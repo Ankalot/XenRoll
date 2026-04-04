@@ -2,10 +2,12 @@
 #include "XenRoll/PluginEditor.h"
 
 namespace audio_plugin {
-TopPanel::TopPanel(float bar_width_px, const int topPanel_height_px,
-                   AudioPluginAudioProcessorEditor *editor, Parameters *params)
-    : bar_width_px(bar_width_px), topPanel_height_px(topPanel_height_px), editor(editor),
-      params(params), init_bar_width_px(bar_width_px) {
+TopPanel::TopPanel(const int topPanel_height_px, AudioPluginAudioProcessorEditor *editor,
+                   Parameters *params)
+    : topPanel_height_px(topPanel_height_px), editor(editor), params(params) {
+    bar_width_px = params->bar_width_px;
+    init_bar_width_px = params->init_bar_width_px;
+
     setMouseCursor(juce::MouseCursor::PointingHandCursor);
     this->setSize(juce::roundToInt(params->get_num_bars() * bar_width_px), topPanel_height_px);
 }
@@ -81,10 +83,10 @@ void TopPanel::paint(juce::Graphics &g) {
     for (int i = 0; i < zpOnOff.size(); ++i) {
         if (!zpOnOff[i]) {
             float leftPoint_px = juce::jmax(float(clipX), zp[i] * bar_width_px);
-            float rightPoint_px =
-                juce::jmin(float(clipX + clipWidth), zp[i + 1] * bar_width_px);
+            float rightPoint_px = juce::jmin(float(clipX + clipWidth), zp[i + 1] * bar_width_px);
             if ((leftPoint_px < clipX + clipWidth) && (rightPoint_px > clipX)) {
-                g.fillRect(leftPoint_px, 0.0f, rightPoint_px - leftPoint_px, float(topPanel_height_px));
+                g.fillRect(leftPoint_px, 0.0f, rightPoint_px - leftPoint_px,
+                           float(topPanel_height_px));
             }
         }
     }
@@ -96,8 +98,7 @@ void TopPanel::paint(juce::Graphics &g) {
     for (int i = 1; i < zp.size() - 1; ++i) {
         float zp_px = zp[i] * bar_width_px;
         if ((zp_px >= clipX) && (zp_px <= clipX + clipWidth)) {
-            trianglePath.startNewSubPath(zp_px,
-                                         topPanel_height_px - zonePoint_collision_width_px);
+            trianglePath.startNewSubPath(zp_px, topPanel_height_px - zonePoint_collision_width_px);
             trianglePath.lineTo(zp_px - zpw / 2, float(topPanel_height_px));
             trianglePath.lineTo(zp_px + zpw / 2, float(topPanel_height_px));
             trianglePath.lineTo(zp_px, topPanel_height_px - zonePoint_collision_width_px);

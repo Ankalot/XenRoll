@@ -12,8 +12,8 @@ class AudioPluginAudioProcessorEditor;
  */
 class TopPanel : public juce::Component {
   public:
-    TopPanel(float bar_width_px, const int topPanel_height_px,
-             AudioPluginAudioProcessorEditor *editor, Parameters *params);
+    TopPanel(const int topPanel_height_px, AudioPluginAudioProcessorEditor *editor,
+             Parameters *params);
 
     void changeBarWidthPx(float new_bar_width_px) {
         bar_width_px = new_bar_width_px;

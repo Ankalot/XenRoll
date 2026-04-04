@@ -883,6 +883,19 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
     stream.writeFloat(params.micGain_dB);
 
     stream.writeFloat(params.maxChordDtimeClockDiagram);
+
+    // Write some state params
+    stream.writeFloat(params.lastDuration);
+    stream.writeFloat(params.lastVelocity);
+    stream.writeInt(params.lastViewPos.getX());
+    stream.writeInt(params.lastViewPos.getY());
+    stream.writeFloat(params.octave_height_px);
+    stream.writeFloat(params.bar_width_px);
+    stream.writeBool(params.showGhostNotesKeys);
+    stream.writeInt(params.ghostNotesChannels.size());
+    for (const int chInd : params.ghostNotesChannels) {
+        stream.writeInt(chInd);
+    }
 }
 
 void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeInBytes) {
@@ -1020,6 +1033,22 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
 
     if (!stream.isExhausted()) {
         params.maxChordDtimeClockDiagram = stream.readFloat();
+    }
+
+    // Read some state params
+    if (!stream.isExhausted()) {
+        params.lastDuration = stream.readFloat();
+        params.lastVelocity = stream.readFloat();
+        params.lastViewPos.setX(stream.readInt());
+        params.lastViewPos.setY(stream.readInt());
+        params.octave_height_px = stream.readFloat();
+        params.bar_width_px = stream.readFloat();
+        params.showGhostNotesKeys = stream.readBool();
+        int numChInd = stream.readInt();
+        params.ghostNotesChannels.clear();
+        for (int i = 0; i < numChInd; ++i) {
+            params.ghostNotesChannels.insert(stream.readInt());
+        }
     }
 
     // UPDATE NOTES
