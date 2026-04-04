@@ -122,6 +122,11 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     const std::vector<Note> &getNotes() { return notes; }
 
+    void saveNotesState() {
+        startedPitchBend = false;
+        notesHistory.push(notes);
+    }
+
   private:
     float playHeadTime; ///< In bars
     const float max_bar_width_px = 1000.0f;
@@ -136,6 +141,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool isDrawingRatioMark = false;
     bool isMovingRatioMark = false;
     bool prevDragPointIsActual = false;
+    bool startedPitchBend = false;
     RatioMark *movingRatioMark;
     juce::Point<int> prevDragPoint;
     juce::Point<int> lastDragPos;
@@ -180,7 +186,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     std::array<int, 120> possibleNewKeysWeights;
     // ========================================================================
     std::vector<Note> copiedNotes;
-    CircularStack<std::vector<Note>> notesHistory{20};
+    CircularStack<std::vector<Note>> notesHistory{100};
     const int note_right_corner_width = 5;
     const int numDashLengths = 2;
     const float dashLengths[2] = {45, 15};

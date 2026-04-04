@@ -9,7 +9,7 @@ namespace audio_plugin {
  */
 class VelocityPanel : public juce::Component {
   public:
-    VelocityPanel(std::function<void()> onValueChange) {
+    VelocityPanel(std::function<void()> onValueChange, std::function<void()> onDragStart) {
         setAlwaysOnTop(true);
 
         velocitySlider = std::make_unique<juce::Slider>();
@@ -17,6 +17,7 @@ class VelocityPanel : public juce::Component {
         velocitySlider->setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
         velocitySlider->setSliderStyle(juce::Slider::LinearHorizontal);
         velocitySlider->onValueChange = onValueChange;
+        velocitySlider->onDragStart = onDragStart;
         addAndMakeVisible(velocitySlider.get());
     }
 

@@ -624,7 +624,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addChildComponent(dragAndDropPopup.get());
 
     velocityPanel = std::make_unique<VelocityPanel>(
-        [this]() { mainPanel->setVelocitiesOfSelectedNotes(this->velocityPanel->getVelocity()); });
+        [this]() { mainPanel->setVelocitiesOfSelectedNotes(this->velocityPanel->getVelocity()); },
+        [this]() { mainPanel->saveNotesState(); });
     addAndMakeVisible(velocityPanel.get());
     velocityPanel->setVisible(false);
 
