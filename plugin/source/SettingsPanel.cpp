@@ -2,7 +2,8 @@
 #include "XenRoll/PluginEditor.h"
 
 namespace audio_plugin {
-SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor *editor) {
+SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor *editor)
+    : params(params) {
     setVisible(false);
     setAlwaysOnTop(true);
 
@@ -122,5 +123,5 @@ void SettingsPanel::resized() {
     playDraggedNotesCheckbox->setBounds(playRow);
 }
 
-void SettingsPanel::paint(juce::Graphics &g) { g.fillAll(Theme::darker); }
+void SettingsPanel::paint(juce::Graphics &g) { g.fillAll(params->theme.darker); }
 } // namespace audio_plugin

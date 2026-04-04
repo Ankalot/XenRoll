@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Parameters.h"
-#include "Theme.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace audio_plugin {
@@ -15,6 +14,8 @@ class SettingsPanel : public juce::Component {
     void paint(juce::Graphics &g) override;
 
   private:
+    Parameters *params;
+
     std::unique_ptr<juce::Label> startingOctaveLabel;
     std::unique_ptr<juce::ComboBox> startingOctaveCombo;
 

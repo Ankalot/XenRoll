@@ -124,6 +124,7 @@ class Parameters {
     int maxDenRatiosMarks = 40;
     int goodEnoughErrorRatiosMarks = 4;
     Theme::ThemeType themeType = Theme::ThemeType::Gray;
+    Theme theme;
     bool playDraggedNotes = true;
     int channelIndex = -1;                       ///< -1 means uninited state, normal range 0-15
     float maxChordDtimeClockDiagram = 1.0f / 32; ///< in bars
@@ -238,7 +239,7 @@ class Parameters {
     // ===================================================
     CircularStack<std::vector<Note>> notesHistory{100};
 
-    Parameters() : zones(true, float(num_bars)) {}
+    Parameters() : zones(true, float(num_bars)), theme(themeType) {}
 
   private:
     // ~~~~~~~~~~~~~~~~~~~~~~~~~ Saved params ~~~~~~~~~~~~~~~~~~~~~~~~~

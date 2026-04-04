@@ -9,7 +9,9 @@ namespace audio_plugin {
  */
 class VelocityPanel : public juce::Component {
   public:
-    VelocityPanel(std::function<void()> onValueChange, std::function<void()> onDragEnd) {
+    VelocityPanel(Theme *theme, std::function<void()> onValueChange,
+                  std::function<void()> onDragEnd)
+        : theme(theme) {
         setAlwaysOnTop(true);
 
         velocitySlider = std::make_unique<juce::Slider>();
@@ -36,11 +38,12 @@ class VelocityPanel : public juce::Component {
     float getVelocity() { return float(velocitySlider->getValue()); }
 
     void paint(juce::Graphics &g) override {
-        g.setColour(Theme::bright);
+        g.setColour(theme->bright);
         g.fillRoundedRectangle(getLocalBounds().toFloat(), 10.0f);
     }
 
   private:
+    Theme *theme;
     std::unique_ptr<juce::Slider> velocitySlider;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VelocityPanel)

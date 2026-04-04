@@ -3,7 +3,8 @@
 
 namespace audio_plugin {
 PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters *params,
-                                                   AudioPluginAudioProcessorEditor *editor) {
+                                                   AudioPluginAudioProcessorEditor *editor)
+    : params(params) {
     setVisible(false);
     setAlwaysOnTop(true);
 
@@ -140,7 +141,7 @@ PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters *params,
     algoDescrText += "          if " + TV_j + " < " + TV_MIN + ":  " + TV_j + " := 0";
     algoDescrLabel->setText(algoDescrText, juce::dontSendNotification);
 
-    algoDescrViewport = std::make_unique<AlgoDescrViewport>();
+    algoDescrViewport = std::make_unique<AlgoDescrViewport>(&params->theme);
     algoDescrViewport->setScrollBarsShown(true, false);
     algoDescrViewport->setViewedComponent(algoDescrLabel.get(), false);
     addAndMakeVisible(algoDescrViewport.get());
@@ -171,8 +172,8 @@ void PitchMemorySettingsPanel::resized() {
 }
 
 void PitchMemorySettingsPanel::paint(juce::Graphics &g) {
-    g.fillAll(Theme::darker);
-    g.setColour(Theme::darkest);
+    g.fillAll(params->theme.darker);
+    g.setColour(params->theme.darkest);
     g.drawLine(padding, padding * 5 + rowHeight * 4 + Theme::wider, getWidth() - padding,
                padding * 5 + rowHeight * 4 + Theme::wider, Theme::wider);
 }

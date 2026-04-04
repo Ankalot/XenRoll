@@ -23,7 +23,7 @@ ClockDiagramMenu::ClockDiagramMenu(Parameters *params, AudioPluginAudioProcessor
     }
     maxChordDtimeClockDiagramCombo->setSelectedId(
         juce::roundToInt(1.0f / params->maxChordDtimeClockDiagram));
-    maxChordDtimeClockDiagramCombo->setLookAndFeel(&editor->smallLF);
+    maxChordDtimeClockDiagramCombo->setLookAndFeel(editor->smallLF.get());
     maxChordDtimeClockDiagramCombo->onChange = [this, params, editor]() {
         params->maxChordDtimeClockDiagram = 1.0f / maxChordDtimeClockDiagramCombo->getSelectedId();
         if (params->showClockDiagram) {

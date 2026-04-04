@@ -8,7 +8,6 @@
 #include "PartialsFinder.h"
 #include "PartialsPlot.h"
 #include "SVGButton.h"
-#include "Theme.h"
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 

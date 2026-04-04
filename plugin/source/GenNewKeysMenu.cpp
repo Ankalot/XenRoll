@@ -17,7 +17,7 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEdit
     addAndMakeVisible(numNewKeysLabel.get());
 
     numNewKeysSlider = std::make_unique<juce::Slider>();
-    numNewKeysSlider->setLookAndFeel(&editor->smallLF);
+    numNewKeysSlider->setLookAndFeel(editor->smallLF.get());
     numNewKeysSlider->setRange(params->min_num_new_notes, params->max_num_new_notes, 1);
     numNewKeysSlider->setValue(params->numNewGenKeys);
     numNewKeysSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, rowHeight);
@@ -37,7 +37,7 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEdit
     addAndMakeVisible(genNewKeysTacticsLabel.get());
 
     genNewKeysTacticsCombo = std::make_unique<juce::ComboBox>();
-    genNewKeysTacticsCombo->setLookAndFeel(&editor->smallLF);
+    genNewKeysTacticsCombo->setLookAndFeel(editor->smallLF.get());
     genNewKeysTacticsCombo->addItemList(params->getGenNewKeysTacticsNames(), 1);
     genNewKeysTacticsCombo->setSelectedId(static_cast<int>(params->genNewKeysTactics));
     genNewKeysTacticsCombo->onChange = [this, params, editor]() {
@@ -57,7 +57,7 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEdit
     addAndMakeVisible(minDistExistNewKeysLabel.get());
 
     minDistExistNewKeysSlider = std::make_unique<juce::Slider>();
-    minDistExistNewKeysSlider->setLookAndFeel(&editor->smallLF);
+    minDistExistNewKeysSlider->setLookAndFeel(editor->smallLF.get());
     minDistExistNewKeysSlider->setRange(params->min_minDistExistNewKeys,
                                         params->max_minDistExistNewKeys, 1);
     minDistExistNewKeysSlider->setValue(params->minDistExistNewKeys);
@@ -78,7 +78,7 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEdit
     addAndMakeVisible(minDistBetweenNewKeysLabel.get());
 
     minDistBetweenNewKeysSlider = std::make_unique<juce::Slider>();
-    minDistBetweenNewKeysSlider->setLookAndFeel(&editor->smallLF);
+    minDistBetweenNewKeysSlider->setLookAndFeel(editor->smallLF.get());
     minDistBetweenNewKeysSlider->setRange(params->min_minDistBetweenNewKeys,
                                           params->max_minDistBetweenNewKeys, 1);
     minDistBetweenNewKeysSlider->setValue(params->minDistBetweenNewKeys);

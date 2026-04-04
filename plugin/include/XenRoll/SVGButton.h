@@ -8,15 +8,16 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
   public:
     /**
      * @brief Construct an SVGButton from binary SVG data
+     * @param theme Theme
      * @param svgBinaryData Binary SVG data
      * @param svgBinaryDataSize Size of binary data
      * @param togglable Whether button can be toggled on/off
      * @param active Initial active state
      * @param tooltipText Tooltip text to display
      */
-    SVGButton(const char *svgBinaryData, int svgBinaryDataSize, bool togglable = true,
+    SVGButton(Theme *theme, const char *svgBinaryData, int svgBinaryDataSize, bool togglable = true,
               bool active = false, const std::string &tooltipText = "")
-        : togglable(togglable), active(active) {
+        : theme(theme), togglable(togglable), active(active) {
         this->tooltipText = juce::String(tooltipText);
         auto svgXml =
             juce::XmlDocument::parse(juce::String::fromUTF8(svgBinaryData, svgBinaryDataSize));
@@ -26,14 +27,15 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
 
     /**
      * @brief Construct an SVGButton from SVG string
+     * @param theme Theme
      * @param svgData SVG data as string
      * @param togglable Whether button can be toggled on/off
      * @param active Initial active state
      * @param tooltipText Tooltip text to display
      */
-    SVGButton(const juce::String &svgData, bool togglable = true, bool active = false,
+    SVGButton(Theme *theme, const juce::String &svgData, bool togglable = true, bool active = false,
               const std::string &tooltipText = "")
-        : togglable(togglable), active(active) {
+        : theme(theme), togglable(togglable), active(active) {
         this->tooltipText = juce::String(tooltipText);
         svg = juce::Drawable::createFromSVG(*juce::XmlDocument::parse(svgData));
         setMouseCursor(juce::MouseCursor::PointingHandCursor);
@@ -41,9 +43,9 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
 
     void paint(juce::Graphics &g) override {
         if (togglable && active) {
-            recolorDrawable(svg.get(), Theme::activated);
+            recolorDrawable(svg.get(), theme->activated);
         } else {
-            recolorDrawable(svg.get(), Theme::bright);
+            recolorDrawable(svg.get(), theme->bright);
         }
 
         if (svg != nullptr) {
@@ -114,6 +116,7 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
     // void setState(bool activeNew) { active = activeNew; }
 
   private:
+    Theme *theme;
     std::unique_ptr<juce::Drawable> svg;
     juce::String tooltipText;
     bool togglable;

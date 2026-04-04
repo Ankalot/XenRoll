@@ -70,7 +70,7 @@ void TopPanel::paint(juce::Graphics &g) {
     juce::Rectangle<int> clip = viewport->getViewArea();
     int clipWidth = clip.getWidth();
     int clipX = clip.getX();
-    g.setColour(Theme::bright);
+    g.setColour(params->theme.bright);
     g.fillRect(clip);
 
     // Zones
@@ -79,7 +79,7 @@ void TopPanel::paint(juce::Graphics &g) {
     zp.insert(zp.begin(), 0.0f);
     zp.push_back(float(params->get_num_bars()));
     auto zpOnOff = params->zones.getZonesOnOff();
-    g.setColour(Theme::dark);
+    g.setColour(params->theme.dark);
     for (int i = 0; i < zpOnOff.size(); ++i) {
         if (!zpOnOff[i]) {
             float leftPoint_px = juce::jmax(float(clipX), zp[i] * bar_width_px);
@@ -92,7 +92,7 @@ void TopPanel::paint(juce::Graphics &g) {
     }
 
     // Zones points
-    g.setColour(Theme::darkest);
+    g.setColour(params->theme.darkest);
     juce::Path trianglePath;
     const float zpw = adaptSize(zonePoint_collision_width_px);
     for (int i = 1; i < zp.size() - 1; ++i) {
@@ -117,7 +117,7 @@ void TopPanel::paint(juce::Graphics &g) {
     }
 
     // Bars
-    g.setColour(Theme::darkest);
+    g.setColour(params->theme.darkest);
     int bar_i_start = static_cast<int>(clipX / bar_width_px);
     int bar_i_end =
         std::min(static_cast<int>((clipX + clipWidth) / bar_width_px) + 1, params->get_num_bars());
@@ -149,11 +149,11 @@ void TopPanel::paint(juce::Graphics &g) {
                             float(topPanel_height_px - playHeadHeight));
         playHeadPath.lineTo(playHeadTime * bar_width_px, float(topPanel_height_px));
         playHeadPath.closeSubPath();
-        // g.setColour(Theme::brighter.withAlpha(1.0f));
-        g.setColour(Theme::activated.withAlpha(1.0f));
+        // g.setColour(params->theme.brighter.withAlpha(1.0f));
+        g.setColour(params->theme.activated.withAlpha(1.0f));
         g.fillPath(playHeadPath);
 
-        g.setColour(Theme::darkest);
+        g.setColour(params->theme.darkest);
         juce::PathStrokeType stroke(Theme::narrower);
         stroke.setJointStyle(juce::PathStrokeType::mitered);
         g.strokePath(playHeadPath, stroke);

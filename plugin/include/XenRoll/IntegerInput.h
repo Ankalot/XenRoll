@@ -8,11 +8,13 @@ class IntegerInput : public juce::Component {
   public:
     /**
      * @brief Construct an IntegerInput component
+     * @param theme Theme
      * @param val Initial value
      * @param minVal Minimum allowed value
      * @param maxVal Maximum allowed value
      */
-    IntegerInput(int val, int minVal, int maxVal) : minVal(minVal), maxVal(maxVal) {
+    IntegerInput(Theme *theme, int val, int minVal, int maxVal)
+        : minVal(minVal), maxVal(maxVal), theme(theme) {
         juce::Font currentFont = editor.getFont();
         currentFont.setHeight(Theme::big);
         editor.setFont(currentFont);
@@ -48,7 +50,7 @@ class IntegerInput : public juce::Component {
 
     void resized() override { editor.setBounds(getLocalBounds()); }
 
-    void lookAndFeelChanged() override { editor.applyColourToAllText(Theme::brightest); }
+    void lookAndFeelChanged() override { editor.applyColourToAllText(theme->brightest); }
 
     int getValue() const { return lastValidValue; }
 
@@ -64,6 +66,7 @@ class IntegerInput : public juce::Component {
     std::function<void(int)> onValueChanged;
 
   private:
+    Theme *theme;
     juce::TextEditor editor;
     int lastValidValue;
     const int minVal, maxVal;

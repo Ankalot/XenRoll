@@ -18,7 +18,7 @@ EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters *params,
     addAndMakeVisible(maxDenLabel.get());
 
     maxDenSlider = std::make_unique<juce::Slider>();
-    maxDenSlider->setLookAndFeel(&editor->smallLF);
+    maxDenSlider->setLookAndFeel(editor->smallLF.get());
     maxDenSlider->setRange(params->min_maxDenRatiosMarks, params->max_maxDenRatiosMarks, 1);
     maxDenSlider->setValue(params->maxDenRatiosMarks);
     maxDenSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, rowHeight);
@@ -37,7 +37,7 @@ EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters *params,
     addAndMakeVisible(goodEnoughErrorLabel.get());
 
     goodEnoughErrorSlider = std::make_unique<juce::Slider>();
-    goodEnoughErrorSlider->setLookAndFeel(&editor->smallLF);
+    goodEnoughErrorSlider->setLookAndFeel(editor->smallLF.get());
     goodEnoughErrorSlider->setRange(params->min_goodEnoughErrorRatiosMarks,
                                     params->max_goodEnoughErrorRatiosMarks, 1);
     goodEnoughErrorSlider->setValue(params->goodEnoughErrorRatiosMarks);
@@ -57,7 +57,7 @@ EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters *params,
     addAndMakeVisible(autoCorrectLabel.get());
 
     autoCorrectCheckbox = std::make_unique<juce::ToggleButton>();
-    autoCorrectCheckbox->setLookAndFeel(&editor->smallLF);
+    autoCorrectCheckbox->setLookAndFeel(editor->smallLF.get());
     autoCorrectCheckbox->setToggleState(params->autoCorrectRatiosMarks, juce::dontSendNotification);
     autoCorrectCheckbox->onStateChange = [this, params, editor]() {
         params->autoCorrectRatiosMarks = autoCorrectCheckbox->getToggleState();

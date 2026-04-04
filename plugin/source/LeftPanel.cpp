@@ -13,10 +13,10 @@ LeftPanel::LeftPanel(int leftPanel_width_px, AudioPluginAudioProcessorEditor *ed
 }
 
 void LeftPanel::paint(juce::Graphics &g) {
-    g.fillAll(Theme::bright);
+    g.fillAll(params->theme.bright);
 
     // rectangles for keys that are played
-    g.setColour(Theme::brighter);
+    g.setColour(params->theme.brighter);
     for (int i = 0; i < params->num_octaves; ++i) {
         for (const int &key : keys) {
             float yPos = (i + 1.0f - float(key) / 1200) * octave_height_px;
@@ -37,7 +37,7 @@ void LeftPanel::paint(juce::Graphics &g) {
     }
 
     // octaves
-    g.setColour(Theme::darkest);
+    g.setColour(params->theme.darkest);
     for (int i = 0; i <= params->num_octaves; ++i) {
         float yPos = i * octave_height_px;
         g.drawLine(0, yPos, 40, yPos, adaptSize(Theme::wide));
@@ -52,7 +52,7 @@ void LeftPanel::paint(juce::Graphics &g) {
         int j = 0;
         for (const int &key : keys) {
             float yPos = (i + 1.0f - float(key) / 1200) * octave_height_px;
-            g.setColour(Theme::darkest);
+            g.setColour(params->theme.darkest);
             g.drawLine(leftPanel_width_px - 20.0f, yPos, float(leftPanel_width_px), yPos,
                        adaptSize(Theme::narrow));
             if (params->showKeysHarmonicity) {

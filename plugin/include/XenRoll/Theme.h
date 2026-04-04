@@ -16,14 +16,16 @@ class Theme {
         LightBlue = 8 ///< Light blue theme
     };
 
+    Theme(ThemeType themeType) { setTheme(themeType); }
+
     // Theme dependent colors
-    static juce::Colour darkest;   ///< Darkest theme color
-    static juce::Colour darker;    ///< Darker theme color
-    static juce::Colour dark;      ///< Dark theme color
-    static juce::Colour bright;    ///< Bright theme color
-    static juce::Colour brighter;  ///< Brighter theme color
-    static juce::Colour brightest; ///< Brightest theme color
-    static juce::Colour activated; ///< Activated element color
+    juce::Colour darkest;   ///< Darkest theme color
+    juce::Colour darker;    ///< Darker theme color
+    juce::Colour dark;      ///< Dark theme color
+    juce::Colour bright;    ///< Bright theme color
+    juce::Colour brighter;  ///< Brighter theme color
+    juce::Colour brightest; ///< Brightest theme color
+    juce::Colour activated; ///< Activated element color
 
     // Theme independent colors
     static juce::Colour maxHarmony; ///< Color for maximum harmonicity
@@ -41,7 +43,7 @@ class Theme {
     static constexpr float medium = 20.0f; ///< Medium text size
     static constexpr float small_ = 16.0f; ///< Small text size
 
-    static void setTheme(ThemeType theme) {
+    void setTheme(ThemeType theme) {
         switch (theme) {
         case Purple:
             setPurpleTheme();
@@ -80,13 +82,13 @@ class Theme {
     }
 
   private:
-    static void setPurpleTheme();
-    static void setGreenTheme();
-    static void setGrayTheme();
-    static void setRedTheme();
-    static void setBlueTheme();
-    static void setOrangeTheme();
-    static void setCyanTheme();
-    static void setLightBlueTheme();
+    void setPurpleTheme();
+    void setGreenTheme();
+    void setGrayTheme();
+    void setRedTheme();
+    void setBlueTheme();
+    void setOrangeTheme();
+    void setCyanTheme();
+    void setLightBlueTheme();
 };
 } // namespace audio_plugin

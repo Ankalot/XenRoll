@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Parameters.h"
-#include "Theme.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace audio_plugin {
@@ -17,8 +16,8 @@ class GenNewKeysMenu : public juce::Component {
     ~GenNewKeysMenu() override {};
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(Theme::darker);
-        g.setColour(Theme::darkest);
+        g.fillAll(params->theme.darker);
+        g.setColour(params->theme.darkest);
         g.drawRect(getLocalBounds(), Theme::wider);
     }
 

@@ -1,14 +1,6 @@
 #include "XenRoll/Theme.h"
 
 namespace audio_plugin {
-juce::Colour Theme::darkest;
-juce::Colour Theme::darker;
-juce::Colour Theme::dark;
-juce::Colour Theme::bright;
-juce::Colour Theme::brighter;
-juce::Colour Theme::brightest;
-juce::Colour Theme::activated;
-
 juce::Colour Theme::maxHarmony = juce::Colour(0, 255, 0);
 juce::Colour Theme::midHarmony = juce::Colour(255, 255, 0);
 juce::Colour Theme::minHarmony = juce::Colour(255, 0, 0);

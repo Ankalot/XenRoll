@@ -29,7 +29,7 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
     addAndMakeVisible(vocalToMelodyGenCurveCheckbox.get());
 
     vocalToMelodyDeleteCurveButton = std::make_unique<juce::TextButton>("Delete pitch curve");
-    vocalToMelodyDeleteCurveButton->setLookAndFeel(&editor->smallLF);
+    vocalToMelodyDeleteCurveButton->setLookAndFeel(editor->smallLF.get());
     vocalToMelodyDeleteCurveButton->setClickingTogglesState(false);
     vocalToMelodyDeleteCurveButton->onClick = [this, editor]() { editor->clearPitchCurve(); };
     addAndMakeVisible(vocalToMelodyDeleteCurveButton.get());
@@ -79,7 +79,7 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
     }
     vocalToMelodyMinNoteDurationCombo->setSelectedId(
         juce::roundToInt(1.0f / params->vocalToMelodyMinNoteDuration));
-    vocalToMelodyMinNoteDurationCombo->setLookAndFeel(&editor->smallLF);
+    vocalToMelodyMinNoteDurationCombo->setLookAndFeel(editor->smallLF.get());
     vocalToMelodyMinNoteDurationCombo->onChange = [this, params, editor]() {
         params->vocalToMelodyMinNoteDuration =
             1.0f / vocalToMelodyMinNoteDurationCombo->getSelectedId();
@@ -93,7 +93,7 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
     addAndMakeVisible(vocalToMelodyDcentsLabel.get());
 
     vocalToMelodyDcentsSlider = std::make_unique<juce::Slider>();
-    vocalToMelodyDcentsSlider->setLookAndFeel(&editor->smallLF);
+    vocalToMelodyDcentsSlider->setLookAndFeel(editor->smallLF.get());
     vocalToMelodyDcentsSlider->setRange(params->min_vocalToMelodyDCents,
                                         params->max_vocalToMelodyDcents, 1);
     vocalToMelodyDcentsSlider->setValue(params->vocalToMelodyDCents);
@@ -137,7 +137,7 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
     addAndMakeVisible(micGain_dBLabel.get());
 
     micGain_dBSlider = std::make_unique<juce::Slider>();
-    micGain_dBSlider->setLookAndFeel(&editor->smallLF);
+    micGain_dBSlider->setLookAndFeel(editor->smallLF.get());
     micGain_dBSlider->setRange(params->min_micGain_dB, params->max_micGain_dB, 0.1);
     micGain_dBSlider->setValue(params->micGain_dB);
     micGain_dBSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 45, rowHeight);

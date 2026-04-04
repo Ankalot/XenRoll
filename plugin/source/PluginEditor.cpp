@@ -4,106 +4,106 @@
 namespace audio_plugin {
 void CustomLookAndFeel::updateColors() {
     // Default colors for Tooltip
-    setColour(juce::TooltipWindow::backgroundColourId, Theme::darkest);
-    setColour(juce::TooltipWindow::outlineColourId, Theme::brightest);
-    setColour(juce::TooltipWindow::textColourId, Theme::brightest);
+    setColour(juce::TooltipWindow::backgroundColourId, theme->darkest);
+    setColour(juce::TooltipWindow::outlineColourId, theme->brightest);
+    setColour(juce::TooltipWindow::textColourId, theme->brightest);
 
     // Default colors for Label
-    setColour(juce::Label::textColourId, Theme::brightest);
-    setColour(juce::Label::backgroundColourId, Theme::darker);
+    setColour(juce::Label::textColourId, theme->brightest);
+    setColour(juce::Label::backgroundColourId, theme->darker);
 
     // Default colors for TextEditor
-    setColour(juce::TextEditor::textColourId, Theme::brightest);
-    setColour(juce::TextEditor::backgroundColourId, Theme::darkest);
-    setColour(juce::TextEditor::outlineColourId, Theme::darkest);
+    setColour(juce::TextEditor::textColourId, theme->brightest);
+    setColour(juce::TextEditor::backgroundColourId, theme->darkest);
+    setColour(juce::TextEditor::outlineColourId, theme->darkest);
 
     // Default colors for ComboBox
-    setColour(juce::ComboBox::backgroundColourId, Theme::darkest);
-    setColour(juce::ComboBox::textColourId, Theme::brightest);
-    setColour(juce::ComboBox::outlineColourId, Theme::darkest);
-    setColour(juce::ComboBox::buttonColourId, Theme::darkest);
-    setColour(juce::ComboBox::arrowColourId, Theme::brighter);
-    setColour(juce::ComboBox::focusedOutlineColourId, Theme::brighter);
+    setColour(juce::ComboBox::backgroundColourId, theme->darkest);
+    setColour(juce::ComboBox::textColourId, theme->brightest);
+    setColour(juce::ComboBox::outlineColourId, theme->darkest);
+    setColour(juce::ComboBox::buttonColourId, theme->darkest);
+    setColour(juce::ComboBox::arrowColourId, theme->brighter);
+    setColour(juce::ComboBox::focusedOutlineColourId, theme->brighter);
 
-    setColour(juce::PopupMenu::backgroundColourId, Theme::darkest);
-    setColour(juce::PopupMenu::textColourId, Theme::brightest);
-    setColour(juce::PopupMenu::headerTextColourId, Theme::brightest);
-    setColour(juce::PopupMenu::highlightedTextColourId, Theme::brightest);
-    setColour(juce::PopupMenu::highlightedBackgroundColourId, Theme::dark);
+    setColour(juce::PopupMenu::backgroundColourId, theme->darkest);
+    setColour(juce::PopupMenu::textColourId, theme->brightest);
+    setColour(juce::PopupMenu::headerTextColourId, theme->brightest);
+    setColour(juce::PopupMenu::highlightedTextColourId, theme->brightest);
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, theme->dark);
 
     // Default colors for Slider
-    setColour(juce::Slider::backgroundColourId, Theme::darkest);
-    setColour(juce::Slider::thumbColourId, Theme::brighter);
-    setColour(juce::Slider::trackColourId, Theme::darkest);
-    setColour(juce::Slider::textBoxTextColourId, Theme::brightest);
-    setColour(juce::Slider::textBoxBackgroundColourId, Theme::darkest);
-    setColour(juce::Slider::textBoxOutlineColourId, Theme::darkest);
+    setColour(juce::Slider::backgroundColourId, theme->darkest);
+    setColour(juce::Slider::thumbColourId, theme->brighter);
+    setColour(juce::Slider::trackColourId, theme->darkest);
+    setColour(juce::Slider::textBoxTextColourId, theme->brightest);
+    setColour(juce::Slider::textBoxBackgroundColourId, theme->darkest);
+    setColour(juce::Slider::textBoxOutlineColourId, theme->darkest);
 
     // Default colors for TextButton
-    setColour(juce::TextButton::buttonColourId, Theme::bright);
-    setColour(juce::TextButton::textColourOffId, Theme::darkest);
+    setColour(juce::TextButton::buttonColourId, theme->bright);
+    setColour(juce::TextButton::textColourOffId, theme->darkest);
 
     // Default colors for AlertWindow
-    setColour(juce::AlertWindow::backgroundColourId, Theme::darkest);
-    setColour(juce::AlertWindow::textColourId, Theme::brightest);
-    setColour(juce::AlertWindow::outlineColourId, Theme::darkest);
+    setColour(juce::AlertWindow::backgroundColourId, theme->darkest);
+    setColour(juce::AlertWindow::textColourId, theme->brightest);
+    setColour(juce::AlertWindow::outlineColourId, theme->darkest);
 
     // Default colors for ToggleButton
-    setColour(juce::ToggleButton::tickColourId, Theme::brightest);
-    setColour(juce::ToggleButton::textColourId, Theme::brightest);
-    setColour(juce::ToggleButton::tickDisabledColourId, Theme::brighter);
+    setColour(juce::ToggleButton::tickColourId, theme->brightest);
+    setColour(juce::ToggleButton::textColourId, theme->brightest);
+    setColour(juce::ToggleButton::tickDisabledColourId, theme->brighter);
 }
 
 void SmallLookAndFeel::updateColors() {
     // Default colors for Tooltip
-    setColour(juce::TooltipWindow::backgroundColourId, Theme::darkest);
-    setColour(juce::TooltipWindow::outlineColourId, Theme::brightest);
-    setColour(juce::TooltipWindow::textColourId, Theme::brightest);
+    setColour(juce::TooltipWindow::backgroundColourId, theme->darkest);
+    setColour(juce::TooltipWindow::outlineColourId, theme->brightest);
+    setColour(juce::TooltipWindow::textColourId, theme->brightest);
 
     // Default colors for Label
-    setColour(juce::Label::textColourId, Theme::brightest);
-    setColour(juce::Label::backgroundColourId, Theme::darker);
+    setColour(juce::Label::textColourId, theme->brightest);
+    setColour(juce::Label::backgroundColourId, theme->darker);
 
     // Default colors for TextEditor
-    setColour(juce::TextEditor::textColourId, Theme::brightest);
-    setColour(juce::TextEditor::backgroundColourId, Theme::darkest);
-    setColour(juce::TextEditor::outlineColourId, Theme::darkest);
+    setColour(juce::TextEditor::textColourId, theme->brightest);
+    setColour(juce::TextEditor::backgroundColourId, theme->darkest);
+    setColour(juce::TextEditor::outlineColourId, theme->darkest);
 
     // Default colors for ComboBox
-    setColour(juce::ComboBox::backgroundColourId, Theme::darkest);
-    setColour(juce::ComboBox::textColourId, Theme::brightest);
-    setColour(juce::ComboBox::outlineColourId, Theme::darkest);
-    setColour(juce::ComboBox::buttonColourId, Theme::darkest);
-    setColour(juce::ComboBox::arrowColourId, Theme::brighter);
-    setColour(juce::ComboBox::focusedOutlineColourId, Theme::brighter);
+    setColour(juce::ComboBox::backgroundColourId, theme->darkest);
+    setColour(juce::ComboBox::textColourId, theme->brightest);
+    setColour(juce::ComboBox::outlineColourId, theme->darkest);
+    setColour(juce::ComboBox::buttonColourId, theme->darkest);
+    setColour(juce::ComboBox::arrowColourId, theme->brighter);
+    setColour(juce::ComboBox::focusedOutlineColourId, theme->brighter);
 
-    setColour(juce::PopupMenu::backgroundColourId, Theme::darkest);
-    setColour(juce::PopupMenu::textColourId, Theme::brightest);
-    setColour(juce::PopupMenu::headerTextColourId, Theme::brightest);
-    setColour(juce::PopupMenu::highlightedTextColourId, Theme::brightest);
-    setColour(juce::PopupMenu::highlightedBackgroundColourId, Theme::dark);
+    setColour(juce::PopupMenu::backgroundColourId, theme->darkest);
+    setColour(juce::PopupMenu::textColourId, theme->brightest);
+    setColour(juce::PopupMenu::headerTextColourId, theme->brightest);
+    setColour(juce::PopupMenu::highlightedTextColourId, theme->brightest);
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, theme->dark);
 
     // Default colors for Slider
-    setColour(juce::Slider::backgroundColourId, Theme::darkest);
-    setColour(juce::Slider::thumbColourId, Theme::brighter);
-    setColour(juce::Slider::trackColourId, Theme::darkest);
-    setColour(juce::Slider::textBoxTextColourId, Theme::brightest);
-    setColour(juce::Slider::textBoxBackgroundColourId, Theme::darkest);
-    setColour(juce::Slider::textBoxOutlineColourId, Theme::darkest);
+    setColour(juce::Slider::backgroundColourId, theme->darkest);
+    setColour(juce::Slider::thumbColourId, theme->brighter);
+    setColour(juce::Slider::trackColourId, theme->darkest);
+    setColour(juce::Slider::textBoxTextColourId, theme->brightest);
+    setColour(juce::Slider::textBoxBackgroundColourId, theme->darkest);
+    setColour(juce::Slider::textBoxOutlineColourId, theme->darkest);
 
     // Default colors for TextButton
-    setColour(juce::TextButton::buttonColourId, Theme::bright);
-    setColour(juce::TextButton::textColourOffId, Theme::darkest);
+    setColour(juce::TextButton::buttonColourId, theme->bright);
+    setColour(juce::TextButton::textColourOffId, theme->darkest);
 
     // Default colors for AlertWindow
-    setColour(juce::AlertWindow::backgroundColourId, Theme::darkest);
-    setColour(juce::AlertWindow::textColourId, Theme::brightest);
-    setColour(juce::AlertWindow::outlineColourId, Theme::darkest);
+    setColour(juce::AlertWindow::backgroundColourId, theme->darkest);
+    setColour(juce::AlertWindow::textColourId, theme->brightest);
+    setColour(juce::AlertWindow::outlineColourId, theme->darkest);
 
     // Default colors for ToggleButton
-    setColour(juce::ToggleButton::tickColourId, Theme::brightest);
-    setColour(juce::ToggleButton::textColourId, Theme::brightest);
-    setColour(juce::ToggleButton::tickDisabledColourId, Theme::brighter);
+    setColour(juce::ToggleButton::tickColourId, theme->brightest);
+    setColour(juce::ToggleButton::textColourId, theme->brightest);
+    setColour(juce::ToggleButton::tickDisabledColourId, theme->brighter);
 }
 
 void SmallLookAndFeel::drawButtonBackground(juce::Graphics &g, juce::Button &button,
@@ -144,6 +144,13 @@ void SmallLookAndFeel::drawButtonBackground(juce::Graphics &g, juce::Button &but
 
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor &p)
     : AudioProcessorEditor(&p), processorRef(p) {
+    fontLF = std::make_unique<FontLookAndFeel>();
+    juce::LookAndFeel_V4::setDefaultLookAndFeel(fontLF.get());
+    customLF = std::make_unique<CustomLookAndFeel>(&processorRef.params.theme);
+    setLookAndFeel(customLF.get());
+
+    smallLF = std::make_shared<SmallLookAndFeel>(&processorRef.params.theme);
+
     partialsVec partials = {};
     int partialsTotalCents = 5700;
     if (!p.params.get_tonesPartials().empty()) {
@@ -162,11 +169,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     startTimer(timerMs);
 
-    Theme::setTheme(processorRef.params.themeType);
-
-    customLF = std::make_unique<CustomLookAndFeel>();
-    juce::LookAndFeel::setDefaultLookAndFeel(customLF.get());
-
     tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 300);
 
     leftPanel = std::make_unique<LeftPanel>(leftPanel_width_px, this, &(processorRef.params));
@@ -182,7 +184,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(topViewport.get());
 
     mainPanel = std::make_unique<MainPanel>(this, &(processorRef.params));
-    mainViewport = std::make_unique<MainViewport>(leftViewport.get(), topViewport.get());
+    mainViewport = std::make_unique<MainViewport>(&processorRef.params.theme, leftViewport.get(),
+                                                  topViewport.get());
     mainViewport->setUpdateCallback([this]() { this->updateMainViewportSize(); });
     mainViewport->setScrollBarsShown(true, true);
     mainViewport->setViewedComponent(mainPanel.get(), false);
@@ -195,8 +198,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(clockDiagramPanel.get());
     clockDiagramPanel->setVisible(processorRef.params.showClockDiagram);
 
-    helpPanel = std::make_unique<HelpPanel>();
-    helpViewport = std::make_unique<HelpViewport>();
+    helpPanel = std::make_unique<HelpPanel>(&processorRef.params.theme);
+    helpViewport = std::make_unique<HelpViewport>(&processorRef.params.theme);
     helpViewport->setViewedComponent(helpPanel.get(), false);
     addAndMakeVisible(helpViewport.get());
     helpViewport->setVisible(false);
@@ -214,19 +217,21 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(pitchMemorySettingsPanel.get());
     pitchMemorySettingsPanel->setVisible(false);
 
-    settingsButton =
-        std::make_unique<SVGButton>(BinaryData::Settings_svg, BinaryData::Settings_svgSize, false);
+    settingsButton = std::make_unique<SVGButton>(
+        &processorRef.params.theme, BinaryData::Settings_svg, BinaryData::Settings_svgSize, false);
     addAndMakeVisible(settingsButton.get());
 
-    helpButton = std::make_unique<SVGButton>(BinaryData::Help_svg, BinaryData::Help_svgSize, false);
+    helpButton = std::make_unique<SVGButton>(&processorRef.params.theme, BinaryData::Help_svg,
+                                             BinaryData::Help_svgSize, false);
     addAndMakeVisible(helpButton.get());
 
-    dissonanceButton =
-        std::make_unique<SVGButton>(BinaryData::Partials_svg, BinaryData::Partials_svgSize, false);
+    dissonanceButton = std::make_unique<SVGButton>(
+        &processorRef.params.theme, BinaryData::Partials_svg, BinaryData::Partials_svgSize, false);
     addAndMakeVisible(dissonanceButton.get());
 
-    pitchMemorySettingsButton = std::make_unique<SVGButton>(
-        BinaryData::Brain_settings_svg, BinaryData::Brain_settings_svgSize, false);
+    pitchMemorySettingsButton =
+        std::make_unique<SVGButton>(&processorRef.params.theme, BinaryData::Brain_settings_svg,
+                                    BinaryData::Brain_settings_svgSize, false);
     addAndMakeVisible(pitchMemorySettingsButton.get());
 
     settingsButton->onClick = [this](const juce::MouseEvent &me) {
@@ -270,10 +275,10 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         return false;
     };
 
-    pitchMemoryButton =
-        std::make_unique<SVGButton>(BinaryData::Brain_svg, BinaryData::Brain_svgSize, true,
-                                    processorRef.params.showPitchesMemoryTraces,
-                                    "Show pitch memory traces & notes' harmonicity\nHOTKEY: ALT+F");
+    pitchMemoryButton = std::make_unique<SVGButton>(
+        &processorRef.params.theme, BinaryData::Brain_svg, BinaryData::Brain_svgSize, true,
+        processorRef.params.showPitchesMemoryTraces,
+        "Show pitch memory traces & notes' harmonicity\nHOTKEY: ALT+F");
     pitchMemoryButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.showPitchesMemoryTraces = !processorRef.params.showPitchesMemoryTraces;
         if (processorRef.params.showPitchesMemoryTraces) {
@@ -286,8 +291,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(pitchMemoryButton.get());
 
     keysHarmonicityButton = std::make_unique<SVGButton>(
-        BinaryData::Keys_harmonicity_svg, BinaryData::Keys_harmonicity_svgSize, true,
-        processorRef.params.showKeysHarmonicity,
+        &processorRef.params.theme, BinaryData::Keys_harmonicity_svg,
+        BinaryData::Keys_harmonicity_svgSize, true, processorRef.params.showKeysHarmonicity,
         "Show harmonicity of keys (in the context of the end of the track) in an octave, an octave "
         "above and an octave below of all notes.");
     keysHarmonicityButton->onClick = [this](const juce::MouseEvent &me) {
@@ -302,8 +307,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(keysHarmonicityButton.get());
 
     ghostNotesKeysButton = std::make_unique<SVGButton>(
-        BinaryData::Ghost_notes_keys_svg, BinaryData::Ghost_notes_keys_svgSize, true,
-        processorRef.params.showGhostNotesKeys, "Show keys of \"ghost\" notes");
+        &processorRef.params.theme, BinaryData::Ghost_notes_keys_svg,
+        BinaryData::Ghost_notes_keys_svgSize, true, processorRef.params.showGhostNotesKeys,
+        "Show keys of \"ghost\" notes");
     ghostNotesKeysButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.showGhostNotesKeys = !processorRef.params.showGhostNotesKeys;
         mainPanel->remakeKeys();
@@ -313,8 +319,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(ghostNotesKeysButton.get());
 
     notesFromGhostNotesButton = std::make_unique<SVGButton>(
-        BinaryData::Notes_from_ghost_svg, BinaryData::Notes_from_ghost_svgSize, false, false,
-        "Create notes from \"ghost\" notes");
+        &processorRef.params.theme, BinaryData::Notes_from_ghost_svg,
+        BinaryData::Notes_from_ghost_svgSize, false, false, "Create notes from \"ghost\" notes");
     notesFromGhostNotesButton->onClick = [this](const juce::MouseEvent &me) {
         mainPanel->createNotesFromGhostNotes();
         return true;
@@ -327,7 +333,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     instancesMenu->setVisible(false);
 
     ghostNotesTabButton = std::make_unique<SVGButton>(
-        BinaryData::Ghost_notes_tab_svg, BinaryData::Ghost_notes_tab_svgSize, false, false,
+        &processorRef.params.theme, BinaryData::Ghost_notes_tab_svg,
+        BinaryData::Ghost_notes_tab_svgSize, false, false,
         "Choose instances of XenRoll from which you want to see notes (these notes are called "
         "\"ghost\" notes)");
     ghostNotesTabButton->onClick = [this](const juce::MouseEvent &me) {
@@ -342,9 +349,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     currentFont.setHeight(Theme::big);
     numSubdivsLabel->setFont(currentFont);
     addAndMakeVisible(numSubdivsLabel.get());
-    numSubdivsInput = std::make_unique<IntegerInput>(processorRef.params.num_subdivs,
-                                                     processorRef.params.min_num_subdivs,
-                                                     processorRef.params.max_num_subdivs);
+    numSubdivsInput = std::make_unique<IntegerInput>(
+        &processorRef.params.theme, processorRef.params.num_subdivs,
+        processorRef.params.min_num_subdivs, processorRef.params.max_num_subdivs);
     numSubdivsInput->onValueChanged = [this](int newValue) {
         processorRef.params.num_subdivs = newValue;
         mainPanel->repaint();
@@ -355,9 +362,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     numBeatsLabel->setText("BEATS", juce::dontSendNotification);
     numBeatsLabel->setFont(currentFont);
     addAndMakeVisible(numBeatsLabel.get());
-    numBeatsInput = std::make_unique<IntegerInput>(processorRef.params.num_beats,
-                                                   processorRef.params.min_num_beats,
-                                                   processorRef.params.max_num_beats);
+    numBeatsInput = std::make_unique<IntegerInput>(
+        &processorRef.params.theme, processorRef.params.num_beats,
+        processorRef.params.min_num_beats, processorRef.params.max_num_beats);
     numBeatsInput->onValueChanged = [this](int newValue) {
         processorRef.params.num_beats = newValue;
         mainPanel->repaint();
@@ -368,9 +375,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     numBarsLabel->setText("BARS", juce::dontSendNotification);
     numBarsLabel->setFont(currentFont);
     addAndMakeVisible(numBarsLabel.get());
-    numBarsInput = std::make_unique<IntegerInput>(processorRef.params.get_num_bars(),
-                                                  processorRef.params.min_num_bars,
-                                                  processorRef.params.max_num_bars);
+    numBarsInput = std::make_unique<IntegerInput>(
+        &processorRef.params.theme, processorRef.params.get_num_bars(),
+        processorRef.params.min_num_bars, processorRef.params.max_num_bars);
     numBarsInput->onValueChanged = [this](int newValue) {
         processorRef.params.set_num_bars(newValue);
         mainPanel->numBarsChanged();
@@ -392,7 +399,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(midiChannelLabel.get());
 
     camOnPlayHeadButton = std::make_unique<SVGButton>(
-        BinaryData::Fix_cam_svg, BinaryData::Fix_cam_svgSize, true,
+        &processorRef.params.theme, BinaryData::Fix_cam_svg, BinaryData::Fix_cam_svgSize, true,
         processorRef.params.isCamFixedOnPlayHead, "Fix the camera to the playback head");
     camOnPlayHeadButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.isCamFixedOnPlayHead = !processorRef.params.isCamFixedOnPlayHead;
@@ -401,7 +408,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(camOnPlayHeadButton.get());
 
     turnOnAllZonesButton = std::make_unique<SVGButton>(
-        BinaryData::Zones_on_svg, BinaryData::Zones_on_svgSize, false, false, "Turn on all zones");
+        &processorRef.params.theme, BinaryData::Zones_on_svg, BinaryData::Zones_on_svgSize, false,
+        false, "Turn on all zones");
     turnOnAllZonesButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.zones.turnOnAllZones();
         zonesChanged();
@@ -410,9 +418,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(turnOnAllZonesButton.get());
 
-    turnOffAllZonesButton =
-        std::make_unique<SVGButton>(BinaryData::Zones_off_svg, BinaryData::Zones_off_svgSize, false,
-                                    false, "Turn off all zones");
+    turnOffAllZonesButton = std::make_unique<SVGButton>(
+        &processorRef.params.theme, BinaryData::Zones_off_svg, BinaryData::Zones_off_svgSize, false,
+        false, "Turn off all zones");
     turnOffAllZonesButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.zones.turnOffAllZones();
         zonesChanged();
@@ -422,7 +430,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(turnOffAllZonesButton.get());
 
     timeSnapButton = std::make_unique<SVGButton>(
-        BinaryData::Snap_time_svg, BinaryData::Snap_time_svgSize, true,
+        &processorRef.params.theme, BinaryData::Snap_time_svg, BinaryData::Snap_time_svgSize, true,
         processorRef.params.timeSnap, "Snap notes horizontally\nHOTKEY: ALT+A");
     timeSnapButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.timeSnap = !processorRef.params.timeSnap;
@@ -431,8 +439,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(timeSnapButton.get());
 
     keySnapButton = std::make_unique<SVGButton>(
-        BinaryData::Snap_keys_svg, BinaryData::Snap_keys_svgSize, true, processorRef.params.keySnap,
-        "Snap notes vertically\nHOTKEY: ALT+S");
+        &processorRef.params.theme, BinaryData::Snap_keys_svg, BinaryData::Snap_keys_svgSize, true,
+        processorRef.params.keySnap, "Snap notes vertically\nHOTKEY: ALT+S");
     keySnapButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.keySnap = !processorRef.params.keySnap;
         return true;
@@ -444,8 +452,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     editRatiosMarksMenu->setVisible(false);
 
     editRatiosMarksButton = std::make_unique<SVGButton>(
-        BinaryData::Edit_ratios_marks_svg, BinaryData::Edit_ratios_marks_svgSize, true,
-        processorRef.params.editRatiosMarks,
+        &processorRef.params.theme, BinaryData::Edit_ratios_marks_svg,
+        BinaryData::Edit_ratios_marks_svgSize, true, processorRef.params.editRatiosMarks,
         "Create, move (click, drag LMB) and delete (click/drag RMB) "
         "ratios marks between keys in a certain place on the canvas.\n(RMB to open "
         "settings)\nHOTKEY: ALT+D");
@@ -462,8 +470,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(editRatiosMarksButton.get());
 
     hideCentsButton = std::make_unique<SVGButton>(
-        BinaryData::Hide_cents_svg, BinaryData::Hide_cents_svgSize, true,
-        processorRef.params.hideCents, "The less you know, the better you compose.");
+        &processorRef.params.theme, BinaryData::Hide_cents_svg, BinaryData::Hide_cents_svgSize,
+        true, processorRef.params.hideCents, "The less you know, the better you compose.");
     hideCentsButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.hideCents = !processorRef.params.hideCents;
         this->leftPanel->repaint();
@@ -472,8 +480,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(hideCentsButton.get());
 
-    importButton = std::make_unique<SVGButton>(BinaryData::Import_svg, BinaryData::Import_svgSize,
-                                               false, false, "Import");
+    importButton = std::make_unique<SVGButton>(&processorRef.params.theme, BinaryData::Import_svg,
+                                               BinaryData::Import_svgSize, false, false, "Import");
     importButton->onClick = [this](const juce::MouseEvent &me) {
         auto *alert = new juce::AlertWindow("Import notes", "Choose an option",
                                             juce::MessageBoxIconType::NoIcon);
@@ -496,8 +504,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(importButton.get());
 
-    exportButton = std::make_unique<SVGButton>(BinaryData::Export_svg, BinaryData::Export_svgSize,
-                                               false, false, "Export");
+    exportButton = std::make_unique<SVGButton>(&processorRef.params.theme, BinaryData::Export_svg,
+                                               BinaryData::Export_svgSize, false, false, "Export");
     exportButton->onClick = [this](const juce::MouseEvent &me) {
         auto *alert = new juce::AlertWindow("Export notes", "Choose an option",
                                             juce::MessageBoxIconType::NoIcon);
@@ -520,12 +528,13 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(exportButton.get());
 
-    moreToolsMenu = std::make_unique<MoreToolsMenu>(this);
+    moreToolsMenu = std::make_unique<MoreToolsMenu>(this, &processorRef.params.theme);
     addAndMakeVisible(moreToolsMenu.get());
     moreToolsMenu->setVisible(false);
 
-    moreToolsTabButton = std::make_unique<SVGButton>(
-        BinaryData::More_tools_svg, BinaryData::More_tools_svgSize, false, false, "More tools");
+    moreToolsTabButton =
+        std::make_unique<SVGButton>(&processorRef.params.theme, BinaryData::More_tools_svg,
+                                    BinaryData::More_tools_svgSize, false, false, "More tools");
     moreToolsTabButton->onClick = [this](const juce::MouseEvent &me) {
         this->moreToolsMenu->setVisible(!this->moreToolsMenu->isVisible());
         return false;
@@ -536,11 +545,11 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(vocalToMelodyMenu.get());
     vocalToMelodyMenu->setVisible(false);
 
-    recordManuallyPlayedNotesButton =
-        std::make_unique<SVGButton>(BinaryData::Record_notes_svg, BinaryData::Record_notes_svgSize,
-                                    true, processorRef.params.recordManuallyPlayedNotes,
-                                    "Record manually played notes (using keyboard or pressing keys "
-                                    "on left panel). You need to press \"play\" in DAW.");
+    recordManuallyPlayedNotesButton = std::make_unique<SVGButton>(
+        &processorRef.params.theme, BinaryData::Record_notes_svg, BinaryData::Record_notes_svgSize,
+        true, processorRef.params.recordManuallyPlayedNotes,
+        "Record manually played notes (using keyboard or pressing keys "
+        "on left panel). You need to press \"play\" in DAW.");
 
     recordManuallyPlayedNotesButton->onClick = [this](const juce::MouseEvent &me) {
         if (!processorRef.params.recordManuallyPlayedNotes) {
@@ -553,8 +562,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(recordManuallyPlayedNotesButton.get());
 
     vocalToMelodyButton = std::make_unique<SVGButton>(
-        BinaryData::Vocal_to_melody_svg, BinaryData::Vocal_to_melody_svgSize, true,
-        processorRef.params.vocalToMelody,
+        &processorRef.params.theme, BinaryData::Vocal_to_melody_svg,
+        BinaryData::Vocal_to_melody_svgSize, true, processorRef.params.vocalToMelody,
         "Sing/humm while this mode is active, and the plugin will automatically create the "
         "appropriate notes and/or pitch curve. You need to turn on recording on your track and "
         "press \"play\" in DAW.\n(RMB to open settings)");
@@ -581,8 +590,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     genNewKeysMenu->setVisible(false);
 
     generateNewKeysButton = std::make_unique<SVGButton>(
-        BinaryData::Generate_new_keys_svg, BinaryData::Generate_new_keys_svgSize, true,
-        processorRef.params.generateNewKeys, "Generate new keys \n (RMB to open settings)");
+        &processorRef.params.theme, BinaryData::Generate_new_keys_svg,
+        BinaryData::Generate_new_keys_svgSize, true, processorRef.params.generateNewKeys,
+        "Generate new keys \n (RMB to open settings)");
     generateNewKeysButton->onClick = [this](const juce::MouseEvent &me) {
         if (me.mods.isLeftButtonDown()) {
             this->processorRef.params.generateNewKeys = !this->processorRef.params.generateNewKeys;
@@ -600,8 +610,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     clockDiagramMenu->setVisible(false);
 
     clockDiagramButton = std::make_unique<SVGButton>(
-        BinaryData::Clock_diagram_svg, BinaryData::Clock_diagram_svgSize, true,
-        processorRef.params.showClockDiagram,
+        &processorRef.params.theme, BinaryData::Clock_diagram_svg,
+        BinaryData::Clock_diagram_svgSize, true, processorRef.params.showClockDiagram,
         "Enable/disable clock diagram.\n(RMB to open settings)");
 
     clockDiagramButton->onClick = [this](const juce::MouseEvent &me) {
@@ -617,13 +627,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(clockDiagramButton.get());
 
-    popup = std::make_unique<PopupMessage>(3000, 0.7f);
+    popup = std::make_unique<PopupMessage>(&processorRef.params.theme, 3000, 0.7f);
     addChildComponent(popup.get());
 
-    dragAndDropPopup = std::make_unique<DragAndDropPopup>();
+    dragAndDropPopup = std::make_unique<DragAndDropPopup>(&processorRef.params.theme);
     addChildComponent(dragAndDropPopup.get());
 
     velocityPanel = std::make_unique<VelocityPanel>(
+        &processorRef.params.theme,
         [this]() { mainPanel->setVelocitiesOfSelectedNotes(this->velocityPanel->getVelocity()); },
         [this]() { mainPanel->saveNotesState(); });
     addAndMakeVisible(velocityPanel.get());
@@ -665,12 +676,13 @@ AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
     processorRef.setManuallyPlayedNotesTotalCents({});
     processorRef.params.editorWidth = getWidth();
     processorRef.params.editorHeight = getHeight();
+    setLookAndFeel(nullptr);
 }
 
 void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
     // (Our component is opaque, so we must completely fill the background with a
     // solid colour)
-    g.fillAll(Theme::darker);
+    g.fillAll(processorRef.params.theme.darker);
 
     const int width = getWidth();
     const int height = getHeight();
@@ -685,7 +697,7 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
     int bottom_x_pos = width - buttons_gap_width_px * 5 - textWidth - 3 * bottom_height_px;
 
     // Draw vertical separator lines
-    g.setColour(Theme::darkest);
+    g.setColour(processorRef.params.theme.darkest);
     g.drawLine(bottom_x_pos, bottom_y, bottom_x_pos, bottom_y + bottom_height_px, Theme::wider);
     bottom_x_pos -= bottom_height_px * 4 + buttons_gap_width_px * 5;
     g.drawLine(bottom_x_pos, bottom_y, bottom_x_pos, bottom_y + bottom_height_px, Theme::wider);
@@ -709,7 +721,7 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
             float lineY = buttonBounds.getY() - bottom_gap_height_px / 2.0f;
             float lineThickness = 4.0f;
 
-            g.setColour(Theme::activated);
+            g.setColour(processorRef.params.theme.activated);
             g.drawLine(lineX, lineY, lineX + lineWidth, lineY, lineThickness);
         }
     }

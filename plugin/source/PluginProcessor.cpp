@@ -965,6 +965,7 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
 
     // Read theme type
     params.themeType = static_cast<Theme::ThemeType>(stream.readInt());
+    params.theme.setTheme(params.themeType);
 
     // Read notes
     notes.clear();

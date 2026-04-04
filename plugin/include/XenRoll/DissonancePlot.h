@@ -2,7 +2,6 @@
 
 #include "DissonanceMeter.h"
 #include "Parameters.h"
-#include "Theme.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace audio_plugin {
@@ -28,7 +27,7 @@ class DissonancePlot : public juce::Component {
     }
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(Theme::brighter);
+        g.fillAll(params->theme.brighter);
         if (loading) {
             drawLoadScreen(g);
         } else {
@@ -94,7 +93,7 @@ class DissonancePlot : public juce::Component {
     std::atomic<uint64_t> currentJobId{0};
 
     void drawAxes(juce::Graphics &g) {
-        g.setColour(Theme::darkest);
+        g.setColour(params->theme.darkest);
 
         g.drawRect(plotArea, 1);
 
@@ -133,7 +132,7 @@ class DissonancePlot : public juce::Component {
 
     // is triggered only when loading = false
     void drawDissonanceCurve(juce::Graphics &g) {
-        g.setColour(Theme::darkest);
+        g.setColour(params->theme.darkest);
 
         float lastX = plotArea.getX() + centsToX(0);
         float lastY = plotArea.getBottom() - (dissonanceCurve[0] + 1.0f) / 2 * plotArea.getHeight();

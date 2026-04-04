@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Parameters.h"
-#include "Theme.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace audio_plugin {
@@ -17,8 +16,8 @@ class VocalToMelodyMenu : public juce::Component {
     ~VocalToMelodyMenu() override {};
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(Theme::darker);
-        g.setColour(Theme::darkest);
+        g.fillAll(params->theme.darker);
+        g.setColour(params->theme.darkest);
         g.drawRect(getLocalBounds(), Theme::wider);
         // Draw separators
         g.drawLine(0, vertPadding + rowHeight + buttonHeight + 2 * rowSkip, width,

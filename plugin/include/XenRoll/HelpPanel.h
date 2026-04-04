@@ -7,31 +7,34 @@ namespace audio_plugin {
 // Is needed for scrolling
 class HelpViewport : public juce::Viewport {
   public:
-    HelpViewport() {
+    HelpViewport(Theme *theme) : theme(theme) {
         setScrollBarsShown(true, false);
-        getVerticalScrollBar().setColour(juce::ScrollBar::backgroundColourId, Theme::dark);
-        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, Theme::bright);
+        getVerticalScrollBar().setColour(juce::ScrollBar::backgroundColourId, theme->dark);
+        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
         setViewportIgnoreDragFlag(true);
         setAlwaysOnTop(true);
     }
 
-    void paint(juce::Graphics &g) override { g.fillAll(Theme::darker); }
+    void paint(juce::Graphics &g) override { g.fillAll(theme->darker); }
+
+  private:
+    Theme *theme;
 };
 
 class HelpPanel : public juce::Component {
   public:
-    HelpPanel() {
+    HelpPanel(Theme *theme) : theme(theme) {
         setVisible(false);
         setAlwaysOnTop(true);
     }
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(Theme::darker);
+        g.fillAll(theme->darker);
 
         auto bounds = getLocalBounds().reduced(10);
 
         // Draw Mouse Actions section
-        g.setColour(Theme::brightest);
+        g.setColour(theme->brightest);
         g.setFont(Theme::medium);
         g.drawText("Mouse Actions", bounds.removeFromTop(25), juce::Justification::centredLeft,
                    false);
@@ -63,7 +66,7 @@ class HelpPanel : public juce::Component {
 
         // Draw Keyboard Actions section
         g.setFont(Theme::medium);
-        g.setColour(Theme::brightest);
+        g.setColour(theme->brightest);
         g.drawText("Keyboard Actions", bounds.removeFromTop(25), juce::Justification::centredLeft,
                    false);
         bounds.removeFromTop(5);
@@ -104,6 +107,7 @@ class HelpPanel : public juce::Component {
     }
 
   private:
+    Theme *theme;
     int firstColumnWidth = 300;
 
     /**
@@ -114,10 +118,10 @@ class HelpPanel : public juce::Component {
      */
     void drawTable(juce::Graphics &g, juce::Rectangle<int> bounds,
                    const std::vector<std::pair<juce::String, juce::String>> &rows) {
-        g.setColour(Theme::brighter.withAlpha(0.2f));
+        g.setColour(theme->brighter.withAlpha(0.2f));
         g.fillRect(bounds);
 
-        g.setColour(Theme::brightest);
+        g.setColour(theme->brightest);
         g.setFont(Theme::small_);
 
         int rowHeight = bounds.getHeight() / juce::jmax(1, (int)rows.size());
@@ -127,11 +131,11 @@ class HelpPanel : public juce::Component {
 
             // Draw row background for better readability
             if (i % 2 == 0) {
-                g.setColour(Theme::brighter.withAlpha(0.05f));
+                g.setColour(theme->brighter.withAlpha(0.05f));
                 g.fillRect(rowBounds);
             }
 
-            g.setColour(Theme::brightest);
+            g.setColour(theme->brightest);
 
             // Draw key combination (narrower column)
             auto keyBounds = rowBounds.removeFromLeft(firstColumnWidth).reduced(5, 2);

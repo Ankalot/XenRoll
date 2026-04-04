@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Parameters.h"
-#include "Theme.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace audio_plugin {
@@ -16,7 +15,7 @@ class PartialsPlot : public juce::Component {
     }
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(Theme::brighter);
+        g.fillAll(params->theme.brighter);
         drawAxes(g);
         drawPartials(g);
     }
@@ -126,7 +125,7 @@ class PartialsPlot : public juce::Component {
     }
 
     void drawAxes(juce::Graphics &g) {
-        g.setColour(Theme::darkest);
+        g.setColour(params->theme.darkest);
 
         g.drawRect(plotArea, 1);
 
@@ -180,7 +179,7 @@ class PartialsPlot : public juce::Component {
     }
 
     void drawPartials(juce::Graphics &g) {
-        g.setColour(Theme::darkest);
+        g.setColour(params->theme.darkest);
 
         // Plot label
         g.setFont(Theme::big);

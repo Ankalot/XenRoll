@@ -28,23 +28,30 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace audio_plugin {
-class CustomLookAndFeel : public juce::LookAndFeel_V4 {
+class FontLookAndFeel : public juce::LookAndFeel_V4 {
   public:
-    CustomLookAndFeel() {
+    FontLookAndFeel() {
         cambriaMathTypeface = juce::Typeface::createSystemTypefaceFor(
             BinaryData::CambriaMath_ttf, BinaryData::CambriaMath_ttfSize);
         setDefaultSansSerifTypeface(cambriaMathTypeface);
-        updateColors();
     }
+
+    juce::Typeface::Ptr getTypefaceForFont(const juce::Font &) override {
+        return cambriaMathTypeface;
+    }
+
+  private:
+    juce::Typeface::Ptr cambriaMathTypeface;
+};
+
+class CustomLookAndFeel : public juce::LookAndFeel_V4 {
+  public:
+    CustomLookAndFeel(Theme *theme) : theme(theme) { updateColors(); }
 
     // Partly fixes freeze when opening ComboBox menu (on windows 10)
     int getMenuWindowFlags() override { return 0; }
 
     void updateColors();
-
-    juce::Typeface::Ptr getTypefaceForFont(const juce::Font &) override {
-        return cambriaMathTypeface;
-    }
 
     void drawTooltip(juce::Graphics &g, const juce::String &text, int width, int height) override {
         juce::Rectangle<int> bounds(width, height);
@@ -103,28 +110,19 @@ class CustomLookAndFeel : public juce::LookAndFeel_V4 {
     }
 
   private:
-    juce::Typeface::Ptr cambriaMathTypeface;
+    Theme *theme;
     const int padding_x = 6;
     const int padding_y = 2;
 };
 
 class SmallLookAndFeel : public juce::LookAndFeel_V4 {
   public:
-    SmallLookAndFeel() {
-        cambriaMathTypeface = juce::Typeface::createSystemTypefaceFor(
-            BinaryData::CambriaMath_ttf, BinaryData::CambriaMath_ttfSize);
-        setDefaultSansSerifTypeface(cambriaMathTypeface);
-        updateColors();
-    }
+    SmallLookAndFeel(Theme *theme) : theme(theme) { updateColors(); }
 
     // Partly fixes freeze when opening ComboBox menu (on windows 10)
     int getMenuWindowFlags() { return 0; }
 
     void updateColors();
-
-    juce::Typeface::Ptr getTypefaceForFont(const juce::Font &) override {
-        return cambriaMathTypeface;
-    }
 
     juce::Label *createSliderTextBox(juce::Slider &slider) override {
         auto *label = LookAndFeel_V4::createSliderTextBox(slider);
@@ -146,13 +144,13 @@ class SmallLookAndFeel : public juce::LookAndFeel_V4 {
                               bool shouldDrawButtonAsDown) override;
 
   private:
-    juce::Typeface::Ptr cambriaMathTypeface;
+    Theme *theme;
 };
 
 class MainViewport : public juce::Viewport {
   public:
-    MainViewport(juce::Viewport *leftViewport, juce::Viewport *topViewport)
-        : leftViewport(leftViewport), topViewport(topViewport) {
+    MainViewport(Theme *theme, juce::Viewport *leftViewport, juce::Viewport *topViewport)
+        : theme(theme), leftViewport(leftViewport), topViewport(topViewport) {
         updateColors();
     }
 
@@ -165,8 +163,8 @@ class MainViewport : public juce::Viewport {
      * @brief Update scrollbar colors to match current theme
      */
     void updateColors() {
-        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, Theme::bright);
-        getHorizontalScrollBar().setColour(juce::ScrollBar::thumbColourId, Theme::bright);
+        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
+        getHorizontalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
     }
 
     /**
@@ -203,6 +201,7 @@ class MainViewport : public juce::Viewport {
     }
 
   private:
+    Theme *theme;
     juce::Viewport *leftViewport;
     juce::Viewport *topViewport;
     std::function<void()> updateCallback;
@@ -369,9 +368,9 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     }
 
     void updateTheme() {
-        Theme::setTheme(processorRef.params.themeType);
+        processorRef.params.theme.setTheme(processorRef.params.themeType);
         customLF->updateColors();
-        smallLF.updateColors();
+        smallLF->updateColors();
         mainViewport->updateColors();
         pitchMemorySettingsPanel->updateColors();
         sendLookAndFeelChange();
@@ -396,7 +395,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     std::vector<Note> &getRecordedManuallyPlayedNotes() { return recordedManuallyPlayedNotes; }
 
-    SmallLookAndFeel smallLF;
+    std::shared_ptr<SmallLookAndFeel> smallLF;
 
   private:
     AudioPluginAudioProcessor &processorRef;
@@ -407,6 +406,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     std::atomic<bool> pitchMemoryTerminate = false;
     std::unique_ptr<juce::ThreadPool> pitchMemoryThreadPool;
 
+    std::unique_ptr<FontLookAndFeel> fontLF;
     std::unique_ptr<CustomLookAndFeel> customLF;
 
     std::unique_ptr<juce::Viewport> leftViewport, topViewport;

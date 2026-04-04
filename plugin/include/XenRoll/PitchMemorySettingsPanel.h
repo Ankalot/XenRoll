@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Parameters.h"
-#include "Theme.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace audio_plugin {
@@ -10,14 +9,17 @@ class AudioPluginAudioProcessorEditor;
 // Is needed for scrolling
 class AlgoDescrViewport : public juce::Viewport {
   public:
-    AlgoDescrViewport() { updateColors(); }
+    AlgoDescrViewport(Theme *theme) : theme(theme) { updateColors(); }
 
     /**
      * @brief Update scrollbar colors to match current theme
      */
     void updateColors() {
-        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, Theme::bright);
+        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
     }
+
+  private:
+    Theme *theme;
 };
 
 class PitchMemorySettingsPanel : public juce::Component {
@@ -33,10 +35,11 @@ class PitchMemorySettingsPanel : public juce::Component {
     void updateColors() { algoDescrViewport->updateColors(); }
 
   private:
+    Parameters *params;
     std::unique_ptr<juce::Label> TVvalForZeroHVLabel, TVaddInfluenceLabel, TVminNonzeroLabel,
         showOnlyHarmonicityLabel;
     std::unique_ptr<juce::Slider> TVvalForZeroHVSlider, TVaddInfluenceSlider, TVminNonzeroSlider;
-    std::unique_ptr<AlgoDescrViewport> algoDescrViewport;  // Destroyed before algoDescrLabel
+    std::unique_ptr<AlgoDescrViewport> algoDescrViewport; // Destroyed before algoDescrLabel
     std::unique_ptr<juce::Label> algoDescrLabel;
     std::unique_ptr<juce::ToggleButton> showOnlyHarmonicityCheckbox;
 

@@ -21,7 +21,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
 
     // Create components that control partials plot
     plotPartialsInterpButton = std::make_unique<SVGButton>(
-        BinaryData::Transpose_svg, BinaryData::Transpose_svgSize, true, params->plotPartialsInterp,
+        &params->theme, BinaryData::Transpose_svg, BinaryData::Transpose_svgSize, true,
+        params->plotPartialsInterp,
         std::string("Plot partials for all pitches. If some pitch has no partials calculated, ") +
             "it will use the transposed partials of the closest recorded pitch");
     addAndMakeVisible(plotPartialsInterpButton.get());
@@ -31,8 +32,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
         return true;
     };
 
-    plotPartialsOctaveInput = std::make_unique<IntegerInput>(params->plotPartialsTotalCents / 1200,
-                                                             0, params->num_octaves);
+    plotPartialsOctaveInput = std::make_unique<IntegerInput>(
+        &params->theme, params->plotPartialsTotalCents / 1200, 0, params->num_octaves);
     plotPartialsOctaveInput->onValueChanged = [this, params](int newValue) {
         if (!ignoreUpdatePartials)
             updatePartialsPlotTotalCents(newValue * 1200 + plotPartialsCentsInput->getValue(), 1);
@@ -46,8 +47,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
     plotPartialsOctaveLabel->setFont(currentFont);
     addAndMakeVisible(plotPartialsOctaveLabel.get());
 
-    plotPartialsCentsInput =
-        std::make_unique<IntegerInput>(params->plotPartialsTotalCents % 1200, 0, 1199);
+    plotPartialsCentsInput = std::make_unique<IntegerInput>(
+        &params->theme, params->plotPartialsTotalCents % 1200, 0, 1199);
     plotPartialsCentsInput->onValueChanged = [this, params](int newValue) {
         if (!ignoreUpdatePartials)
             updatePartialsPlotTotalCents(plotPartialsOctaveInput->getValue() * 1200 + newValue, 2);
@@ -72,7 +73,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
     addAndMakeVisible(plotPartialsTotalCentsSlider.get());
 
     removePartialsButton = std::make_unique<SVGButton>(
-        BinaryData::Broom_svg, BinaryData::Broom_svgSize, false, false,
+        &params->theme, BinaryData::Broom_svg, BinaryData::Broom_svgSize, false, false,
         std::string("Remove partials of tone with specified octave and cents"));
     addAndMakeVisible(removePartialsButton.get());
     removePartialsButton->onClick = [this, params](const juce::MouseEvent &me) {
@@ -91,9 +92,9 @@ DissonancePanel::DissonancePanel(Parameters *params,
         return false;
     };
 
-    trashButton =
-        std::make_unique<SVGButton>(BinaryData::Trash_svg, BinaryData::Trash_svgSize, false, false,
-                                    std::string("Delete partials from all tones"));
+    trashButton = std::make_unique<SVGButton>(&params->theme, BinaryData::Trash_svg,
+                                              BinaryData::Trash_svgSize, false, false,
+                                              std::string("Delete partials from all tones"));
     addAndMakeVisible(trashButton.get());
     trashButton->onClick = [this, params](const juce::MouseEvent &me) {
         juce::NativeMessageBox::showOkCancelBox(
@@ -111,7 +112,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
     };
 
     importPartialsButton = std::make_unique<SVGButton>(
-        BinaryData::Import_partials_svg, BinaryData::Import_partials_svgSize, false, false,
+        &params->theme, BinaryData::Import_partials_svg, BinaryData::Import_partials_svgSize, false,
+        false,
         std::string("Import .txt file with partials data.\n"
                     "Example: {{5700, {{440.0, 1.0}}}} (This example contains one tone with pitch "
                     "5700 in totalCents, this tone has single partial with 440.0 Hz frequency "
@@ -215,8 +217,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
     };
 
     exportPartialsButton = std::make_unique<SVGButton>(
-        BinaryData::Export_partials_svg, BinaryData::Export_partials_svgSize, false, false,
-        std::string("Export partials to a .txt file"));
+        &params->theme, BinaryData::Export_partials_svg, BinaryData::Export_partials_svgSize, false,
+        false, std::string("Export partials to a .txt file"));
     addAndMakeVisible(exportPartialsButton.get());
     params->get_tonesPartials();
     exportPartialsButton->onClick = [this, params](const juce::MouseEvent &me) {
@@ -270,7 +272,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
 
     // Create components that control dissonance plot
     plotDissonanceOctaveInput = std::make_unique<IntegerInput>(
-        params->plotDissonanceTotalCents / 1200, 0, params->num_octaves - 1);
+        &params->theme, params->plotDissonanceTotalCents / 1200, 0, params->num_octaves - 1);
     plotDissonanceOctaveInput->onValueChanged = [this, params](int newValue) {
         if (!ignoreUpdateDissonance)
             updateDissonancePlotTotalCents(newValue * 1200 + plotDissonanceCentsInput->getValue(),
@@ -283,8 +285,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
     plotDissonanceOctaveLabel->setFont(currentFont);
     addAndMakeVisible(plotDissonanceOctaveLabel.get());
 
-    plotDissonanceCentsInput =
-        std::make_unique<IntegerInput>(params->plotDissonanceTotalCents % 1200, 0, 1199);
+    plotDissonanceCentsInput = std::make_unique<IntegerInput>(
+        &params->theme, params->plotDissonanceTotalCents % 1200, 0, 1199);
     plotDissonanceCentsInput->onValueChanged = [this, params](int newValue) {
         if (!ignoreUpdateDissonance)
             updateDissonancePlotTotalCents(plotDissonanceOctaveInput->getValue() * 1200 + newValue,
@@ -351,9 +353,9 @@ DissonancePanel::DissonancePanel(Parameters *params,
     addAndMakeVisible(dissonancePowSlider.get());
 
     // Create components that control finding partials
-    refreshButton =
-        std::make_unique<SVGButton>(BinaryData::Refresh_svg, BinaryData::Refresh_svgSize, false,
-                                    false, std::string("Refresh plots"));
+    refreshButton = std::make_unique<SVGButton>(&params->theme, BinaryData::Refresh_svg,
+                                                BinaryData::Refresh_svgSize, false, false,
+                                                std::string("Refresh plots"));
     addAndMakeVisible(refreshButton.get());
     refreshButton->onClick = [this, params](const juce::MouseEvent &me) {
         partialsVec partials = {};
@@ -369,7 +371,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
     };
 
     switchFindPartialsModeButton = std::make_unique<SVGButton>(
-        BinaryData::Turn_on_svg, BinaryData::Turn_on_svgSize, true, params->findPartialsMode.load(),
+        &params->theme, BinaryData::Turn_on_svg, BinaryData::Turn_on_svgSize, true,
+        params->findPartialsMode.load(),
         std::string(
             "1. Place this plugin at the end of the fx chain. ENABLE MIDI PASSING THROUGH IN EACH "
             "PLUGIN IN FX CHAIN OR ROUTE MIDI INPUT FROM TRACK TO THIS PLUGIN IN DAW.\n") +
@@ -587,13 +590,13 @@ void DissonancePanel::resized() {
 }
 
 void DissonancePanel::paint(juce::Graphics &g) {
-    g.fillAll(Theme::darker);
+    g.fillAll(params->theme.darker);
 
     int width = getWidth();
     int height = getHeight();
     float lineThickness = Theme::wider;
 
-    g.setColour(Theme::darkest);
+    g.setColour(params->theme.darkest);
     g.drawLine(width / 2.0f, float(padding), width / 2.0f,
                height - 2 * padding - lowComponentHeight, lineThickness);
     g.drawLine(float(padding), height - lineThickness / 2, float(width - padding),

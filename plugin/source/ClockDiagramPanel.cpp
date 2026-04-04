@@ -51,11 +51,11 @@ void ClockDiagramPanel::refresh() {
 
 void ClockDiagramPanel::paint(juce::Graphics &g) {
     // Background
-    g.setColour(Theme::bright.withAlpha(opacity));
+    g.setColour(params->theme.bright.withAlpha(opacity));
     g.fillEllipse(getLocalBounds().toFloat());
 
     // 12-EDO ticks
-    g.setColour(Theme::darker);
+    g.setColour(params->theme.darker);
     int centreX = padding + radius;
     int centreY = padding + radius;
     for (int i = 0; i < 12; ++i) {
@@ -68,11 +68,11 @@ void ClockDiagramPanel::paint(juce::Graphics &g) {
     }
 
     // Circle
-    g.setColour(Theme::darkest);
+    g.setColour(params->theme.darkest);
     g.drawEllipse(padding, padding, 2 * radius, 2 * radius, Theme::wide);
 
     // Lines
-    g.setColour(Theme::activated);
+    g.setColour(params->theme.activated);
     for (const auto &chordOrNote : chordsAndNotes) {
         if (chordOrNote.size() == 1) {
             // Single note
@@ -131,7 +131,7 @@ void ClockDiagramPanel::paint(juce::Graphics &g) {
     }
 
     // Labels
-    g.setColour(Theme::darkest);
+    g.setColour(params->theme.darkest);
     g.setFont(Theme::small_);
     for (const auto &cents : allCents) {
         float angle = juce::MathConstants<float>::twoPi * (1 - cents / 1200.0f) +

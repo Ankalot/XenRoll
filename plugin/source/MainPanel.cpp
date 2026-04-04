@@ -61,10 +61,10 @@ void MainPanel::drawOutlinedText(juce::Graphics &g, const juce::String &text,
         areaCentreX - (bounds.getX() + bounds.getWidth() * 0.5f),
         areaCentreY - (bounds.getY() + bounds.getHeight() * 0.5f)));
 
-    g.setColour(Theme::darkest);
+    g.setColour(params->theme.darkest);
     g.strokePath(textPath, outlineStroke);
 
-    g.setColour(Theme::brightest);
+    g.setColour(params->theme.brightest);
     g.fillPath(textPath);
 }
 
@@ -93,10 +93,10 @@ void MainPanel::paint(juce::Graphics &g) {
     int clipHeight = clip.getHeight();
     int clipX = clip.getX();
     int clipY = clip.getY();
-    g.setColour(Theme::dark);
+    g.setColour(params->theme.dark);
     g.fillRect(clip.toFloat());
 
-    g.setColour(Theme::darkest);
+    g.setColour(params->theme.darkest);
     // octaves
     int octave_i_start = static_cast<int>(clipY / octave_height_px);
     int octave_i_end = std::min(static_cast<int>((clipY + clipHeight) / octave_height_px) + 1,
@@ -147,8 +147,8 @@ void MainPanel::paint(juce::Graphics &g) {
     // PlayHead line
     if ((playHeadTime * bar_width_px >= clipX) &&
         (playHeadTime * bar_width_px <= clipX + clipWidth)) {
-        // g.setColour(Theme::brighter);
-        g.setColour(Theme::activated);
+        // g.setColour(params->theme.brighter);
+        g.setColour(params->theme.activated);
         g.drawLine(playHeadTime * bar_width_px, float(clipY), playHeadTime * bar_width_px,
                    float(clipY + clipHeight), Theme::narrower);
     }
@@ -162,7 +162,7 @@ void MainPanel::paint(juce::Graphics &g) {
         juce::Path notePath = getNotePath(note);
         // is needed only when params->showPitchesMemoryTraces
         if (notePath.getBounds().intersects(clipFloat)) {
-            g.setColour(Theme::darkest.interpolatedWith(Theme::darker, 0.5));
+            g.setColour(params->theme.darkest.interpolatedWith(params->theme.darker, 0.5));
             g.fillPath(notePath);
         }
     }
@@ -186,14 +186,14 @@ void MainPanel::paint(juce::Graphics &g) {
                     }
                 }
             } else {
-                g.setColour(
-                    Theme::dark.interpolatedWith(Theme::brighter.brighter(1.0f), note.velocity));
+                g.setColour(params->theme.dark.interpolatedWith(
+                    params->theme.brighter.brighter(1.0f), note.velocity));
             }
             g.fillPath(notePath);
             if (note.isSelected) {
-                g.setColour(Theme::brightest);
+                g.setColour(params->theme.brightest);
             } else {
-                g.setColour(Theme::darkest);
+                g.setColour(params->theme.darkest);
             }
             g.strokePath(notePath, strokeType);
         }
@@ -219,7 +219,7 @@ void MainPanel::paint(juce::Graphics &g) {
     // vocal notes
     if (params->vocalToMelody) {
         // already recorded vocal notes (but the recording hasn't ended yet)
-        g.setColour(Theme::activated);
+        g.setColour(params->theme.activated);
         for (const Note &note : vocalNotes) {
             juce::Path notePath = getNotePath(note);
             if (notePath.getBounds().intersects(clipFloat)) {
@@ -239,7 +239,7 @@ void MainPanel::paint(juce::Graphics &g) {
 
     // recorded manually played notes
     if (params->recordManuallyPlayedNotes) {
-        g.setColour(Theme::activated);
+        g.setColour(params->theme.activated);
         for (const Note &note : editor->getRecordedManuallyPlayedNotes()) {
             juce::Path notePath = getNotePath(note);
             if (notePath.getBounds().intersects(clipFloat)) {
@@ -288,10 +288,10 @@ void MainPanel::paint(juce::Graphics &g) {
 
     // selecting rectangle
     if (isSelecting) {
-        g.setColour(Theme::darkest.withAlpha(0.5f));
+        g.setColour(params->theme.darkest.withAlpha(0.5f));
         g.fillRect(selectionRect);
 
-        g.setColour(Theme::brightest);
+        g.setColour(params->theme.brightest);
         g.drawRect(selectionRect, int(Theme::narrow));
     }
 
@@ -314,13 +314,13 @@ void MainPanel::paint(juce::Graphics &g) {
                     if (nextIsGap) {
                         // Draw single point
                         // Draw outline
-                        g.setColour(Theme::darkest);
+                        g.setColour(params->theme.darkest);
                         g.fillEllipse(pointX - (adaptedHorWider + adaptedHorWide) / 2,
                                       pointY - (adaptedHorWider + adaptedHorWide) / 2,
                                       adaptedHorWider + adaptedHorWide,
                                       adaptedHorWider + adaptedHorWide);
                         // Draw main
-                        g.setColour(Theme::activated);
+                        g.setColour(params->theme.activated);
                         g.fillEllipse(pointX - adaptedHorWider / 2, pointY - adaptedHorWider / 2,
                                       adaptedHorWider, adaptedHorWider);
                     } else {
@@ -340,16 +340,16 @@ void MainPanel::paint(juce::Graphics &g) {
         // Draw the complete path
         if (!path.isEmpty()) {
             // Draw outline
-            g.setColour(Theme::darkest);
+            g.setColour(params->theme.darkest);
             g.strokePath(path, juce::PathStrokeType(adaptedHorWider + adaptedHorWide));
             // Draw main line
-            g.setColour(Theme::activated);
+            g.setColour(params->theme.activated);
             g.strokePath(path, juce::PathStrokeType(adaptedHorWider));
         }
     }
 
     // ratios marks
-    g.setColour(Theme::activated);
+    g.setColour(params->theme.activated);
     const auto fontSizeRatio = adaptFont(Theme::big);
     const auto fontSizeError = adaptFont(Theme::small_);
     const float adaptedGapX = adaptVert(5);
@@ -404,7 +404,7 @@ void MainPanel::paint(juce::Graphics &g) {
 
     // ratio mark preline
     if (isDrawingRatioMark) {
-        g.setColour(Theme::activated);
+        g.setColour(params->theme.activated);
         const auto point1 = ratioMarkStartPos.toFloat();
         const auto point2 = juce::Point<float>(
             ratioMarkStartPos.getX(), (ratioMarkStartPos.getY() + ratioMarkLastPos.getY()) / 2.0f);

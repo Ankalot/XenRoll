@@ -11,18 +11,19 @@ class AudioPluginAudioProcessorEditor;
  */
 class MoreToolsMenu : public juce::Component {
   public:
-    MoreToolsMenu(AudioPluginAudioProcessorEditor *editor);
+    MoreToolsMenu(AudioPluginAudioProcessorEditor *editor, Theme *theme);
 
     ~MoreToolsMenu() override {};
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(Theme::darker);
-        g.setColour(Theme::darkest);
+        g.fillAll(theme->darker);
+        g.setColour(theme->darkest);
         g.drawRect(getLocalBounds(), Theme::wider);
     }
 
   private:
     AudioPluginAudioProcessorEditor *editor;
+    Theme *theme;
     std::unique_ptr<juce::Button> quantizeSelNotesButton, randSelNotesTimeButton,
         randSelNotesVelButton, deleteAllRatiosMarksButton;
 
