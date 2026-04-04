@@ -1578,9 +1578,9 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     // reverse previous state
     if (key == juce::KeyPress('z', juce::ModifierKeys::commandModifier, 0)) {
         startedPitchBend = false;
-        if (!notesHistory.empty()) {
-            notes = notesHistory.top();
-            notesHistory.pop();
+        if (!params->notesHistory.empty()) {
+            notes = params->notesHistory.top();
+            params->notesHistory.pop();
             unselectAllNotes();
             editor->hideVelocityPanel();
             remakeKeys();

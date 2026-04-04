@@ -1,6 +1,5 @@
 #pragma once
 
-#include "CircularStack.h"
 #include "Note.h"
 #include "PitchMemory.h"
 #include "Theme.h"
@@ -124,7 +123,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     void saveNotesState() {
         startedPitchBend = false;
-        notesHistory.push(notes);
+        params->notesHistory.push(notes);
     }
 
   private:
@@ -186,7 +185,6 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     std::array<int, 120> possibleNewKeysWeights;
     // ========================================================================
     std::vector<Note> copiedNotes;
-    CircularStack<std::vector<Note>> notesHistory{100};
     const int note_right_corner_width = 5;
     const int numDashLengths = 2;
     const float dashLengths[2] = {45, 15};

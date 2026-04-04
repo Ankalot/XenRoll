@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CircularStack.h"
 #include "PartialsFinder.h"
 #include "RatioMark.h"
 #include "Theme.h"
@@ -234,6 +235,8 @@ class Parameters {
     bool showKeysHarmonicity = false;
     // ================= Vocal to melody =================
     std::atomic<bool> vocalToMelody = false;
+    // ===================================================
+    CircularStack<std::vector<Note>> notesHistory{100};
 
     Parameters() : zones(true, float(num_bars)) {}
 
