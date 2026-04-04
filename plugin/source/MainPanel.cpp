@@ -1499,7 +1499,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     juce::ignoreUnused(originatingComponent);
 
     // select all notes
-    if (key == juce::KeyPress('a', juce::ModifierKeys::ctrlModifier, 0)) {
+    if (key == juce::KeyPress('a', juce::ModifierKeys::commandModifier, 0)) {
         selectAllNotes();
         return true;
     }
@@ -1529,7 +1529,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     }
 
     // copy selected notes
-    if (key == juce::KeyPress('c', juce::ModifierKeys::ctrlModifier, 0)) {
+    if (key == juce::KeyPress('c', juce::ModifierKeys::commandModifier, 0)) {
         copiedNotes.clear();
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected)
@@ -1541,7 +1541,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     }
 
     // paste copied notes
-    if (key == juce::KeyPress('v', juce::ModifierKeys::ctrlModifier, 0)) {
+    if (key == juce::KeyPress('v', juce::ModifierKeys::commandModifier, 0)) {
         saveNotesState();
         unselectAllNotes();
         editor->hideVelocityPanel();
@@ -1576,7 +1576,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     }
 
     // reverse previous state
-    if (key == juce::KeyPress('z', juce::ModifierKeys::ctrlModifier, 0)) {
+    if (key == juce::KeyPress('z', juce::ModifierKeys::commandModifier, 0)) {
         startedPitchBend = false;
         if (!notesHistory.empty()) {
             notes = notesHistory.top();
