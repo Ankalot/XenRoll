@@ -1124,7 +1124,7 @@ void AudioPluginAudioProcessor::prepareNotes() {
     int numUsedFreqs = int(currPlayedNotesIndexes.size());
     for (int i = 0; i < 128; ++i) {
         if (!currPlayedNotesIndexes.contains(i)) {
-            freqs[i] = 0.0;
+            freqs[i] = noFreq;
         }
     }
 
@@ -1145,7 +1145,7 @@ void AudioPluginAudioProcessor::prepareNotes() {
                 pitchesOverflow = true;
                 return;
             }
-            while (freqs[noteIndNew] != 0.0)
+            while (freqs[noteIndNew] != noFreq)
                 noteIndNew++;
             noteInd = noteIndNew;
             freqs[noteInd] = noteFreq;
@@ -1167,7 +1167,7 @@ void AudioPluginAudioProcessor::prepareNotes() {
     std::vector<double> manPlNotesTotCentsHistoryLast =
         manPlNotesTotCentsHistory.getLast(juce::jmax(128 - numUsedFreqs, 0));
     for (int i = 0; i < manPlNotesTotCentsHistoryLast.size(); ++i) {
-        while (freqs[noteIndNew] != 0.0)
+        while (freqs[noteIndNew] != noFreq)
             noteIndNew++;
         freqs[noteIndNew] = manPlNotesTotCentsHistoryLast[i];
         numUsedFreqs++;

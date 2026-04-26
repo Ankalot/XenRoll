@@ -237,8 +237,14 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
      * manuallyPlayedNotesTotalCents)
      */
     std::vector<int> manuallyPlayedNotesIndexes;
+    /**
+     * Is used to indicate that this frequency is not being used. Freq in Hz.
+     * And if it is still used for a veeery short period of time (by mistake?), then there will be no sound.
+     * 0.0 is a bad idea, as this may cause some synth plugins to crash (tested on Surge XT).
+     */
+    const double noFreq = 1e-2;
     ///< Contains frequency in Hz for each midi note
-    double freqs[128];
+    double freqs[128]{noFreq};
     ///< if midi note is bending it has != -1 original totalCents here
     int beforeBendTotalCents[128];
     std::atomic<bool> wasPlaying = false;
