@@ -1285,6 +1285,9 @@ void AudioPluginAudioProcessorEditor::exportMidiSclFiles() {
         juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
         [this, keysFromNotes, notes, keysIndexes](const juce::FileChooser &fc) {
             juce::File midiFile = fc.getResult();
+            if (!midiFile.hasFileExtension(".midi;mid")) {
+                midiFile = midiFile.withFileExtension(".mid");
+            }
             if (midiFile == juce::File{})
                 return;
             midiFile.deleteFile();
@@ -1366,7 +1369,7 @@ void AudioPluginAudioProcessorEditor::exportNotesFile() {
     exportFileChooser.get()->launchAsync(
         juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
         [this, notes](const juce::FileChooser &fc) {
-            juce::File notesFile = fc.getResult();
+            juce::File notesFile = fc.getResult().withFileExtension(".notes");
             if (notesFile == juce::File{})
                 return;
             notesFile.deleteFile();
