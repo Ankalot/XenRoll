@@ -494,6 +494,11 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     const int velocity_height_px = 40;
     const int velocity_bot_gap_px = 20;
 
+    void showMessageBoxAsync(juce::MessageBoxIconType iconType, const juce::String &title,
+                             const juce::String &message,
+                             const juce::String &buttonText = juce::String(),
+                             juce::Component *associatedComponent = (juce::Component *)nullptr);
+
     void parseMidiSclFiles(const juce::File &midiFile, const juce::File &sclFile = juce::File{});
     void importMidiSclFiles();
     void exportMidiSclFiles();

@@ -484,8 +484,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
                                                BinaryData::Import_svgSize, false, false, "Import");
     importButton->onClick = [this](const juce::MouseEvent &me) {
         auto *alert = new juce::AlertWindow("Import notes", "Choose an option",
-                                            juce::MessageBoxIconType::NoIcon);
+                                            juce::MessageBoxIconType::NoIcon, this);
 
+        alert->setLookAndFeel(this->customLF.get());
         alert->setUsingNativeTitleBar(true);
         alert->addButton(".mid OR .mid + .scl (no bends info)", 1);
         alert->addButton(".notes", 2);
@@ -508,8 +509,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
                                                BinaryData::Export_svgSize, false, false, "Export");
     exportButton->onClick = [this](const juce::MouseEvent &me) {
         auto *alert = new juce::AlertWindow("Export notes", "Choose an option",
-                                            juce::MessageBoxIconType::NoIcon);
+                                            juce::MessageBoxIconType::NoIcon, this);
 
+        alert->setLookAndFeel(this->customLF.get());
         alert->setUsingNativeTitleBar(true);
         alert->addButton(".mid OR .mid + .scl (no bends info)", 1);
         alert->addButton(".notes", 2);
@@ -658,7 +660,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     }
 
     if (!isActive) {
-        juce::AlertWindow::showMessageBoxAsync(
+        showMessageBoxAsync(
             juce::AlertWindow::WarningIcon, "ERROR",
             juce::String("One of two things happened:") +
                 "1. You have exceeded the limit of instances of this plugin (16).\n" +
@@ -667,7 +669,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
                 "of the instances crashed last time.\n" +
                 "FIX: Close your DAW and open it again (If this does not help, then restart your "
                 "PC).",
-            "OK");
+            "OK", this);
     }
 }
 
@@ -677,6 +679,17 @@ AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
     processorRef.params.editorWidth = getWidth();
     processorRef.params.editorHeight = getHeight();
     setLookAndFeel(nullptr);
+}
+
+void AudioPluginAudioProcessorEditor::showMessageBoxAsync(juce::MessageBoxIconType iconType,
+                                                          const juce::String &title,
+                                                          const juce::String &message,
+                                                          const juce::String &buttonText,
+                                                          juce::Component *associatedComponent) {
+    auto *alert = new juce::AlertWindow(title, message, iconType, associatedComponent);
+    alert->setLookAndFeel(customLF.get());
+    alert->addButton(buttonText, 1);
+    alert->enterModalState(true, juce::ModalCallbackFunction::create([](int result) {}), true);
 }
 
 void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
@@ -1084,8 +1097,8 @@ void AudioPluginAudioProcessorEditor::parseMidiSclFiles(const juce::File &midiFi
     if (hasScl) {
         auto sclScaleOpt = parseSclFile(sclFile);
         if (!sclScaleOpt) {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
-                                                   "Failed to parse .scl file", "OK");
+            showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                "Failed to parse .scl file", "OK", this);
             return;
         }
         sclScale = sclScaleOpt.value();
@@ -1170,9 +1183,8 @@ void AudioPluginAudioProcessorEditor::parseMidiSclFiles(const juce::File &midiFi
                     int totalCents = sclScale[n] * (midiNote / n) + sclScale[midiNote % n];
                     octave = totalCents / 1200;
                     if (octave >= processorRef.params.num_octaves) {
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::WarningIcon, "Error",
-                            "There is a too high pitched note", "OK");
+                        showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                            "There is a too high pitched note", "OK", this);
                         return;
                     }
                     cents = totalCents % 1200;
@@ -1199,8 +1211,8 @@ void AudioPluginAudioProcessorEditor::parseMidiSclFiles(const juce::File &midiFi
     this->mainPanel->updateNotes(notes);
     this->updateNotes(notes);
 
-    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Imported!",
-                                           "BPM of imported track: " + juce::String(bpm), "OK");
+    showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Imported!",
+                        "BPM of imported track: " + juce::String(bpm), "OK", this);
 }
 
 void AudioPluginAudioProcessorEditor::importMidiSclFiles() {
@@ -1220,18 +1232,16 @@ void AudioPluginAudioProcessorEditor::importMidiSclFiles() {
             for (const auto &file : files) {
                 if (file.hasFileExtension(".mid") || file.hasFileExtension(".midi")) {
                     if (hasMidi) {
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::WarningIcon, "Error",
-                            "Please select only one MIDI file", "OK");
+                        showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                            "Please select only one MIDI file", "OK", this);
                         return;
                     }
                     midiFile = file;
                     hasMidi = true;
                 } else if (file.hasFileExtension(".scl")) {
                     if (hasScl) {
-                        juce::AlertWindow::showMessageBoxAsync(
-                            juce::AlertWindow::WarningIcon, "Error",
-                            "Please select only one .scl file", "OK");
+                        showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                            "Please select only one .scl file", "OK", this);
                         return;
                     }
                     sclFile = file;
@@ -1240,9 +1250,8 @@ void AudioPluginAudioProcessorEditor::importMidiSclFiles() {
             }
 
             if (!hasMidi) {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
-                                                       "Please select at least one MIDI file",
-                                                       "OK");
+                showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                    "Please select at least one MIDI file", "OK", this);
                 return;
             }
 
@@ -1285,9 +1294,9 @@ void AudioPluginAudioProcessorEditor::exportMidiSclFiles() {
             // Exporting .scl file
             juce::FileOutputStream outputStreamScl(sclFile);
             if (!outputStreamScl.openedOk()) {
-                juce::AlertWindow::showMessageBoxAsync(
-                    juce::AlertWindow::WarningIcon, "Error",
-                    "Failed to create file: " + sclFile.getFullPathName(), "OK");
+                showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                    "Failed to create file: " + sclFile.getFullPathName(), "OK",
+                                    this);
                 return;
             }
 
@@ -1340,9 +1349,9 @@ void AudioPluginAudioProcessorEditor::exportMidiSclFiles() {
 
             juce::FileOutputStream outputStreamMidi(midiFile);
             if (!outputStreamMidi.openedOk()) {
-                juce::AlertWindow::showMessageBoxAsync(
-                    juce::AlertWindow::WarningIcon, "Error",
-                    "Failed to create file: " + midiFile.getFullPathName(), "OK");
+                showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                    "Failed to create file: " + midiFile.getFullPathName(), "OK",
+                                    this);
                 return;
             }
 
@@ -1364,9 +1373,9 @@ void AudioPluginAudioProcessorEditor::exportNotesFile() {
 
             juce::FileOutputStream outputStream(notesFile);
             if (!outputStream.openedOk()) {
-                juce::AlertWindow::showMessageBoxAsync(
-                    juce::AlertWindow::WarningIcon, "Error",
-                    "Failed to create file: " + notesFile.getFullPathName(), "OK");
+                showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                    "Failed to create file: " + notesFile.getFullPathName(), "OK",
+                                    this);
                 return;
             }
 
@@ -1393,9 +1402,8 @@ void AudioPluginAudioProcessorEditor::exportNotesFile() {
 void AudioPluginAudioProcessorEditor::parseNotesFile(const juce::File &notesFile) {
     juce::FileInputStream inputStream(notesFile);
     if (!inputStream.openedOk()) {
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::AlertWindow::WarningIcon, "Error",
-            "Failed to open file: " + notesFile.getFullPathName(), "OK");
+        showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                            "Failed to open file: " + notesFile.getFullPathName(), "OK", this);
         return;
     }
 
@@ -1427,8 +1435,8 @@ void AudioPluginAudioProcessorEditor::parseNotesFile(const juce::File &notesFile
     this->mainPanel->updateNotes(notes);
     this->updateNotes(notes);
 
-    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Imported!",
-                                           "BPM of imported track: " + juce::String(bpm), "OK");
+    showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Imported!",
+                        "BPM of imported track: " + juce::String(bpm), "OK", this);
 }
 
 void AudioPluginAudioProcessorEditor::importNotesFile() {
@@ -1478,24 +1486,24 @@ void AudioPluginAudioProcessorEditor::processDroppedFiles(const juce::StringArra
         juce::File file(fileStr);
         if (file.hasFileExtension(".mid") || file.hasFileExtension(".midi")) {
             if (hasMidi) {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
-                                                       "Please select only one MIDI file", "OK");
+                showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                    "Please select only one MIDI file", "OK", this);
                 return;
             }
             midiFile = file;
             hasMidi = true;
         } else if (file.hasFileExtension(".scl")) {
             if (hasScl) {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
-                                                       "Please select only one .scl file", "OK");
+                showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                    "Please select only one .scl file", "OK", this);
                 return;
             }
             sclFile = file;
             hasScl = true;
         } else if (file.hasFileExtension(".notes")) {
             if (hasNotes) {
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
-                                                       "Please select only one .notes file", "OK");
+                showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                    "Please select only one .notes file", "OK", this);
                 return;
             }
             notesFile = file;
@@ -1506,8 +1514,8 @@ void AudioPluginAudioProcessorEditor::processDroppedFiles(const juce::StringArra
     if (hasNotes) {
         parseNotesFile(notesFile);
     } else if (!hasMidi) {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
-                                               "Please select at least one MIDI file", "OK");
+        showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                            "Please select at least one MIDI file", "OK", this);
         return;
     } else {
         parseMidiSclFiles(midiFile, sclFile);
@@ -1598,7 +1606,7 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
 
     bool pitchOverflow = processorRef.thereIsPitchOverflow();
     if (pitchOverflow) {
-        juce::AlertWindow::showMessageBoxAsync(
+        showMessageBoxAsync(
             juce::AlertWindow::WarningIcon, "Pitches Overflow",
             juce::String("You have exceeded the limit on the number of unique pitches (128). ") +
                 "This number includes all notes from the piano roll and those that are "
@@ -1606,7 +1614,7 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
                 "manually (using mouse, keyboard or midi controller) with a unique pitch.\n\n" +
                 "FIX: remove some notes and/or don't manually play that many keys on which " +
                 "you don't have notes from the piano roll.",
-            "OK");
+            "OK", this);
     }
 
     if (processorRef.params.recordManuallyPlayedNotes) {
