@@ -1443,15 +1443,19 @@ void AudioPluginAudioProcessorEditor::parseNotesFile(const juce::File &notesFile
 }
 
 void AudioPluginAudioProcessorEditor::importNotesFile() {
-    importFileChooser.get()->launchAsync(juce::FileBrowserComponent::openMode |
-                                             juce::FileBrowserComponent::canSelectFiles,
-                                         [this](const juce::FileChooser &fc) {
-                                             juce::File notesFile = fc.getResult();
-                                             if (notesFile == juce::File{})
-                                                 return;
-
-                                             parseNotesFile(notesFile);
-                                         });
+    importFileChooser.get()->launchAsync(
+        juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+        [this](const juce::FileChooser &fc) {
+            juce::File notesFile = fc.getResult();
+            if (notesFile == juce::File{})
+                return;
+            if (!notesFile.hasFileExtension(".notes")) {
+                showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error",
+                                    "Please select only one .notes file", "OK", this);
+            } else {
+                parseNotesFile(notesFile);
+            }
+        });
 }
 
 bool AudioPluginAudioProcessorEditor::isInterestedInFileDrag(const juce::StringArray &files) {
