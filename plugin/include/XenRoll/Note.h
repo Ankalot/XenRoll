@@ -20,7 +20,7 @@ struct Note {
     float time;              ///< Start time in bars
     bool isSelected = false; ///< Whether note is selected in UI
     float duration;          ///< Duration in bars
-    float velocity;          ///< MIDI velocity
+    float velocity;          ///< Velocity in range [0.0; 1.0]
     int bend = 0;            ///< Pitch bend in cents
 
     bool operator==(const Note &other) const {

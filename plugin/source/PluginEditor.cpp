@@ -1209,6 +1209,7 @@ void AudioPluginAudioProcessorEditor::parseMidiSclFiles(const juce::File &midiFi
     this->numSubdivsInput.get()->setValue(subdivisionsPerBeat);
 
     this->mainPanel->updateNotes(notes);
+    this->mainPanel->saveNotesState();
     this->updateNotes(notes);
 
     showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Imported!",
@@ -1436,6 +1437,7 @@ void AudioPluginAudioProcessorEditor::parseNotesFile(const juce::File &notesFile
     this->numSubdivsInput.get()->setValue(numSubdivs);
 
     this->mainPanel->updateNotes(notes);
+    this->mainPanel->saveNotesState();
     this->updateNotes(notes);
 
     showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Imported!",
