@@ -122,7 +122,10 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     const std::vector<Note> &getNotes() { return notes; }
 
-    void saveNotesState() { params->notesHistory.push(notes); }
+    // Don't forget: call it after changes with ratios marks
+    void saveState() {
+        params->stateHistory.push(State(params->get_num_bars(), notes, params->ratiosMarks));
+    }
 
   private:
     float playHeadTime; ///< In bars
@@ -273,7 +276,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     int totalCentsToY(int totalCents);
 
-    void restoreNotesState();
+    void restoreState();
 
     float dtime = 0.0f;
     int dcents = 0;

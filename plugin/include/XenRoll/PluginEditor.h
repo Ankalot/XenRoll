@@ -395,6 +395,11 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     std::vector<Note> &getRecordedManuallyPlayedNotes() { return recordedManuallyPlayedNotes; }
 
+    void changeNumBars(int newNumBars) {
+        numBarsInput->setValue(newNumBars);
+        numBarsInput->onValueChanged(newNumBars);
+    }
+
     std::shared_ptr<SmallLookAndFeel> smallLF;
 
   private:

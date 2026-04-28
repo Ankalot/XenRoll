@@ -987,7 +987,6 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         note.bend = stream.readInt();
         notes.push_back(note);
     }
-    params.notesHistory.push(notes);
 
     // Read other things
     if (!stream.isExhausted()) {
@@ -1023,6 +1022,7 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
             params.goodEnoughErrorRatiosMarks = stream.readInt();
         }
     }
+    params.stateHistory.push(State(num_bars, notes, params.ratiosMarks));
 
     // Read vocal to melody params
     if (!stream.isExhausted()) {

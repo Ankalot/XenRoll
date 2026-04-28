@@ -638,7 +638,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     velocityPanel = std::make_unique<VelocityPanel>(
         &processorRef.params.theme,
         [this]() { mainPanel->setVelocitiesOfSelectedNotes(this->velocityPanel->getVelocity()); },
-        [this]() { mainPanel->saveNotesState(); });
+        [this]() { mainPanel->saveState(); });
     addAndMakeVisible(velocityPanel.get());
     velocityPanel->setVisible(false);
 
@@ -1209,7 +1209,7 @@ void AudioPluginAudioProcessorEditor::parseMidiSclFiles(const juce::File &midiFi
     this->numSubdivsInput.get()->setValue(subdivisionsPerBeat);
 
     this->mainPanel->updateNotes(notes);
-    this->mainPanel->saveNotesState();
+    this->mainPanel->saveState();
     this->updateNotes(notes);
 
     showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Imported!",
@@ -1437,7 +1437,7 @@ void AudioPluginAudioProcessorEditor::parseNotesFile(const juce::File &notesFile
     this->numSubdivsInput.get()->setValue(numSubdivs);
 
     this->mainPanel->updateNotes(notes);
-    this->mainPanel->saveNotesState();
+    this->mainPanel->saveState();
     this->updateNotes(notes);
 
     showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Imported!",
@@ -1591,8 +1591,7 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
         if (newPlayHeadTime > currNumBars) {
             const int newNumBars = static_cast<int>(newPlayHeadTime) + 1;
             if (newNumBars <= processorRef.params.max_num_bars) {
-                numBarsInput->setValue(newNumBars);
-                numBarsInput->onValueChanged(newNumBars);
+                changeNumBars(newNumBars);
             }
         }
         playHeadTime = newPlayHeadTime;

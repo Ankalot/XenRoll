@@ -20,6 +20,12 @@ namespace audio_plugin {
  */
 using PitchCurve = std::pair<std::vector<float>, std::vector<int>>;
 
+struct State {
+    int numBars;
+    std::vector<Note> notes;
+    std::vector<RatioMark> ratiosMarks;  
+};
+
 class Parameters {
   public:
     enum GenNewKeysTactics { DiverseIntervals = 1, Random = 2 };
@@ -240,7 +246,7 @@ class Parameters {
     // ================= Vocal to melody =================
     std::atomic<bool> vocalToMelody = false;
     // ===================================================
-    CircularStack<std::vector<Note>> notesHistory{100};
+    CircularStack<State> stateHistory{100};
 
     Parameters() : zones(true, float(num_bars)), theme(themeType) {}
 
