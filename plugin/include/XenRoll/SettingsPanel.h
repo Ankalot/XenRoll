@@ -25,6 +25,9 @@ class SettingsPanel : public juce::Component {
     std::unique_ptr<juce::Label> heightCoefLabel;
     std::unique_ptr<juce::Slider> heightCoefSlider;
 
+    std::unique_ptr<juce::Label> constNoteRectHeightLabel;
+    std::unique_ptr<juce::ToggleButton> constNoteRectHeightCheckbox;
+
     std::unique_ptr<juce::Label> themeTypeLabel;
     std::unique_ptr<juce::ComboBox> themeTypeCombo;
 

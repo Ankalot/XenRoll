@@ -896,6 +896,8 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
     for (const int chInd : params.ghostNotesChannels) {
         stream.writeInt(chInd);
     }
+
+    stream.writeBool(params.constNoteRectHeight);
 }
 
 void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeInBytes) {
@@ -1051,6 +1053,10 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         for (int i = 0; i < numChInd; ++i) {
             params.ghostNotesChannels.insert(stream.readInt());
         }
+    }
+
+    if (!stream.isExhausted()) {
+        params.constNoteRectHeight = stream.readBool();
     }
 
     // UPDATE NOTES

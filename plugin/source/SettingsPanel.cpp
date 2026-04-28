@@ -58,6 +58,21 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     };
     addAndMakeVisible(heightCoefSlider.get());
 
+    constNoteRectHeightLabel = std::make_unique<juce::Label>();
+    constNoteRectHeightLabel->setText("Note Rectangle Height is constant:",
+                                   juce::dontSendNotification);
+    constNoteRectHeightLabel->setFont(currentFont);
+    addAndMakeVisible(constNoteRectHeightLabel.get());
+
+    constNoteRectHeightCheckbox = std::make_unique<juce::ToggleButton>();
+    constNoteRectHeightLabel->attachToComponent(constNoteRectHeightCheckbox.get(), true);
+    constNoteRectHeightCheckbox->setToggleState(params->constNoteRectHeight, juce::dontSendNotification);
+    constNoteRectHeightCheckbox->onStateChange = [this, params]() {
+        params->constNoteRectHeight = constNoteRectHeightCheckbox->getToggleState();
+    };
+    constNoteRectHeightCheckbox->setSize(rowHeight, rowHeight);
+    addAndMakeVisible(constNoteRectHeightCheckbox.get());
+
     themeTypeLabel = std::make_unique<juce::Label>();
     themeTypeLabel->setFont(currentFont);
     themeTypeLabel->setText("Color theme:", juce::dontSendNotification);
@@ -111,6 +126,11 @@ void SettingsPanel::resized() {
     auto heightRow = area.removeFromTop(rowHeight + padding);
     heightCoefLabel->setBounds(heightRow.removeFromLeft(labelWidth));
     heightCoefSlider->setBounds(heightRow);
+
+    // Const height of notes' rectangles
+    auto constHeightRow = area.removeFromTop(rowHeight + padding);
+    constNoteRectHeightLabel->setBounds(constHeightRow.removeFromLeft(labelWidth));
+    constNoteRectHeightCheckbox->setBounds(constHeightRow);
 
     // Color theme
     auto themeRow = area.removeFromTop(rowHeight + padding);

@@ -1978,7 +1978,12 @@ int MainPanel::getNumOfSelectedNotes() {
 }
 
 juce::Path MainPanel::getNotePath(const Note &note) {
-    float height = octave_height_px * params->noteRectHeightCoef;
+    float height;
+    if (params->constNoteRectHeight) {
+        height = init_octave_height_px * params->noteRectHeightCoef;
+    } else {
+        height = octave_height_px * params->noteRectHeightCoef;
+    }
     float width = bar_width_px * note.duration;
     float x1 = note.time * bar_width_px;
     float x2 = x1 + width;

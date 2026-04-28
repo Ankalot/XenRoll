@@ -120,6 +120,7 @@ class Parameters {
     std::set<int> ghostNotesChannels = {};
     std::atomic<double> A4Freq = 440.0;
     float noteRectHeightCoef = 0.04f;
+    bool constNoteRectHeight = false;
     Zones zones;
     std::vector<RatioMark> ratiosMarks = {};
     bool autoCorrectRatiosMarks = true;
