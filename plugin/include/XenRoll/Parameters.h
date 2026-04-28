@@ -39,6 +39,8 @@ class Parameters {
     static constexpr int num_octaves = 10;
     static constexpr float init_octave_height_px = 300.0f;
     static constexpr float init_bar_width_px = 400.0f;
+    static constexpr float max_bar_width_px = 4000.0f;
+    static constexpr float max_octave_height_px = 5000.0f;
     // ===== Vocal to melody =====
     static constexpr float minVocalVolume_dB = -60.0f;
     static constexpr float maxVocalVolume_dB = 0.0f;

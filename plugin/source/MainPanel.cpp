@@ -549,12 +549,12 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
         octave_height_px = octave_height_px * stretchFactor;
         float min_octave_height_px = static_cast<float>(viewHeight) / params->num_octaves;
         octave_height_px =
-            juce::jlimit(min_octave_height_px, 15 * min_octave_height_px, octave_height_px);
+            juce::jlimit(min_octave_height_px, params->max_octave_height_px, octave_height_px);
         editor->changeOctaveHeightPx(octave_height_px);
     } else {
         bar_width_px = bar_width_px * stretchFactor;
         float min_bar_width_px = static_cast<float>(viewWidth) / params->get_num_bars();
-        bar_width_px = juce::jlimit(min_bar_width_px, max_bar_width_px, bar_width_px);
+        bar_width_px = juce::jlimit(min_bar_width_px, params->max_bar_width_px, bar_width_px);
         editor->changeBarWidthPx(bar_width_px);
     }
 

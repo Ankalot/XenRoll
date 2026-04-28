@@ -126,7 +126,6 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
   private:
     float playHeadTime; ///< In bars
-    const float max_bar_width_px = 1000.0f;
     float init_octave_height_px, init_bar_width_px;
     float octave_height_px, bar_width_px;
     bool isDragging = false;
