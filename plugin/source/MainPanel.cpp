@@ -736,10 +736,26 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                 if (notes[i].isSelected) {
                     if (!event.mods.isShiftDown()) {
                         needToUnselectAllNotesExcept = i;
+                        needToUnselectAllNotesExcept_Ctrl = event.mods.isCtrlDown();
+                    } else if(event.mods.isCtrlDown()) {
+                        int cents = notes[i].cents;
+                        for (Note& note: notes) {
+                            if ((note.cents == cents) && params->zones.isNoteInActiveZone(note)) {
+                                note.isSelected = true;
+                            }
+                        }
                     }
                 } else {
                     if (!event.mods.isShiftDown()) {
                         unselectAllNotes();
+                    }
+                    if (event.mods.isCtrlDown()) {
+                        int cents = notes[i].cents;
+                        for (Note& note: notes) {
+                            if ((note.cents == cents) && params->zones.isNoteInActiveZone(note)) {
+                                note.isSelected = true;
+                            }
+                        }
                     }
                     notes[i].isSelected = true;
                     repaint();
@@ -1147,6 +1163,14 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
 
     if (needToUnselectAllNotesExcept != -1) {
         unselectAllNotes();
+        if (needToUnselectAllNotesExcept_Ctrl) {
+            int cents = notes[needToUnselectAllNotesExcept].cents;
+            for (Note& note: notes) {
+                if ((note.cents == cents) && params->zones.isNoteInActiveZone(note)) {
+                    note.isSelected = true;
+                }
+            }
+        }
         notes[needToUnselectAllNotesExcept].isSelected = true;
         needToUnselectAllNotesExcept = -1;
     }

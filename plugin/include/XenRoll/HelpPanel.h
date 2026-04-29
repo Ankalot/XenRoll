@@ -49,6 +49,8 @@ class HelpPanel : public juce::Component {
              {"LCLICK + SHIFT + DRAG NOTE", "Drag selected note(-s) but slowly vertically"},
              {"LCLICK + NOTE", "Select a note"},
              {"LCLICK + SHIFT + NOTE", "Select a note without deselecting others"},
+             {"LCLICK + CTRL + NOTE",
+              "Select all notes (in active zones) with same key (can be used with SHIFT)"},
              {"LCLICK + TOP TIME PANEL", "Turn on zone"},
              {"LCLICK + SHIFT + TOP TIME PANEL", "Create zone point"},
              {"RCLICK + NOTE", "Delete a note"},

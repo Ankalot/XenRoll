@@ -796,6 +796,7 @@ juce::AudioProcessorEditor *AudioPluginAudioProcessor::createEditor() {
 void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData) {
     juce::MemoryOutputStream stream(destData, false);
 
+    // shit-code crutch
     ///< VERSION OF STATE INFORMATION {0, -1, -2, ...}
     stream.writeInt(-1);
 
@@ -912,6 +913,7 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
     }
     juce::MemoryInputStream stream(data, sizeInBytes, false);
 
+    // shit-code crutch
     ///< VERSION OF STATE INFORMATION {0, -1, -2, ...}
     int version;
     int smth = stream.readInt();
