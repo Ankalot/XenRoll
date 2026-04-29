@@ -796,6 +796,9 @@ juce::AudioProcessorEditor *AudioPluginAudioProcessor::createEditor() {
 void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData) {
     juce::MemoryOutputStream stream(destData, false);
 
+    ///< VERSION OF STATE INFORMATION {0, -1, -2, ...}
+    stream.writeInt(-1);
+
     // Write simple params
     stream.writeInt(params.editorWidth);
     stream.writeInt(params.editorHeight);
@@ -867,6 +870,8 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
         stream.writeInt(ratioMark.getLowerKeyTotalCents());
         stream.writeInt(ratioMark.getHigherKeyTotalCents());
         stream.writeFloat(ratioMark.time);
+        stream.writeInt(ratioMark.getLowerNoteIndex());
+        stream.writeInt(ratioMark.getHigherNoteIndex());
     }
     // Other ratios marks related things
     stream.writeBool(params.autoCorrectRatiosMarks);
@@ -907,8 +912,19 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
     }
     juce::MemoryInputStream stream(data, sizeInBytes, false);
 
+    ///< VERSION OF STATE INFORMATION {0, -1, -2, ...}
+    int version; 
+    int smth = stream.readInt();
+    if (smth > 0) {
+        params.editorWidth = smth;
+        version = 0;
+    } else {
+        version = smth;
+        params.editorWidth = stream.readInt();
+    }
+
     // Read simple params
-    params.editorWidth = stream.readInt();
+    //params.editorWidth = stream.readInt();
     params.editorHeight = stream.readInt();
     int num_bars = stream.readInt();
     params.set_num_bars(num_bars);
@@ -1009,12 +1025,24 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         int numRatiosMarks = stream.readInt();
         if ((numRatiosMarks >= 0) && (numRatiosMarks < 1e6)) {
             params.ratiosMarks.reserve(numRatiosMarks);
-            for (int i = 0; i < numRatiosMarks; ++i) {
-                int lktc = stream.readInt();
-                int hktc = stream.readInt();
-                float t = stream.readFloat();
-                RatioMark ratioMark(lktc, hktc, t, &params);
-                params.ratiosMarks.push_back(ratioMark);
+            if (version <= -1) {
+                for (int i = 0; i < numRatiosMarks; ++i) {
+                    int lktc = stream.readInt();
+                    int hktc = stream.readInt();
+                    float t = stream.readFloat();
+                    int lni = stream.readInt();
+                    int hni = stream.readInt();
+                    RatioMark ratioMark(lktc, hktc, t, &params, lni, hni);
+                    params.ratiosMarks.push_back(ratioMark);
+                }
+            } else {
+                for (int i = 0; i < numRatiosMarks; ++i) {
+                    int lktc = stream.readInt();
+                    int hktc = stream.readInt();
+                    float t = stream.readFloat();
+                    RatioMark ratioMark(lktc, hktc, t, &params);
+                    params.ratiosMarks.push_back(ratioMark);
+                }
             }
             // Other ratios marks related things
             params.autoCorrectRatiosMarks = stream.readBool();

@@ -17,14 +17,19 @@ struct RatioMark {
      * @param hktc Higher key total cents
      * @param t Time position in bars
      * @param ps Pointer to Parameters object
+     * @param lni Lower note index (-1 if doesn't exist)
+     * @param hni Higher note index (-1 if doesn't exist)
      */
-    RatioMark(int lktc, int hktc, float t, Parameters *ps)
-        : lowerKeyTotalCents(lktc), higherKeyTotalCents(hktc), time(t), params(ps) {
+    RatioMark(int lktc, int hktc, float t, Parameters *ps, int lni = -1, int hni = -1)
+        : lowerKeyTotalCents(lktc), higherKeyTotalCents(hktc), time(t), params(ps),
+          lowerNoteIndex(lni), higherNoteIndex(hni) {
         calculateRatioAndError();
     }
 
     int getLowerKeyTotalCents() const { return lowerKeyTotalCents; }
     int getHigherKeyTotalCents() const { return higherKeyTotalCents; }
+    int getLowerNoteIndex() const { return lowerNoteIndex; }
+    int getHigherNoteIndex() const { return higherNoteIndex; }
 
     /**
      * @brief Get the ratio as a pair (numerator, denominator)
@@ -48,10 +53,19 @@ struct RatioMark {
         calculateRatioAndError();
     }
 
+    void setLowerNoteIndex(int newLowerNoteIndex) {
+        lowerNoteIndex = newLowerNoteIndex;
+    }
+
+    void setHigherNoteIndex(int newHigherNoteIndex) {
+        higherNoteIndex = newHigherNoteIndex;
+    }
+
     void calculateRatioAndError();
 
   private:
     Parameters *params;
+    int lowerNoteIndex, higherNoteIndex; ///< -1 if doesn't exist
     int lowerKeyTotalCents, higherKeyTotalCents;
     int num, den;
     int err; ///< in cents

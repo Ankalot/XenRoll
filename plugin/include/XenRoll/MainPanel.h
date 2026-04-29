@@ -48,6 +48,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void randomizeSelectedNotesVelocity();
     void deleteAllRatiosMarks();
 
+    // is called from PluginEditor when importing
     void updateNotes(const std::vector<Note> &new_notes);
     void updateGhostNotes(const std::vector<Note> &new_ghostNotes);
     void createNotesFromGhostNotes();
@@ -273,6 +274,9 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     bool pointOnRatioMark(const RatioMark &ratioMark, const juce::Point<int> &point);
     bool lineIntersectsRatioMark(const RatioMark &ratioMark, const juce::Line<int> &line);
+
+    void pitchCorrectRatioMarksBasedOnSelNotes();
+    void timeCorrectRatioMarksBasedOnSelNotes(float dtime);
 
     int totalCentsToY(int totalCents);
 
