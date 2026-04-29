@@ -1043,12 +1043,12 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         if (abs(dtime) >= dt) {
             dtime = dtime - sgn(dtime) * floor(abs(dtime) / dt) * dt;
         }
+        if (changedPitch) {
+            pitchCorrectRatioMarksBasedOnSelNotes();
+        }
         if (changedTime || changedPitch) {
             remakeKeys();
             editor->updateNotes(notes);
-        }
-        if (changedPitch) {
-            pitchCorrectRatioMarksBasedOnSelNotes();
         }
         if (changedTime) {
             if (params->timeSnap) {
@@ -1296,7 +1296,7 @@ void MainPanel::deleteNote(int i) {
         }
     }
 
-    for (RatioMark& ratioMark : params->ratiosMarks) {
+    for (RatioMark &ratioMark : params->ratiosMarks) {
         if (ratioMark.getLowerNoteIndex() > i) {
             ratioMark.setLowerNoteIndex(ratioMark.getLowerNoteIndex() - 1);
         } else if (ratioMark.getLowerNoteIndex() == i) {
@@ -1509,47 +1509,55 @@ std::optional<int> MainPanel::findNearestKeyWithLimit(int key, int maxCentsChang
 void MainPanel::reattachRatiosMarks() {
     if (params->autoCorrectRatiosMarks) {
         const int maxCentsChange = 100;
-        for (auto &ratioMark : params->ratiosMarks) {
-            int higherKeyCents = ratioMark.getHigherKeyTotalCents() % 1200;
+        auto it = params->ratiosMarks.begin();
+        while (it != params->ratiosMarks.end()) {
+            RatioMark &ratioMark = *it;
+            int higherKeyTotalCents = ratioMark.getHigherKeyTotalCents();
+            int higherKeyCents = higherKeyTotalCents % 1200;
             if (!keysFromAllNotes.contains(higherKeyCents)) {
                 auto result =
                     findNearestKeyWithLimit(higherKeyCents, maxCentsChange, keysFromAllNotes);
                 if (result) {
-                    int higherKeyOctave = ratioMark.getHigherKeyTotalCents() / 1200;
+                    int higherKeyOctave = higherKeyTotalCents / 1200;
                     int newHigherKeyCents = *result;
                     if ((newHigherKeyCents - higherKeyCents < -maxCentsChange) &&
                         (higherKeyOctave < params->num_octaves - 1)) {
-                        ratioMark.setHigherKeyTotalCents(1200 * (higherKeyOctave + 1) +
-                                                         newHigherKeyCents);
+                        higherKeyTotalCents = 1200 * (higherKeyOctave + 1) + newHigherKeyCents;
                     } else if ((newHigherKeyCents - higherKeyCents > maxCentsChange) &&
                                (higherKeyOctave > 0)) {
-                        ratioMark.setHigherKeyTotalCents(1200 * (higherKeyOctave - 1) +
-                                                         newHigherKeyCents);
+                        higherKeyTotalCents = 1200 * (higherKeyOctave - 1) + newHigherKeyCents;
                     } else {
-                        ratioMark.setHigherKeyTotalCents(1200 * higherKeyOctave +
-                                                         newHigherKeyCents);
+                        higherKeyTotalCents = 1200 * higherKeyOctave + newHigherKeyCents;
                     }
+                    ratioMark.setHigherKeyTotalCents(higherKeyTotalCents);
                 }
             }
-            int lowerKeyCents = ratioMark.getLowerKeyTotalCents() % 1200;
+            int lowerKeyTotalCents = ratioMark.getLowerKeyTotalCents();
+            int lowerKeyCents = lowerKeyTotalCents % 1200;
             if (!keysFromAllNotes.contains(lowerKeyCents)) {
                 auto result =
                     findNearestKeyWithLimit(lowerKeyCents, maxCentsChange, keysFromAllNotes);
                 if (result) {
-                    int lowerKeyOctave = ratioMark.getLowerKeyTotalCents() / 1200;
+                    int lowerKeyOctave = lowerKeyTotalCents / 1200;
                     int newLowerKeyCents = *result;
                     if ((newLowerKeyCents - lowerKeyCents < -maxCentsChange) &&
                         (lowerKeyOctave < params->num_octaves - 1)) {
-                        ratioMark.setLowerKeyTotalCents(1200 * (lowerKeyOctave + 1) +
-                                                        newLowerKeyCents);
+                        lowerKeyTotalCents = 1200 * (lowerKeyOctave + 1) + newLowerKeyCents;
                     } else if ((newLowerKeyCents - lowerKeyCents > maxCentsChange) &&
                                (lowerKeyOctave > 0)) {
-                        ratioMark.setLowerKeyTotalCents(1200 * (lowerKeyOctave - 1) +
-                                                        newLowerKeyCents);
+                        lowerKeyTotalCents = 1200 * (lowerKeyOctave - 1) + newLowerKeyCents;
                     } else {
-                        ratioMark.setLowerKeyTotalCents(1200 * lowerKeyOctave + newLowerKeyCents);
+                        lowerKeyTotalCents = 1200 * lowerKeyOctave + newLowerKeyCents;
                     }
+                    ratioMark.setLowerKeyTotalCents(lowerKeyTotalCents);
                 }
+            }
+            // Delete ratio mark if it is 1/1 and doesn't depend on notes
+            if ((higherKeyTotalCents == lowerKeyTotalCents) &&
+                (ratioMark.getLowerNoteIndex() == -1) && (ratioMark.getHigherNoteIndex() == -1)) {
+                it = params->ratiosMarks.erase(it);
+            } else {
+                ++it;
             }
         }
     }
@@ -1612,25 +1620,26 @@ void MainPanel::restoreState() {
 }
 
 void MainPanel::pitchCorrectRatioMarksBasedOnSelNotes() {
-    for (RatioMark& ratioMark: params->ratiosMarks) {
+    for (RatioMark &ratioMark : params->ratiosMarks) {
         const int lni = ratioMark.getLowerNoteIndex();
         if ((lni != -1) && notes[lni].isSelected) {
-            ratioMark.setLowerKeyTotalCents(notes[lni].octave*1200 + notes[lni].cents);
+            ratioMark.setLowerKeyTotalCents(notes[lni].octave * 1200 + notes[lni].cents);
         }
         const int hni = ratioMark.getHigherNoteIndex();
         if ((hni != -1) && notes[hni].isSelected) {
-            ratioMark.setHigherKeyTotalCents(notes[hni].octave*1200 + notes[hni].cents);
+            ratioMark.setHigherKeyTotalCents(notes[hni].octave * 1200 + notes[hni].cents);
         }
     }
 }
 
 void MainPanel::timeCorrectRatioMarksBasedOnSelNotes(float dtime) {
-    for (RatioMark& ratioMark: params->ratiosMarks) {
+    for (RatioMark &ratioMark : params->ratiosMarks) {
         const int lni = ratioMark.getLowerNoteIndex();
         const int hni = ratioMark.getHigherNoteIndex();
-        if (((lni == -1) || (notes[lni].isSelected)) && ((hni == -1) || (notes[hni].isSelected))
-             && ((lni != -1) || (hni != -1))) {
-            ratioMark.time = juce::jlimit(0.0f, (float)params->get_num_bars(), ratioMark.time + dtime);
+        if (((lni == -1) || (notes[lni].isSelected)) && ((hni == -1) || (notes[hni].isSelected)) &&
+            ((lni != -1) || (hni != -1))) {
+            ratioMark.time =
+                juce::jlimit(0.0f, (float)params->get_num_bars(), ratioMark.time + dtime);
         }
     }
 }
@@ -1766,8 +1775,8 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
                     notes[i].cents = cents;
                 }
             }
-            remakeKeys();
             pitchCorrectRatioMarksBasedOnSelNotes();
+            remakeKeys();
             saveState();
             editor->updateNotes(notes);
             repaint();
@@ -1794,8 +1803,8 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
                     notes[i].cents = note_cents;
                 }
             }
-            remakeKeys();
             pitchCorrectRatioMarksBasedOnSelNotes();
+            remakeKeys();
             saveState();
             editor->updateNotes(notes);
             repaint();
@@ -1824,8 +1833,8 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
                     notes[i].cents = note_cents;
                 }
             }
-            remakeKeys();
             pitchCorrectRatioMarksBasedOnSelNotes();
+            remakeKeys();
             saveState();
             editor->updateNotes(notes);
             repaint();
@@ -1914,8 +1923,8 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
                 }
             }
         }
-        remakeKeys();
         pitchCorrectRatioMarksBasedOnSelNotes();
+        remakeKeys();
         saveState();
         editor->updateNotes(notes);
         repaint();
@@ -1950,8 +1959,8 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
                 }
             }
         }
-        remakeKeys();
         pitchCorrectRatioMarksBasedOnSelNotes();
+        remakeKeys();
         saveState();
         editor->updateNotes(notes);
         repaint();
@@ -2236,7 +2245,7 @@ int MainPanel::getKeyIndex(int cents) {
 void MainPanel::setPlayHeadTime(float newPlayHeadTime) { playHeadTime = newPlayHeadTime; }
 
 void MainPanel::updateNotes(const std::vector<Note> &new_notes) {
-    for (RatioMark& ratioMark : params->ratiosMarks) {
+    for (RatioMark &ratioMark : params->ratiosMarks) {
         ratioMark.setLowerNoteIndex(-1);
         ratioMark.setHigherNoteIndex(-1);
     }

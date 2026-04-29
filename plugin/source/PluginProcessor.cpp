@@ -913,7 +913,7 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
     juce::MemoryInputStream stream(data, sizeInBytes, false);
 
     ///< VERSION OF STATE INFORMATION {0, -1, -2, ...}
-    int version; 
+    int version;
     int smth = stream.readInt();
     if (smth > 0) {
         params.editorWidth = smth;
@@ -924,7 +924,7 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
     }
 
     // Read simple params
-    //params.editorWidth = stream.readInt();
+    // params.editorWidth = stream.readInt();
     params.editorHeight = stream.readInt();
     int num_bars = stream.readInt();
     params.set_num_bars(num_bars);

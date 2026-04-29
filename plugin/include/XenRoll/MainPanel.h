@@ -275,6 +275,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool pointOnRatioMark(const RatioMark &ratioMark, const juce::Point<int> &point);
     bool lineIntersectsRatioMark(const RatioMark &ratioMark, const juce::Line<int> &line);
 
+    ///< Should be called before reattachRatiosMarks()
     void pitchCorrectRatioMarksBasedOnSelNotes();
     void timeCorrectRatioMarksBasedOnSelNotes(float dtime);
 
