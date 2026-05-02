@@ -1,7 +1,9 @@
 #pragma once
 
 #include "AccumulatingBuffer.h"
+#include "GlobalSettings.h"
 #include "Note.h"
+#include "NotesSharingMPE.h"
 #include "Parameters.h"
 #include "PartialsFinder.h"
 #include "PitchDetectorMPM.h"
@@ -16,6 +18,8 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
   public:
     AudioPluginAudioProcessor();
     ~AudioPluginAudioProcessor() override;
+
+    void changeInstanceSync(Parameters::TuningType newTuningType);
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
@@ -65,7 +69,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     std::set<int> getAllCurrPlayedNotesTotalCents();
 
     /**
-     * @brief Check if there is a pitch overflow (more than 128 unique pitches)
+     * @brief Check if there is a pitch overflow
      * @return true if overflow detected
      */
     bool thereIsPitchOverflow();
@@ -138,10 +142,25 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     }
     // ============================================================================================
 
+    std::set<int> getAllInstancesIndexes() {
+        if (!isActive) {
+            return {};
+        }
+        if (params.getTuningType() == Parameters::TuningType::MPE) {
+            return notesSharingMPE->getAllInstanceIds();
+        } else if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+            return pluginInstanceManager->getAllInstanceChannels();
+        }
+    }
+
   private:
+    // The magic number for defining the new ValueTree format
+    static constexpr int MAGIC_NUMBER = 7777777;
+
     // ====================================== INSTANCES SYNC ======================================
-    std::unique_ptr<PluginInstanceManager> pluginInstanceManager;
+    std::unique_ptr<PluginInstanceManager> pluginInstanceManager; ///< For MTS-ESP
     bool isActive = false;
+    std::unique_ptr<NotesSharingMPE> notesSharingMPE; ///< For MPE
     // ============================================================================================
 
     // ===================================== PARTIALS FINDING =====================================
@@ -227,33 +246,32 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     bool trySnapNote(Note &note, const std::set<int> &keys);
     // ============================================================================================
 
+    // ========================================== GENERAL =========================================
     // INFO: totalCents = octave*1200 + cents
 
-    std::vector<Note> notes;
-    ///< Contains midi note number (0-127) for each note from notes vector
-    std::vector<int> notesIndexes;
     /**
-     * Contains midi note number (0-127) for each note that is played manually (from
-     * manuallyPlayedNotesTotalCents)
+     *              If using MPE tuning:
+     * Maximum 15 pitches can be played simultaneously (they occupy channels 2-16)
+     *              If using MTS-ESP tuning:
+     * We have only 128 midi notes (cause freqs[128]) in single midi track, so max 128 pitches
+     *              General:
+     * In overflow state user needs to remove some notes (from piano roll and/or manually pressed)
      */
-    std::vector<int> manuallyPlayedNotesIndexes;
-    /**
-     * Is used to indicate that this frequency is not being used. Freq in Hz.
-     * And if it is still used for a veeery short period of time (by mistake?), then there will be no sound.
-     * 0.0 is a bad idea, as this may cause some synth plugins to crash (tested on Surge XT).
-     */
-    const double noFreq = 1e-2;
-    ///< Contains frequency in Hz for each midi note
-    double freqs[128]{noFreq};
-    ///< if midi note is bending it has != -1 original totalCents here
-    int beforeBendTotalCents[128];
-    std::atomic<bool> wasPlaying = false;
+    bool pitchesOverflow = false;
+    bool editorKnowsAboutOverflow = false;
 
     /**
-     * TotalCents of notes from notes vector (so from piano roll) that are currently played (bends
-     * are not taken into account)
+     * If using MTS-ESP tuning:
+     *      Prepare notes for playback (assign MIDI note numbers and calculate frequencies)
+     * If using MPE tuning:
+     *      Just set editorKnowsAboutOverflow and pitchesOverflow to false
      */
-    std::set<int> currPlayedNotesTotalCents;
+    void prepareNotes();
+
+    std::vector<Note> notes;
+
+    std::atomic<bool> wasPlaying = false;
+
     ///< TotalCents of notes(keys) that are currently played manually (not from piano roll)
     std::set<int> manuallyPlayedNotesTotalCents;
     // Maybe this mutex is unnecessary
@@ -265,16 +283,45 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     std::vector<bool> manuallyPlayedNotesAreNew;
 
     /**
-     * Midi note numbers of all notes that are playing now (including notes and
-     * manuallyPlayedNotesTotalCents)
-     */
-    std::set<int> currPlayedNotesIndexes;
-
-    /**
      * A flag that indicates whether we have started playing notes (noteOn) from
      * manuallyPlayedNotesTotalCents
      */
     bool startedPlayingManuallyPressedNotes;
+
+    std::atomic<double> playHeadTime = 0.0; ///< in bars
+    // ============================================================================================
+
+    // ======================================= USING MTS-ESP ======================================
+    ///< Contains midi note number (0-127) for each note from notes vector
+    std::vector<int> notesIndexes;
+    /**
+     * Contains midi note number (0-127) for each note that is played manually (from
+     * manuallyPlayedNotesTotalCents)
+     */
+    std::vector<int> manuallyPlayedNotesIndexes;
+    /**
+     * Is used to indicate that this frequency is not being used. Freq in Hz.
+     * And if it is still used for a veeery short period of time (by mistake?), then there will be
+     * no sound. 0.0 is a bad idea, as this may cause some synth plugins to crash (tested on Surge
+     * XT).
+     */
+    const double noFreq = 1e-2;
+    ///< Contains frequency in Hz for each midi note
+    double freqs[128]{noFreq};
+    ///< if midi note is bending it has != -1 original totalCents here
+    int beforeBendTotalCents[128];
+
+    /**
+     * TotalCents of notes from notes vector (so from piano roll) that are currently played (bends
+     * are not taken into account)
+     */
+    std::set<int> currPlayedNotesTotalCents;
+
+    /**
+     * Midi note numbers of all notes that are playing now (including notes and
+     * manuallyPlayedNotesTotalCents)
+     */
+    std::set<int> currPlayedNotesIndexes;
 
     /**
      * We need to save as much as possible frequencies in freqs[128] for notes that were played
@@ -283,16 +330,6 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
      * will also change frequency.
      */
     RelevanceQueue<double> manPlNotesTotCentsHistory;
-
-    /**
-     * We have only 128 midi notes (cause freqs[128]) in single midi track so when we try to have
-     * more unique notes (pitches) we get overflow state then user needs to remove some notes (from
-     * piano roll and manually pressed)
-     */
-    bool pitchesOverflow = false;
-    bool editorKnowsAboutOverflow = false;
-
-    std::atomic<double> playHeadTime = 0.0; ///< in bars
 
     double getNoteFreq(const Note &note);
     double getFreqFromTotalCents(float totalCents);
@@ -304,11 +341,88 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
      * @return Index (0-127) or -1 if not found
      */
     int findFreqInd(double freq);
+    // ============================================================================================
+
+    // ========================================= USING MPE ========================================
+    // First midi channel is for globale messages, channels 2-16 are for separate
+    // In contrast to MTS-ESP, with MPE 2+ notes with same totalCents can be played simultaneously
+    //      (useful if these notes have different bend)
+
+    ///< No pitch bend = 8192; 0 and 16383 are -48 and +48 semitones respectively
+    const double centsPerBendMPE = 96 * 100 / 16384.0;
+
+    ///< Is used to correct totalCents taking into account A4 freq
+    double corrTotalCentsMPE = 0;
+
+    ///< For midi channels 2-16, -1 = occupied, Other value = midi note
+    std::array<int, 15> channelInUseMPE;
+    ///< {Note's index and totalCents} -> channel (2-16)
+    std::map<std::pair<int, int>, int> noteToChannelMPE;
+    ///< Manually played note's totalCents -> channel (2-16)
+    std::map<int, int> manPlNoteToChannelMPE;
 
     /**
-     * @brief Prepare notes for playback (assign MIDI note numbers and calculate frequencies)
+     * totalcents of notes that are currently played from piano roll -> number of that notes
+     * We need map instead of set because there can be several notes that are been played with
+     * same totalCents but with different note bend
      */
-    void prepareNotes();
+    std::map<int, int> currPlayedNotesTotalCentsMPE;
+
+    void addCurrPlayedNotesTotalCentsMPE(int totalCents) {
+        if (currPlayedNotesTotalCentsMPE.contains(totalCents)) {
+            currPlayedNotesTotalCentsMPE[totalCents]++;
+        } else {
+            currPlayedNotesTotalCentsMPE[totalCents] = 1;
+        }
+    }
+
+    void delCurrPlayedNotesTotalCentsMPE(int totalCents) {
+        if (currPlayedNotesTotalCentsMPE.contains(totalCents)) {
+            currPlayedNotesTotalCentsMPE[totalCents]--;
+            if (currPlayedNotesTotalCentsMPE[totalCents] == 0) {
+                currPlayedNotesTotalCentsMPE.erase(totalCents);
+            }
+        }
+    }
+
+    /**
+     *  Returns free midi channel 2-16 and occupies it. If there are no free channels,
+     *  returns -1
+     */
+    int getFreeChannelMPE() {
+        for (int i = 0; i < 15; ++i) {
+            if (channelInUseMPE[i] == -1) {
+                return i + 2;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * @brief Calculate midi note and bend (for MPE) from totalCents
+     * @param totalCents octave*1200 + cents
+     * @return std::pair<int, int>: first value is midi note in range [0...127] and
+     * second value is MPE bend in range [0...16383], where 8192 is no bend
+     */
+    std::pair<int, int> calcMidiNoteAndBendMPE(int totalCents) {
+        double correctedTotalCents = totalCents + corrTotalCentsMPE;
+        // 0 totalCents = C0 = 12th midi note
+        int midiNote = 12 + juce::roundToInt(correctedTotalCents / 100.0);
+        double bendCents = correctedTotalCents - (midiNote - 12) * 100;
+        int bendMPE = juce::jlimit(0, 16383, 8192 + juce::roundToInt(bendCents / centsPerBendMPE));
+        return std::make_pair(midiNote, bendMPE);
+    }
+
+    ///< Calculate midi bend based on Note.bend while playing it
+    int calcBendMPE(const Note &note) {
+        double totalCents = note.octave * 1200 + note.cents + corrTotalCentsMPE;
+        double bendCentsBase = totalCents - juce::roundToInt(totalCents / 100.0) * 100;
+        double bendCents = bendCentsBase + note.bend * (playHeadTime - note.time) / note.duration;
+        int bendMPE = juce::jlimit(0, 16383, 8192 + juce::roundToInt(bendCents / centsPerBendMPE));
+        return bendMPE;
+    }
+
+    void legacySetStateInformation(const void *data, int sizeInBytes);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
 };

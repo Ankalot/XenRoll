@@ -14,10 +14,19 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                          ),
       manPlNotesTotCentsHistory(128), params() {
 
-    // INSTANCES SYNC
-    pluginInstanceManager = std::make_unique<PluginInstanceManager>();
-    isActive = pluginInstanceManager->getIsActive();
-    params.channelIndex = pluginInstanceManager->getChannelIndex();
+    channelInUseMPE.fill(-1);
+
+    // INSTANCES SYNC (params.getTuningType() IS DEFAULT HERE, BECAUSE IT ONLY WILL
+    //                 BE READ IN setStateInformation)
+    if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+        pluginInstanceManager = std::make_unique<PluginInstanceManager>();
+        isActive = pluginInstanceManager->getIsActive();
+        params.channelIndex = pluginInstanceManager->getChannelIndex();
+    } else if (params.getTuningType() == Parameters::TuningType::MPE) {
+        notesSharingMPE = std::make_unique<NotesSharingMPE>(params.instanceId);
+        isActive = notesSharingMPE->getIsActive();
+        params.instanceId = notesSharingMPE->getInstanceId();
+    }
 
     // PARTIALS FINDING
     threadPool = std::make_unique<juce::ThreadPool>(1);
@@ -37,6 +46,30 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor() {}
+
+void AudioPluginAudioProcessor::changeInstanceSync(Parameters::TuningType newTuningType) {
+    if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+        pluginInstanceManager.reset();
+        params.channelIndex = -1;
+    } else if (params.getTuningType() == Parameters::TuningType::MPE) {
+        notesSharingMPE.reset();
+        params.instanceId = -1;
+    }
+    isActive = false;
+
+    params.setTuningType(newTuningType);
+    params.applyGlobalTuningType();
+
+    if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+        pluginInstanceManager = std::make_unique<PluginInstanceManager>();
+        isActive = pluginInstanceManager->getIsActive();
+        params.channelIndex = pluginInstanceManager->getChannelIndex();
+    } else if (params.getTuningType() == Parameters::TuningType::MPE) {
+        notesSharingMPE = std::make_unique<NotesSharingMPE>(params.instanceId);
+        isActive = notesSharingMPE->getIsActive();
+        params.instanceId = notesSharingMPE->getInstanceId();
+    }
+}
 
 const juce::String AudioPluginAudioProcessor::getName() const {
     return "XenRoll"; // JucePlugin_Name;
@@ -289,7 +322,8 @@ void AudioPluginAudioProcessor::processVocalInput(const juce::AudioBuffer<float>
     }
 
     // Apply mic gain
-    float gainLinear = juce::Decibels::decibelsToGain(params.micGain_dB.load());
+    float gainLinear =
+        juce::Decibels::decibelsToGain(GlobalSettings::getInstance().getMicGain_dB());
     const float *channelData = buffer.getReadPointer(0);
 
     // Calculate current volume for visualization
@@ -527,7 +561,9 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
     if (params.findPartialsMode.load()) {
         // If previously was in piano roll mode
         if (wasPianoRoll) {
-            pluginInstanceManager->updateFreqs(freqs12EDO);
+            if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+                pluginInstanceManager->updateFreqs(freqs12EDO);
+            }
             partialsFinderBuffer->clear();
             activeMidiNotes.fill(false); // just in case
             isRecording = false;
@@ -624,159 +660,339 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
             }
             // ==========================================================================
 
-            // Start playing manually pressed notes
-            if (!startedPlayingManuallyPressedNotes) {
-                int i = 0;
-                for (const int totalCents : manuallyPlayedNotesTotalCents) {
-                    if (manuallyPlayedNotesAreNew[i]) {
-                        int freqInd = manuallyPlayedNotesIndexes[i];
-                        juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
-                            params.channelIndex + 1, freqInd, params.defaultVelocity);
-                        midiMessages.addEvent(noteOn, 0);
-                        currPlayedNotesIndexes.insert(freqInd);
-                    }
-                    i++;
-                }
-                startedPlayingManuallyPressedNotes = true;
-            }
+            if (params.getTuningType() == Parameters::TuningType::MPE) {
+                // ================================================================================
+                // =                                  USING MPE                                   =
+                // ================================================================================
 
-            // Play notes from piano roll
-            if (isPlaying) {
-                // =======================================
-                for (int i = 0; i < notes.size(); ++i) {
-                    const Note &note = notes[i];
-                    // Note off
-                    if ((note.time + note.duration >=
-                         playHeadTime) && /*currPlayedNotesTotalCents.contains(note.octave*1200+note.cents)*/
-                        (note.time + note.duration < playHeadTime + barsInBlock)) {
-                        const int noteInd = notesIndexes[i];
+                // Taking into account A4 freq (default is 440 Hz)
+                corrTotalCentsMPE = 1200 * log2(params.A4Freq / 440.0);
+
+                // Stop playing unexisting notes (manually pressed)
+                for (auto it = manPlNoteToChannelMPE.begin(); it != manPlNoteToChannelMPE.end();) {
+                    const auto &[totalCents, ch] = *it;
+                    if (!manuallyPlayedNotesTotalCents.contains(totalCents)) {
                         juce::MidiMessage noteOff =
-                            juce::MidiMessage::noteOff(params.channelIndex + 1, noteInd);
-                        midiMessages.addEvent(
-                            noteOff,
-                            int(floor(numSamples * (note.time + note.duration - playHeadTime) /
-                                      barsInBlock)));
-                        currPlayedNotesTotalCents.erase(note.octave * 1200 + note.cents);
+                            juce::MidiMessage::noteOff(ch, channelInUseMPE[ch - 2]);
+                        midiMessages.addEvent(noteOff, 0);
+                        channelInUseMPE[ch - 2] = -1;
+                        it = manPlNoteToChannelMPE.erase(it);
+                    } else {
+                        ++it;
                     }
                 }
-                bool needUpdateFreqs = false;
-                // =======================================
-                for (int i = 0; i < notes.size(); ++i) {
-                    const Note &note = notes[i];
-                    // Note bend
-                    if ((note.bend != 0) && (note.time < playHeadTime) &&
-                        (playHeadTime <= note.time + note.duration)) {
-                        freqs[notesIndexes[i]] = getNoteFreq(note);
-                        needUpdateFreqs = true;
+
+                // Stop playing unexisting notes (from piano roll)
+                if (isPlaying) {
+                    for (auto it = noteToChannelMPE.begin(); it != noteToChannelMPE.end();) {
+                        const auto &[key, ch] = *it;
+                        int i = key.first;
+                        int totalCents = key.second;
+                        bool stopPlayingThisNote = false;
+
+                        if (i >= notes.size()) {
+                            stopPlayingThisNote = true;
+                        } else {
+                            const Note &note = notes[i];
+                            if (note.octave * 1200 + note.cents != totalCents) {
+                                stopPlayingThisNote = true;
+                            } else {
+                                stopPlayingThisNote = (playHeadTime < note.time ||
+                                                       playHeadTime > note.time + note.duration);
+                            }
+                        }
+
+                        if (stopPlayingThisNote) {
+                            juce::MidiMessage noteOff =
+                                juce::MidiMessage::noteOff(ch, channelInUseMPE[ch - 2]);
+                            midiMessages.addEvent(noteOff, 0);
+                            channelInUseMPE[ch - 2] = -1;
+                            it = noteToChannelMPE.erase(it);
+                            delCurrPlayedNotesTotalCentsMPE(totalCents);
+                        } else {
+                            ++it;
+                        }
+                    }
+                } else if (wasPlaying) {
+                    for (const auto &[key, ch] : noteToChannelMPE) {
+                        juce::MidiMessage noteOff =
+                            juce::MidiMessage::noteOff(ch, channelInUseMPE[ch - 2]);
+                        midiMessages.addEvent(noteOff, 0);
+                        channelInUseMPE[ch - 2] = -1;
+                        delCurrPlayedNotesTotalCentsMPE(key.second);
+                    }
+                    noteToChannelMPE.clear();
+                }
+
+                // Play notes from piano roll
+                if (isPlaying) {
+                    int midiNote, bendMPE;
+                    // ===================== Note off =====================
+                    for (int i = 0; i < notes.size(); ++i) {
+                        const Note &note = notes[i];
+                        if ((note.time + note.duration >= playHeadTime) &&
+                            (note.time + note.duration < playHeadTime + barsInBlock)) {
+                            int totalCents = note.octave * 1200 + note.cents;
+                            if (noteToChannelMPE.contains({i, totalCents})) {
+                                int ch = noteToChannelMPE[{i, totalCents}];
+                                juce::MidiMessage noteOff =
+                                    juce::MidiMessage::noteOff(ch, channelInUseMPE[ch - 2]);
+                                midiMessages.addEvent(
+                                    noteOff, int(floor(numSamples *
+                                                       (note.time + note.duration - playHeadTime) /
+                                                       barsInBlock)));
+                                channelInUseMPE[ch - 2] = -1;
+                                noteToChannelMPE.erase({i, totalCents});
+                                delCurrPlayedNotesTotalCentsMPE(totalCents);
+
+                                if (params.resetPitchBendOnNoteOff) {
+                                    std::tie(midiNote, bendMPE) =
+                                        calcMidiNoteAndBendMPE(totalCents);
+                                    juce::MidiMessage pitchBend =
+                                        juce::MidiMessage::pitchWheel(ch, bendMPE);
+                                    midiMessages.addEvent(
+                                        pitchBend,
+                                        int(floor(numSamples *
+                                                  (note.time + note.duration - playHeadTime) /
+                                                  barsInBlock)));
+                                }
+                            }
+                        }
+                    }
+                    // ===================== Note bend =====================
+                    for (int i = 0; i < notes.size(); ++i) {
+                        const Note &note = notes[i];
+                        if ((note.bend != 0) && (note.time < playHeadTime) &&
+                            (playHeadTime <= note.time + note.duration)) {
+                            int totalCents = note.octave * 1200 + note.cents;
+                            if (noteToChannelMPE.contains({i, totalCents})) {
+                                int ch = noteToChannelMPE[{i, totalCents}];
+                                int bendMPE = calcBendMPE(note);
+                                juce::MidiMessage pitchBend =
+                                    juce::MidiMessage::pitchWheel(ch, bendMPE);
+                                midiMessages.addEvent(pitchBend, 0);
+                            }
+                        }
+                    }
+                    // ===================== Note on =====================
+                    for (int i = 0; i < notes.size(); ++i) {
+                        const Note &note = notes[i];
+                        if ((note.time >= playHeadTime) &&
+                            (note.time < playHeadTime + barsInBlock)) {
+                            int totalCents = note.octave * 1200 + note.cents;
+                            int ch = getFreeChannelMPE();
+                            if (ch != -1) {
+                                pitchesOverflow = false;
+                                std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
+                                juce::MidiMessage pitchBend =
+                                    juce::MidiMessage::pitchWheel(ch, bendMPE);
+                                midiMessages.addEvent(pitchBend, 0);
+                                juce::MidiMessage noteOn =
+                                    juce::MidiMessage::noteOn(ch, midiNote, note.velocity);
+                                midiMessages.addEvent(
+                                    noteOn, int(ceil(numSamples * (note.time - playHeadTime) /
+                                                     barsInBlock)));
+                                channelInUseMPE[ch - 2] = midiNote;
+                                noteToChannelMPE[{i, totalCents}] = ch;
+                                addCurrPlayedNotesTotalCentsMPE(totalCents);
+                            } else {
+                                pitchesOverflow = true;
+                            }
+                        }
                     }
                 }
-                // =======================================
-                for (int i = 0; i < notes.size(); ++i) {
-                    const Note &note = notes[i];
-                    // PRE Note on
-                    if ((note.time >= playHeadTime) &&
-                        (note.time < playHeadTime + 2 * barsInBlock)) {
-                        // If note was bending - update frequency (and the start of
-                        // note will be without pitch leap)
-                        const int noteInd = notesIndexes[i];
-                        if (beforeBendTotalCents[noteInd] != -1) {
-                            freqs[noteInd] = getFreqFromTotalCents(note.octave * 1200 + note.cents);
+
+                // Start playing manually pressed notes
+                if (!startedPlayingManuallyPressedNotes) {
+                    int i = 0;
+                    int midiNote, bendMPE;
+                    for (const int totalCents : manuallyPlayedNotesTotalCents) {
+                        if (manuallyPlayedNotesAreNew[i]) {
+                            int ch = getFreeChannelMPE();
+                            if (ch != -1) {
+                                pitchesOverflow = false;
+                                std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
+                                juce::MidiMessage pitchBend =
+                                    juce::MidiMessage::pitchWheel(ch, bendMPE);
+                                midiMessages.addEvent(pitchBend, 0);
+                                juce::MidiMessage noteOn =
+                                    juce::MidiMessage::noteOn(ch, midiNote, params.defaultVelocity);
+                                midiMessages.addEvent(noteOn, 0);
+                                channelInUseMPE[ch - 2] = midiNote;
+                                manPlNoteToChannelMPE[totalCents] = ch;
+                            } else {
+                                pitchesOverflow = true;
+                            }
+                        }
+                        i++;
+                    }
+                    startedPlayingManuallyPressedNotes = true;
+                }
+
+                wasPlaying = isPlaying;
+
+            } else if (params.getTuningType() == Parameters::MTS_ESP) {
+                // ================================================================================
+                // =                                USING MTS-ESP                                 =
+                // ================================================================================
+
+                // Start playing manually pressed notes
+                if (!startedPlayingManuallyPressedNotes) {
+                    int i = 0;
+                    for (const int totalCents : manuallyPlayedNotesTotalCents) {
+                        if (manuallyPlayedNotesAreNew[i]) {
+                            int freqInd = manuallyPlayedNotesIndexes[i];
+                            juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
+                                params.channelIndex + 1, freqInd, params.defaultVelocity);
+                            midiMessages.addEvent(noteOn, 0);
+                            currPlayedNotesIndexes.insert(freqInd);
+                        }
+                        i++;
+                    }
+                    startedPlayingManuallyPressedNotes = true;
+                }
+
+                // Play notes from piano roll
+                if (isPlaying) {
+                    // =======================================
+                    for (int i = 0; i < notes.size(); ++i) {
+                        const Note &note = notes[i];
+                        // Note off
+                        if ((note.time + note.duration >=
+                             playHeadTime) && /*currPlayedNotesTotalCents.contains(note.octave*1200+note.cents)*/
+                            (note.time + note.duration < playHeadTime + barsInBlock)) {
+                            const int noteInd = notesIndexes[i];
+                            juce::MidiMessage noteOff =
+                                juce::MidiMessage::noteOff(params.channelIndex + 1, noteInd);
+                            midiMessages.addEvent(
+                                noteOff,
+                                int(floor(numSamples * (note.time + note.duration - playHeadTime) /
+                                          barsInBlock)));
+                            currPlayedNotesTotalCents.erase(note.octave * 1200 + note.cents);
+                        }
+                    }
+                    bool needUpdateFreqs = false;
+                    // =======================================
+                    for (int i = 0; i < notes.size(); ++i) {
+                        const Note &note = notes[i];
+                        // Note bend
+                        if ((note.bend != 0) && (note.time < playHeadTime) &&
+                            (playHeadTime <= note.time + note.duration)) {
+                            freqs[notesIndexes[i]] = getNoteFreq(note);
                             needUpdateFreqs = true;
                         }
                     }
-                }
-                // =======================================
-                for (int i = 0; i < notes.size(); ++i) {
-                    const Note &note = notes[i];
-                    // Note on
-                    if ((note.time >=
-                         playHeadTime) && /*!currPlayedNotesTotalCents.contains(note.octave*1200+note.cents)*/
-                        (note.time < playHeadTime + barsInBlock)) {
-                        const int noteInd = notesIndexes[i];
-                        juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
-                            params.channelIndex + 1, noteInd, note.velocity);
-                        midiMessages.addEvent(
-                            noteOn,
-                            int(ceil(numSamples * (note.time - playHeadTime) / barsInBlock)));
-                        currPlayedNotesTotalCents.insert(note.octave * 1200 + note.cents);
-                        currPlayedNotesIndexes.insert(noteInd);
-                        if (note.bend != 0) {
-                            beforeBendTotalCents[noteInd] = note.octave * 1200 + note.cents;
-                        } else {
-                            beforeBendTotalCents[noteInd] = -1;
-                        }
-                    }
-                }
-                if (needUpdateFreqs) {
-                    pluginInstanceManager->updateFreqs(freqs);
-                }
-            } else {
-                currPlayedNotesTotalCents.clear();
-                // IF THERE WERE NOTE BENDS AND NOTES DIDN'T END BEFORE WE STOPPED
-                //    PLAYBACK (this isn't necessarily to do)
-                if (wasPlaying) {
-                    bool wasBend = false;
-                    for (int i = 0; i < 128; ++i) {
-                        const int totCents = beforeBendTotalCents[i];
-                        if (totCents != -1) {
-                            freqs[i] = getFreqFromTotalCents(totCents);
-                            beforeBendTotalCents[i] = -1;
-                            wasBend = true;
-                        }
-                    }
-                    if (wasBend) {
-                        pluginInstanceManager->updateFreqs(freqs);
-                    }
-                }
-            }
-            wasPlaying = isPlaying;
-
-            // Stop playing unexisting notes
-            for (auto it = currPlayedNotesIndexes.begin(); it != currPlayedNotesIndexes.end();) {
-                int ind = *it;
-                bool thereStillExistsThisNote = false;
-                if (isPlaying) {
+                    // =======================================
                     for (int i = 0; i < notes.size(); ++i) {
                         const Note &note = notes[i];
-                        if ((notesIndexes[i] == ind) && (note.time < playHeadTime + barsInBlock) &&
-                            (note.time + note.duration >= playHeadTime + barsInBlock)) {
-                            // Check if the note's base pitch matches (without bend)
-                            int noteTotalCents = note.octave * 1200 + note.cents;
-                            int freqsTotalCents;
-                            if (beforeBendTotalCents[ind] != -1) {
-                                freqsTotalCents = beforeBendTotalCents[ind];
-                            } else {
-                                freqsTotalCents = getTotalCentsFromFreq(freqs[ind]);
+                        // PRE Note on
+                        if ((note.time >= playHeadTime) &&
+                            (note.time < playHeadTime + 2 * barsInBlock)) {
+                            // If note was bending - update frequency (and the start of
+                            // note will be without pitch leap)
+                            const int noteInd = notesIndexes[i];
+                            if (beforeBendTotalCents[noteInd] != -1) {
+                                freqs[noteInd] =
+                                    getFreqFromTotalCents(note.octave * 1200 + note.cents);
+                                needUpdateFreqs = true;
                             }
-                            if (noteTotalCents == freqsTotalCents) {
+                        }
+                    }
+                    // =======================================
+                    for (int i = 0; i < notes.size(); ++i) {
+                        const Note &note = notes[i];
+                        // Note on
+                        if ((note.time >=
+                             playHeadTime) && /*!currPlayedNotesTotalCents.contains(note.octave*1200+note.cents)*/
+                            (note.time < playHeadTime + barsInBlock)) {
+                            const int noteInd = notesIndexes[i];
+                            juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
+                                params.channelIndex + 1, noteInd, note.velocity);
+                            midiMessages.addEvent(
+                                noteOn,
+                                int(ceil(numSamples * (note.time - playHeadTime) / barsInBlock)));
+                            currPlayedNotesTotalCents.insert(note.octave * 1200 + note.cents);
+                            currPlayedNotesIndexes.insert(noteInd);
+                            if (note.bend != 0) {
+                                beforeBendTotalCents[noteInd] = note.octave * 1200 + note.cents;
+                            } else {
+                                beforeBendTotalCents[noteInd] = -1;
+                            }
+                        }
+                    }
+                    if (needUpdateFreqs) {
+                        pluginInstanceManager->updateFreqs(freqs);
+                    }
+                } else {
+                    currPlayedNotesTotalCents.clear();
+                    // IF THERE WERE NOTE BENDS AND NOTES DIDN'T END BEFORE WE STOPPED
+                    //    PLAYBACK (this isn't necessarily to do)
+                    if (wasPlaying) {
+                        bool wasBend = false;
+                        for (int i = 0; i < 128; ++i) {
+                            const int totCents = beforeBendTotalCents[i];
+                            if (totCents != -1) {
+                                freqs[i] = getFreqFromTotalCents(totCents);
+                                beforeBendTotalCents[i] = -1;
+                                wasBend = true;
+                            }
+                        }
+                        if (wasBend) {
+                            pluginInstanceManager->updateFreqs(freqs);
+                        }
+                    }
+                }
+                wasPlaying = isPlaying;
+
+                // Stop playing unexisting notes
+                for (auto it = currPlayedNotesIndexes.begin();
+                     it != currPlayedNotesIndexes.end();) {
+                    int ind = *it;
+                    bool thereStillExistsThisNote = false;
+                    if (isPlaying) {
+                        for (int i = 0; i < notes.size(); ++i) {
+                            const Note &note = notes[i];
+                            if ((notesIndexes[i] == ind) &&
+                                (note.time < playHeadTime + barsInBlock) &&
+                                (note.time + note.duration >= playHeadTime + barsInBlock)) {
+                                // Check if the note's base pitch matches (without bend)
+                                int noteTotalCents = note.octave * 1200 + note.cents;
+                                int freqsTotalCents;
+                                if (beforeBendTotalCents[ind] != -1) {
+                                    freqsTotalCents = beforeBendTotalCents[ind];
+                                } else {
+                                    freqsTotalCents = getTotalCentsFromFreq(freqs[ind]);
+                                }
+                                if (noteTotalCents == freqsTotalCents) {
+                                    thereStillExistsThisNote = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (!thereStillExistsThisNote) {
+                        for (int i = 0; i < manuallyPlayedNotesIndexes.size(); ++i) {
+                            if (manuallyPlayedNotesIndexes[i] == ind) {
                                 thereStillExistsThisNote = true;
                                 break;
                             }
                         }
                     }
-                }
-                if (!thereStillExistsThisNote) {
-                    for (int i = 0; i < manuallyPlayedNotesIndexes.size(); ++i) {
-                        if (manuallyPlayedNotesIndexes[i] == ind) {
-                            thereStillExistsThisNote = true;
-                            break;
-                        }
-                    }
-                }
-                if (thereStillExistsThisNote) {
-                    ++it;
-                } else {
-                    juce::MidiMessage noteOff =
-                        juce::MidiMessage::noteOff(params.channelIndex + 1, ind);
-                    midiMessages.addEvent(noteOff, 1);
-                    int totalCents;
-                    if (beforeBendTotalCents[ind] != -1) {
-                        totalCents = beforeBendTotalCents[ind];
+                    if (thereStillExistsThisNote) {
+                        ++it;
                     } else {
-                        totalCents = getTotalCentsFromFreq(freqs[ind]);
+                        juce::MidiMessage noteOff =
+                            juce::MidiMessage::noteOff(params.channelIndex + 1, ind);
+                        midiMessages.addEvent(noteOff, 1);
+                        int totalCents;
+                        if (beforeBendTotalCents[ind] != -1) {
+                            totalCents = beforeBendTotalCents[ind];
+                        } else {
+                            totalCents = getTotalCentsFromFreq(freqs[ind]);
+                        }
+                        currPlayedNotesTotalCents.erase(totalCents);
+                        it = currPlayedNotesIndexes.erase(it);
                     }
-                    currPlayedNotesTotalCents.erase(totalCents);
-                    it = currPlayedNotesIndexes.erase(it);
                 }
             }
         }
@@ -794,119 +1010,375 @@ juce::AudioProcessorEditor *AudioPluginAudioProcessor::createEditor() {
 }
 
 void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData) {
-    juce::MemoryOutputStream stream(destData, false);
+    juce::ValueTree state("XenRollState");
+    state.setProperty("version", 1, nullptr);
+    auto paramsTree = state.getOrCreateChildWithName("Parameters", nullptr);
 
-    // shit-code crutch
-    ///< VERSION OF STATE INFORMATION {0, -1, -2, ...}
-    stream.writeInt(-1);
+    // Basic params
+    paramsTree.setProperty("editorWidth", params.editorWidth, nullptr);
+    paramsTree.setProperty("editorHeight", params.editorHeight, nullptr);
+    paramsTree.setProperty("numBars", params.get_num_bars(), nullptr);
+    paramsTree.setProperty("numBeats", params.num_beats, nullptr);
+    paramsTree.setProperty("numSubdivs", params.num_subdivs, nullptr);
+    paramsTree.setProperty("startOctave", params.start_octave, nullptr);
+    paramsTree.setProperty("a4Freq", params.A4Freq.load(), nullptr);
+    paramsTree.setProperty("noteRectHeightCoef", params.noteRectHeightCoef, nullptr);
+    paramsTree.setProperty("constNoteRectHeight", params.constNoteRectHeight, nullptr);
+    paramsTree.setProperty("resetPitchBendOnNoteOff", params.resetPitchBendOnNoteOff, nullptr);
 
-    // Write simple params
-    stream.writeInt(params.editorWidth);
-    stream.writeInt(params.editorHeight);
-    stream.writeInt(params.get_num_bars());
-    stream.writeInt(params.num_beats);
-    stream.writeInt(params.num_subdivs);
-    stream.writeInt(params.start_octave);
-    stream.writeDouble(params.A4Freq.load());
-    stream.writeFloat(params.noteRectHeightCoef);
+    // Tuning & instances sync
+    paramsTree.setProperty("tuningType", static_cast<int>(params.getGlobalTuningType()), nullptr);
 
-    // Write zones
-    auto &zonesPoints = params.zones.getZonesPoints();
-    stream.writeInt(static_cast<int>(zonesPoints.size()));
-    for (const auto &zp : zonesPoints) {
-        stream.writeFloat(zp);
+    // For MPE:
+    paramsTree.setProperty("instanceId", params.instanceId, nullptr);
+    auto ghostInstTree = paramsTree.getOrCreateChildWithName("GhostNotesInstIds", nullptr);
+    for (const int id : params.ghostNotesInstIds) {
+        juce::ValueTree idNode("Instance");
+        idNode.setProperty("v", id, nullptr);
+        ghostInstTree.appendChild(idNode, nullptr);
     }
-    auto &zonesOnOff = params.zones.getZonesOnOff();
-    stream.writeInt(static_cast<int>(zonesOnOff.size()));
-    for (const auto &zof : zonesOnOff) {
-        stream.writeBool(zof);
+
+    // For MTS-ESP:
+    paramsTree.setProperty("channelIndex", params.channelIndex, nullptr);
+    auto ghostChTree = paramsTree.getOrCreateChildWithName("GhostNotesChannels", nullptr);
+    for (const int ch : params.ghostNotesChannels) {
+        juce::ValueTree chNode("Channel");
+        chNode.setProperty("v", ch, nullptr);
+        ghostChTree.appendChild(chNode, nullptr);
     }
 
-    // Write intellectual
-    stream.writeInt(params.findPartialsFFTSize.load());
-    stream.writeFloat(params.findPartialsdBThreshold.load());
-    stream.writeInt(static_cast<int>(params.findPartialsStrat.load()));
-    const auto tonePartials = params.get_tonesPartials();
-    stream.writeInt((int)tonePartials.size());
-    DBG("Write tonePartials.size() " << tonePartials.size());
-    for (const auto &[totalCents, partials] : tonePartials) {
-        stream.writeInt(totalCents);
-        stream.writeInt((int)partials.size());
-        DBG("Write partials.size() " << partials.size());
+    // Zones
+    auto zonesTree = paramsTree.getOrCreateChildWithName("Zones", nullptr);
+    for (const auto &zp : params.zones.getZonesPoints()) {
+        juce::ValueTree pt("Point");
+        pt.setProperty("v", zp, nullptr);
+        zonesTree.appendChild(pt, nullptr);
+    }
+    for (const auto &zof : params.zones.getZonesOnOff()) {
+        juce::ValueTree onOff("OnOff");
+        onOff.setProperty("v", zof, nullptr);
+        zonesTree.appendChild(onOff, nullptr);
+    }
+
+    // Intellectual / Partials
+    paramsTree.setProperty("findPartialsFFTSize", params.findPartialsFFTSize.load(), nullptr);
+    paramsTree.setProperty("findPartialsdBThreshold", params.findPartialsdBThreshold.load(),
+                           nullptr);
+    paramsTree.setProperty("findPartialsStrat", static_cast<int>(params.findPartialsStrat.load()),
+                           nullptr);
+    auto partialsTree = paramsTree.getOrCreateChildWithName("TonesPartials", nullptr);
+    for (const auto &[totalCents, partials] : params.get_tonesPartials()) {
+        juce::ValueTree tone("Tone");
+        tone.setProperty("totalCents", totalCents, nullptr);
         for (const auto &[freq, amp] : partials) {
-            stream.writeFloat(freq);
-            stream.writeFloat(amp);
+            juce::ValueTree partial("Partial");
+            partial.setProperty("freq", freq, nullptr);
+            partial.setProperty("amp", amp, nullptr);
+            tone.appendChild(partial, nullptr);
         }
+        partialsTree.appendChild(tone, nullptr);
     }
-    stream.writeFloat(params.roughCompactFrac);
-    stream.writeFloat(params.dissonancePow);
-    // Pitch memory
-    stream.writeFloat(params.pitchMemoryTVvalForZeroHV);
-    stream.writeFloat(params.pitchMemoryTVaddInfluence);
-    stream.writeFloat(params.pitchMemoryTVminNonzero);
+    paramsTree.setProperty("roughCompactFrac", params.roughCompactFrac, nullptr);
+    paramsTree.setProperty("dissonancePow", params.dissonancePow, nullptr);
+    paramsTree.setProperty("pitchMemoryTVvalForZeroHV", params.pitchMemoryTVvalForZeroHV, nullptr);
+    paramsTree.setProperty("pitchMemoryTVaddInfluence", params.pitchMemoryTVaddInfluence, nullptr);
+    paramsTree.setProperty("pitchMemoryTVminNonzero", params.pitchMemoryTVminNonzero, nullptr);
+    paramsTree.setProperty("pitchMemoryShowOnlyHarmonicity", params.pitchMemoryShowOnlyHarmonicity,
+                           nullptr);
 
-    // Write theme type
-    stream.writeInt(static_cast<int>(params.themeType));
+    // Theme
+    paramsTree.setProperty("themeType", static_cast<int>(params.themeType), nullptr);
 
-    // Write notes
-    stream.writeInt(static_cast<int>(notes.size()));
+    // Notes
+    auto notesTree = state.getOrCreateChildWithName("Notes", nullptr);
     for (const auto &note : notes) {
-        stream.writeInt(note.octave);
-        stream.writeInt(note.cents);
-        stream.writeFloat(note.time);
-        stream.writeBool(note.isSelected);
-        stream.writeFloat(note.duration);
-        stream.writeFloat(note.velocity);
-        stream.writeInt(note.bend);
+        juce::ValueTree noteNode("Note");
+        noteNode.setProperty("octave", note.octave, nullptr);
+        noteNode.setProperty("cents", note.cents, nullptr);
+        noteNode.setProperty("time", note.time, nullptr);
+        noteNode.setProperty("isSelected", note.isSelected, nullptr);
+        noteNode.setProperty("duration", note.duration, nullptr);
+        noteNode.setProperty("velocity", note.velocity, nullptr);
+        noteNode.setProperty("bend", note.bend, nullptr);
+        notesTree.appendChild(noteNode, nullptr);
     }
 
-    // Write other things
-    stream.writeBool(params.pitchMemoryShowOnlyHarmonicity);
-    stream.writeBool(params.playDraggedNotes);
-    stream.writeInt(params.channelIndex);
-
-    // Write ratios marks
-    stream.writeInt(static_cast<int>(params.ratiosMarks.size()));
-    for (const auto &ratioMark : params.ratiosMarks) {
-        stream.writeInt(ratioMark.getLowerKeyTotalCents());
-        stream.writeInt(ratioMark.getHigherKeyTotalCents());
-        stream.writeFloat(ratioMark.time);
-        stream.writeInt(ratioMark.getLowerNoteIndex());
-        stream.writeInt(ratioMark.getHigherNoteIndex());
+    // RatioMarks
+    auto ratiosTree = paramsTree.getOrCreateChildWithName("RatioMarks", nullptr);
+    for (const auto &rm : params.ratiosMarks) {
+        juce::ValueTree rmNode("RatioMark");
+        rmNode.setProperty("lowerKeyTotalCents", rm.getLowerKeyTotalCents(), nullptr);
+        rmNode.setProperty("higherKeyTotalCents", rm.getHigherKeyTotalCents(), nullptr);
+        rmNode.setProperty("time", rm.time, nullptr);
+        rmNode.setProperty("lowerNoteIndex", rm.getLowerNoteIndex(), nullptr);
+        rmNode.setProperty("higherNoteIndex", rm.getHigherNoteIndex(), nullptr);
+        ratiosTree.appendChild(rmNode, nullptr);
     }
-    // Other ratios marks related things
-    stream.writeBool(params.autoCorrectRatiosMarks);
-    stream.writeInt(params.maxDenRatiosMarks);
-    stream.writeInt(params.goodEnoughErrorRatiosMarks);
+    paramsTree.setProperty("autoCorrectRatiosMarks", params.autoCorrectRatiosMarks, nullptr);
+    paramsTree.setProperty("maxDenRatiosMarks", params.maxDenRatiosMarks, nullptr);
+    paramsTree.setProperty("goodEnoughErrorRatiosMarks", params.goodEnoughErrorRatiosMarks,
+                           nullptr);
 
-    // Write vocal to melody params
-    stream.writeBool(params.vocalToMelodyGenCurve);
-    stream.writeBool(params.vocalToMelodyGenNotes);
-    stream.writeFloat(params.vocalToMelodyMinNoteDuration);
-    stream.writeInt(params.vocalToMelodyDCents);
-    stream.writeBool(params.vocalToMelodyKeySnap);
-    stream.writeBool(params.vocalToMelodyMakeBends);
-    stream.writeFloat(params.micGain_dB);
+    // Vocal to melody
+    paramsTree.setProperty("vocalToMelodyGenCurve", params.vocalToMelodyGenCurve.load(), nullptr);
+    paramsTree.setProperty("vocalToMelodyGenNotes", params.vocalToMelodyGenNotes.load(), nullptr);
+    paramsTree.setProperty("vocalToMelodyMinNoteDuration",
+                           params.vocalToMelodyMinNoteDuration.load(), nullptr);
+    paramsTree.setProperty("vocalToMelodyDCents", params.vocalToMelodyDCents.load(), nullptr);
+    paramsTree.setProperty("vocalToMelodyKeySnap", params.vocalToMelodyKeySnap.load(), nullptr);
+    paramsTree.setProperty("vocalToMelodyMakeBends", params.vocalToMelodyMakeBends.load(), nullptr);
 
-    stream.writeFloat(params.maxChordDtimeClockDiagram);
+    // Editor state
+    paramsTree.setProperty("lastDuration", params.lastDuration, nullptr);
+    paramsTree.setProperty("lastVelocity", params.lastVelocity, nullptr);
+    paramsTree.setProperty("lastViewPosX", params.lastViewPos.getX(), nullptr);
+    paramsTree.setProperty("lastViewPosY", params.lastViewPos.getY(), nullptr);
+    paramsTree.setProperty("octaveHeightPx", params.octave_height_px, nullptr);
+    paramsTree.setProperty("barWidthPx", params.bar_width_px, nullptr);
 
-    // Write some state params
-    stream.writeFloat(params.lastDuration);
-    stream.writeFloat(params.lastVelocity);
-    stream.writeInt(params.lastViewPos.getX());
-    stream.writeInt(params.lastViewPos.getY());
-    stream.writeFloat(params.octave_height_px);
-    stream.writeFloat(params.bar_width_px);
-    stream.writeBool(params.showGhostNotesKeys);
-    stream.writeInt(params.ghostNotesChannels.size());
-    for (const int chInd : params.ghostNotesChannels) {
-        stream.writeInt(chInd);
-    }
+    // Misc
+    paramsTree.setProperty("maxChordDtimeClockDiagram", params.maxChordDtimeClockDiagram, nullptr);
+    paramsTree.setProperty("showGhostNotesKeys", params.showGhostNotesKeys, nullptr);
 
-    stream.writeBool(params.constNoteRectHeight);
+    juce::MemoryOutputStream stream(destData, false);
+    stream.writeInt(MAGIC_NUMBER); // MAGIC NUMBER (for ValueTree)
+    state.writeToStream(stream);
 }
 
 void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeInBytes) {
+    if (data == nullptr || sizeInBytes <= 0) {
+        notes.clear();
+        return;
+    }
+
+    juce::MemoryInputStream stream(data, sizeInBytes, false);
+
+    // CHECKING MAGIC NUMBER (for ValueTree)
+    int magicNumber = stream.readInt();
+    if (magicNumber != MAGIC_NUMBER) {
+        legacySetStateInformation(data, sizeInBytes);
+        return;
+    }
+
+    auto state = juce::ValueTree::readFromStream(stream);
+
+    if (!state.isValid() || !state.hasType("XenRollState")) {
+        legacySetStateInformation(data, sizeInBytes);
+        return;
+    }
+
+    auto paramsTree = state.getChildWithName("Parameters");
+    if (!paramsTree.isValid()) {
+        notes.clear();
+        return;
+    }
+
+    // Basic params
+    params.editorWidth = paramsTree.getProperty("editorWidth", params.editorWidth);
+    params.editorHeight = paramsTree.getProperty("editorHeight", params.editorHeight);
+    int numBars = paramsTree.getProperty("numBars", params.get_num_bars());
+    params.set_num_bars(numBars);
+    params.num_beats = paramsTree.getProperty("numBeats", params.num_beats);
+    params.num_subdivs = paramsTree.getProperty("numSubdivs", params.num_subdivs);
+    params.start_octave = paramsTree.getProperty("startOctave", params.start_octave);
+    params.A4Freq.store(
+        static_cast<double>(paramsTree.getProperty("a4Freq", params.A4Freq.load())));
+    params.noteRectHeightCoef =
+        static_cast<float>(paramsTree.getProperty("noteRectHeightCoef", params.noteRectHeightCoef));
+    params.constNoteRectHeight = static_cast<bool>(
+        paramsTree.getProperty("constNoteRectHeight", params.constNoteRectHeight));
+    params.resetPitchBendOnNoteOff = static_cast<bool>(
+        paramsTree.getProperty("resetPitchBendOnNoteOff", params.resetPitchBendOnNoteOff));
+
+    // Tuning & instances sync
+    auto newTuningType = static_cast<Parameters::TuningType>(static_cast<int>(
+        paramsTree.getProperty("tuningType", static_cast<int>(params.getGlobalTuningType()))));
+    if (newTuningType != params.getTuningType()) {
+        changeInstanceSync(newTuningType);
+    }
+
+    // For MPE:
+    int desiredInstanceId = paramsTree.getProperty("instanceId", params.instanceId);
+    if ((params.getTuningType() == Parameters::TuningType::MPE) &&
+        (desiredInstanceId != params.instanceId) && (desiredInstanceId != -1)) {
+        notesSharingMPE->changeInstanceId(desiredInstanceId);
+        params.instanceId = notesSharingMPE->getInstanceId();
+    }
+    auto ghostInstTree = paramsTree.getChildWithName("GhostNotesInstIds");
+    params.ghostNotesInstIds.clear();
+    if (ghostInstTree.isValid()) {
+        for (auto idNode : ghostInstTree) {
+            if (idNode.hasType("Instance")) {
+                params.ghostNotesInstIds.insert(static_cast<int>(idNode.getProperty("v", 0)));
+            }
+        }
+    }
+
+    // For MTS-ESP:
+    int desiredChannelIndex = paramsTree.getProperty("channelIndex", params.channelIndex);
+    if ((params.getTuningType() == Parameters::TuningType::MTS_ESP) &&
+        (desiredChannelIndex != params.channelIndex) && (desiredChannelIndex != -1)) {
+        pluginInstanceManager->changeChannelIndex(desiredChannelIndex);
+        params.channelIndex = pluginInstanceManager->getChannelIndex();
+    }
+    auto ghostChTree = paramsTree.getChildWithName("GhostNotesChannels");
+    params.ghostNotesChannels.clear();
+    if (ghostChTree.isValid()) {
+        for (auto chNode : ghostChTree) {
+            if (chNode.hasType("Channel")) {
+                params.ghostNotesChannels.insert(static_cast<int>(chNode.getProperty("v", 0)));
+            }
+        }
+    }
+
+    // Zones
+    auto zonesTree = paramsTree.getChildWithName("Zones");
+    if (zonesTree.isValid()) {
+        std::set<float> zonesPoints;
+        std::vector<bool> zonesOnOff;
+        for (auto child : zonesTree) {
+            if (child.hasType("Point")) {
+                zonesPoints.insert(static_cast<float>(child.getProperty("v", 0.0f)));
+            } else if (child.hasType("OnOff")) {
+                zonesOnOff.push_back(static_cast<bool>(child.getProperty("v", true)));
+            }
+        }
+        params.zones = Zones(float(numBars), zonesPoints, zonesOnOff);
+    }
+
+    // Partials / Intellectual
+    params.findPartialsFFTSize.store(static_cast<int>(
+        paramsTree.getProperty("findPartialsFFTSize", params.findPartialsFFTSize.load())));
+    params.findPartialsdBThreshold.store(static_cast<float>(
+        paramsTree.getProperty("findPartialsdBThreshold", params.findPartialsdBThreshold.load())));
+    params.findPartialsStrat.store(
+        static_cast<PartialsFinder::PosFindStrat>(static_cast<int>(paramsTree.getProperty(
+            "findPartialsStrat", static_cast<int>(params.findPartialsStrat.load())))));
+
+    auto partialsTree = paramsTree.getChildWithName("TonesPartials");
+    if (partialsTree.isValid()) {
+        std::map<int, partialsVec> tonesPartials;
+        for (auto toneNode : partialsTree) {
+            if (toneNode.hasType("Tone")) {
+                int totalCents = toneNode.getProperty("totalCents", 0);
+                partialsVec partials;
+                for (auto partialNode : toneNode) {
+                    if (partialNode.hasType("Partial")) {
+                        float freq = static_cast<float>(partialNode.getProperty("freq", 0.0f));
+                        float amp = static_cast<float>(partialNode.getProperty("amp", 0.0f));
+                        partials.emplace_back(freq, amp);
+                    }
+                }
+                tonesPartials[totalCents] = std::move(partials);
+            }
+        }
+        params.set_tonesPartials(tonesPartials);
+    }
+
+    params.roughCompactFrac =
+        static_cast<float>(paramsTree.getProperty("roughCompactFrac", params.roughCompactFrac));
+    params.dissonancePow =
+        static_cast<float>(paramsTree.getProperty("dissonancePow", params.dissonancePow));
+    params.pitchMemoryTVvalForZeroHV = static_cast<float>(
+        paramsTree.getProperty("pitchMemoryTVvalForZeroHV", params.pitchMemoryTVvalForZeroHV));
+    params.pitchMemoryTVaddInfluence = static_cast<float>(
+        paramsTree.getProperty("pitchMemoryTVaddInfluence", params.pitchMemoryTVaddInfluence));
+    params.pitchMemoryTVminNonzero = static_cast<float>(
+        paramsTree.getProperty("pitchMemoryTVminNonzero", params.pitchMemoryTVminNonzero));
+    params.pitchMemoryShowOnlyHarmonicity = static_cast<bool>(paramsTree.getProperty(
+        "pitchMemoryShowOnlyHarmonicity", params.pitchMemoryShowOnlyHarmonicity));
+
+    // Theme
+    params.themeType = static_cast<Theme::ThemeType>(
+        static_cast<int>(paramsTree.getProperty("themeType", static_cast<int>(params.themeType))));
+    params.theme.setTheme(params.themeType);
+
+    // Notes
+    auto notesTree = state.getChildWithName("Notes");
+    notes.clear();
+    if (notesTree.isValid()) {
+        for (auto noteNode : notesTree) {
+            if (noteNode.hasType("Note")) {
+                Note note;
+                note.octave = noteNode.getProperty("octave", 0);
+                note.cents = noteNode.getProperty("cents", 0);
+                note.time = static_cast<float>(noteNode.getProperty("time", 0.0f));
+                note.isSelected = static_cast<bool>(noteNode.getProperty("isSelected", false));
+                note.duration = static_cast<float>(noteNode.getProperty("duration", 1.0f));
+                note.velocity = static_cast<float>(
+                    noteNode.getProperty("velocity", Parameters::defaultVelocity));
+                note.bend = noteNode.getProperty("bend", 0);
+                notes.push_back(note);
+            }
+        }
+    }
+
+    // RatioMarks
+    auto ratiosTree = paramsTree.getChildWithName("RatioMarks");
+    params.ratiosMarks.clear();
+    if (ratiosTree.isValid()) {
+        for (auto rmNode : ratiosTree) {
+            if (rmNode.hasType("RatioMark")) {
+                int lktc = rmNode.getProperty("lowerKeyTotalCents", 0);
+                int hktc = rmNode.getProperty("higherKeyTotalCents", 0);
+                float t = static_cast<float>(rmNode.getProperty("time", 0.0f));
+                int lni = rmNode.getProperty("lowerNoteIndex", -1);
+                int hni = rmNode.getProperty("higherNoteIndex", -1);
+                RatioMark ratioMark(lktc, hktc, t, &params, lni, hni);
+                params.ratiosMarks.push_back(ratioMark);
+            }
+        }
+    }
+    params.autoCorrectRatiosMarks = static_cast<bool>(
+        paramsTree.getProperty("autoCorrectRatiosMarks", params.autoCorrectRatiosMarks));
+    params.maxDenRatiosMarks =
+        paramsTree.getProperty("maxDenRatiosMarks", params.maxDenRatiosMarks);
+    params.goodEnoughErrorRatiosMarks =
+        paramsTree.getProperty("goodEnoughErrorRatiosMarks", params.goodEnoughErrorRatiosMarks);
+
+    // Vocal to melody
+    params.vocalToMelodyGenCurve = static_cast<bool>(
+        paramsTree.getProperty("vocalToMelodyGenCurve", params.vocalToMelodyGenCurve.load()));
+    params.vocalToMelodyGenNotes = static_cast<bool>(
+        paramsTree.getProperty("vocalToMelodyGenNotes", params.vocalToMelodyGenNotes.load()));
+    params.vocalToMelodyMinNoteDuration = static_cast<float>(paramsTree.getProperty(
+        "vocalToMelodyMinNoteDuration", params.vocalToMelodyMinNoteDuration.load()));
+    params.vocalToMelodyDCents =
+        paramsTree.getProperty("vocalToMelodyDCents", params.vocalToMelodyDCents.load());
+    params.vocalToMelodyKeySnap = static_cast<bool>(
+        paramsTree.getProperty("vocalToMelodyKeySnap", params.vocalToMelodyKeySnap.load()));
+    params.vocalToMelodyMakeBends = static_cast<bool>(
+        paramsTree.getProperty("vocalToMelodyMakeBends", params.vocalToMelodyMakeBends.load()));
+
+    // Editor state
+    params.lastDuration =
+        static_cast<float>(paramsTree.getProperty("lastDuration", params.lastDuration));
+    params.lastVelocity =
+        static_cast<float>(paramsTree.getProperty("lastVelocity", params.lastVelocity));
+    params.lastViewPos.setX(paramsTree.getProperty("lastViewPosX", params.lastViewPos.getX()));
+    params.lastViewPos.setY(paramsTree.getProperty("lastViewPosY", params.lastViewPos.getY()));
+    params.octave_height_px =
+        static_cast<float>(paramsTree.getProperty("octaveHeightPx", params.octave_height_px));
+    params.bar_width_px =
+        static_cast<float>(paramsTree.getProperty("barWidthPx", params.bar_width_px));
+
+    // Misc
+    params.maxChordDtimeClockDiagram = static_cast<float>(
+        paramsTree.getProperty("maxChordDtimeClockDiagram", params.maxChordDtimeClockDiagram));
+    params.showGhostNotesKeys =
+        static_cast<bool>(paramsTree.getProperty("showGhostNotesKeys", params.showGhostNotesKeys));
+
+    // UPDATE NOTES
+    params.stateHistory.push(State(numBars, notes, params.ratiosMarks));
+    prepareNotes();
+    if (params.getTuningType() == Parameters::TuningType::MPE) {
+        notesSharingMPE->updateNotes(notes);
+    } else if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+        pluginInstanceManager->updateNotes(notes);
+    }
+}
+
+void AudioPluginAudioProcessor::legacySetStateInformation(const void *data, int sizeInBytes) {
     if (data == nullptr || sizeInBytes <= 0) {
         notes.clear();
         return;
@@ -935,6 +1407,14 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
     params.start_octave = stream.readInt();
     params.A4Freq.store(stream.readDouble());
     params.noteRectHeightCoef = stream.readFloat();
+
+    if (version <= -2) {
+        Parameters::TuningType newTuningType =
+            static_cast<Parameters::TuningType>(stream.readInt());
+        if (newTuningType != params.getTuningType()) {
+            changeInstanceSync(newTuningType);
+        }
+    }
 
     // Read zones
     std::set<float> zonesPoints;
@@ -1010,12 +1490,13 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
     if (!stream.isExhausted()) {
         params.pitchMemoryShowOnlyHarmonicity = stream.readBool();
     }
-    if (!stream.isExhausted()) {
-        params.playDraggedNotes = stream.readBool();
+    if (!stream.isExhausted() && version > -3) {
+        stream.readBool();
     }
     if (!stream.isExhausted()) {
         int desiredChannelIndex = stream.readInt();
-        if ((desiredChannelIndex != params.channelIndex) && (desiredChannelIndex != -1)) {
+        if ((params.getTuningType() == Parameters::TuningType::MTS_ESP) &&
+            (desiredChannelIndex != params.channelIndex) && (desiredChannelIndex != -1)) {
             pluginInstanceManager->changeChannelIndex(desiredChannelIndex);
             params.channelIndex = pluginInstanceManager->getChannelIndex();
         }
@@ -1062,7 +1543,9 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         params.vocalToMelodyDCents = stream.readInt();
         params.vocalToMelodyKeySnap = stream.readBool();
         params.vocalToMelodyMakeBends = stream.readBool();
-        params.micGain_dB = stream.readFloat();
+        if (version > -3) {
+            stream.readFloat();
+        }
     }
 
     if (!stream.isExhausted()) {
@@ -1090,8 +1573,27 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
     }
 
     // UPDATE NOTES
+    if (!stream.isExhausted()) {
+        params.resetPitchBendOnNoteOff = stream.readBool();
+        int desiredChannelIndex = stream.readInt();
+        if ((params.getTuningType() == Parameters::TuningType::MPE) &&
+            (desiredChannelIndex != params.channelIndex) && (desiredChannelIndex != -1)) {
+            notesSharingMPE->changeInstanceId(desiredChannelIndex);
+            params.channelIndex = notesSharingMPE->getInstanceId();
+        }
+        int numGhostInstIds = stream.readInt();
+        params.ghostNotesInstIds.clear();
+        for (int i = 0; i < numGhostInstIds; ++i) {
+            params.ghostNotesInstIds.insert(stream.readInt());
+        }
+    }
+
     prepareNotes();
-    pluginInstanceManager->updateNotes(notes);
+    if (params.getTuningType() == Parameters::TuningType::MPE) {
+        notesSharingMPE->updateNotes(notes);
+    } else if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+        pluginInstanceManager->updateNotes(notes);
+    }
 }
 
 void AudioPluginAudioProcessor::updateNotes(const std::vector<Note> &new_notes) {
@@ -1099,7 +1601,11 @@ void AudioPluginAudioProcessor::updateNotes(const std::vector<Note> &new_notes) 
     notes = new_notes;
     prepareNotes();
     suspendProcessing(false);
-    pluginInstanceManager->updateNotes(notes);
+    if (params.getTuningType() == Parameters::TuningType::MPE) {
+        notesSharingMPE->updateNotes(notes);
+    } else if (params.getTuningType() == Parameters::MTS_ESP) {
+        pluginInstanceManager->updateNotes(notes);
+    }
 }
 
 void AudioPluginAudioProcessor::rePrepareNotes() {
@@ -1122,14 +1628,20 @@ void AudioPluginAudioProcessor::setManuallyPlayedNotesTotalCents(
     manuallyPlayedNotesTotalCents = newManuallyPlayedNotesTotalCents;
     startedPlayingManuallyPressedNotes = false;
     prepareNotes();
-    pluginInstanceManager->waitChannelUpdate();
+    if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+        pluginInstanceManager->waitChannelUpdate();
+    }
     suspendProcessing(false);
 }
 
 const std::vector<Note> &AudioPluginAudioProcessor::getNotes() { return notes; }
 
 std::vector<Note> AudioPluginAudioProcessor::getOtherInstancesNotes() {
-    return pluginInstanceManager->getChannelsNotes(params.ghostNotesChannels);
+    if (params.getTuningType() == Parameters::TuningType::MPE) {
+        return notesSharingMPE->getInstancesNotes(params.ghostNotesInstIds);
+    } else if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+        return pluginInstanceManager->getChannelsNotes(params.ghostNotesChannels);
+    }
 }
 
 float AudioPluginAudioProcessor::getPlayHeadTime() { return float(playHeadTime); }
@@ -1153,6 +1665,13 @@ int AudioPluginAudioProcessor::getTotalCentsFromFreq(double freq) {
 }
 
 void AudioPluginAudioProcessor::prepareNotes() {
+    pitchesOverflow = false;
+    editorKnowsAboutOverflow = false;
+
+    if (params.getTuningType() == Parameters::TuningType::MPE) {
+        return;
+    }
+
     // Notes from piano roll
     // some cleaning
     notesIndexes.clear();
@@ -1222,8 +1741,6 @@ void AudioPluginAudioProcessor::prepareNotes() {
     }
     if (!params.findPartialsMode.load())
         pluginInstanceManager->updateFreqs(freqs);
-    pitchesOverflow = false;
-    editorKnowsAboutOverflow = false;
 }
 
 std::tuple<float, int, int> AudioPluginAudioProcessor::getBpmNumDenom() {
@@ -1242,7 +1759,14 @@ std::tuple<float, int, int> AudioPluginAudioProcessor::getBpmNumDenom() {
 
 std::set<int> AudioPluginAudioProcessor::getAllCurrPlayedNotesTotalCents() {
     suspendProcessing(true);
-    std::set<int> result(currPlayedNotesTotalCents);
+    std::set<int> result;
+    if (params.getTuningType() == Parameters::TuningType::MPE) {
+        for (const auto &[totalCents, _] : currPlayedNotesTotalCentsMPE) {
+            result.insert(totalCents);
+        }
+    } else if (params.getTuningType() == Parameters::MTS_ESP) {
+        result = currPlayedNotesTotalCents;
+    }
     std::scoped_lock lock(manPlNotesTotCentsMutex);
     result.insert(manuallyPlayedNotesTotalCents.begin(), manuallyPlayedNotesTotalCents.end());
     suspendProcessing(false);

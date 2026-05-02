@@ -402,6 +402,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     std::shared_ptr<SmallLookAndFeel> smallLF;
 
+    std::set<int> getAllInstancesIndexes() { return processorRef.getAllInstancesIndexes(); }
+
   private:
     AudioPluginAudioProcessor &processorRef;
 
@@ -450,8 +452,9 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
         keysHarmonicityButton, ghostNotesKeysButton, ghostNotesTabButton, generateNewKeysButton,
         hideCentsButton, editRatiosMarksButton, moreToolsTabButton, notesFromGhostNotesButton,
         vocalToMelodyButton, recordManuallyPlayedNotesButton, clockDiagramButton;
-    std::unique_ptr<juce::Label> numSubdivsLabel, numBeatsLabel, numBarsLabel, midiChannelLabel;
+    std::unique_ptr<juce::Label> numSubdivsLabel, numBeatsLabel, numBarsLabel, indexLabel;
     std::unique_ptr<IntegerInput> numSubdivsInput, numBeatsInput, numBarsInput;
+    std::unique_ptr<juce::ComboBox> tuningTypeCombo;
 
     const int timerMs = static_cast<int>(1000.0 / 60);
     const int ghostNotesUpdMs = 500;
@@ -466,6 +469,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     const int bottom_height_px = 28;
     const int buttons_gap_width_px = 12;
     const int bottom_gap_height_px = 10;
+    const int bottom_combo_width_px = 83;
     const int popup_width_px = 300;
     const int popup_height_px = 50;
     const int dnd_popup_width_px = 500;

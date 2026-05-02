@@ -737,9 +737,9 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                     if (!event.mods.isShiftDown()) {
                         needToUnselectAllNotesExcept = i;
                         needToUnselectAllNotesExcept_Ctrl = event.mods.isCtrlDown();
-                    } else if(event.mods.isCtrlDown()) {
+                    } else if (event.mods.isCtrlDown()) {
                         int cents = notes[i].cents;
-                        for (Note& note: notes) {
+                        for (Note &note : notes) {
                             if ((note.cents == cents) && params->zones.isNoteInActiveZone(note)) {
                                 note.isSelected = true;
                             }
@@ -751,7 +751,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                     }
                     if (event.mods.isCtrlDown()) {
                         int cents = notes[i].cents;
-                        for (Note& note: notes) {
+                        for (Note &note : notes) {
                             if ((note.cents == cents) && params->zones.isNoteInActiveZone(note)) {
                                 note.isSelected = true;
                             }
@@ -760,7 +760,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                     notes[i].isSelected = true;
                     repaint();
                 }
-                if (params->playDraggedNotes) {
+                if (GlobalSettings::getInstance().getPlayDraggedNotes()) {
                     std::lock_guard<std::mutex> lock(mptcMtx);
                     for (const Note &note : notes) {
                         if (note.isSelected) {
@@ -814,7 +814,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         editor->updateNotes(notes);
         repaint();
 
-        if (params->playDraggedNotes) {
+        if (GlobalSettings::getInstance().getPlayDraggedNotes()) {
             // play placed note
             const int totalCents = cents + octave * 1200;
             {
@@ -1042,7 +1042,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                 }
                 if (new_octave >= 0 && new_octave < params->num_octaves) {
                     if ((new_cents != notes[i].cents) || (new_octave != notes[i].octave)) {
-                        if (params->playDraggedNotes) {
+                        if (GlobalSettings::getInstance().getPlayDraggedNotes()) {
                             std::lock_guard<std::mutex> lock(mptcMtx);
                             dragManuallyPlayedKeysTotalCents.erase(notes[i].cents +
                                                                    notes[i].octave * 1200);
@@ -1136,7 +1136,7 @@ bool MainPanel::doesPathIntersectRect(const juce::Path &somePath,
 }
 
 void MainPanel::mouseUp(const juce::MouseEvent &event) {
-    if (isMoving && params->playDraggedNotes) {
+    if (isMoving && GlobalSettings::getInstance().getPlayDraggedNotes()) {
         std::lock_guard<std::mutex> lock(mptcMtx);
         for (const Note &note : notes) {
             if (note.isSelected) {
@@ -1165,7 +1165,7 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
         unselectAllNotes();
         if (needToUnselectAllNotesExcept_Ctrl) {
             int cents = notes[needToUnselectAllNotesExcept].cents;
-            for (Note& note: notes) {
+            for (Note &note : notes) {
                 if ((note.cents == cents) && params->zones.isNoteInActiveZone(note)) {
                     note.isSelected = true;
                 }

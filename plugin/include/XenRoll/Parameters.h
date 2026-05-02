@@ -23,7 +23,7 @@ using PitchCurve = std::pair<std::vector<float>, std::vector<int>>;
 struct State {
     int numBars;
     std::vector<Note> notes;
-    std::vector<RatioMark> ratiosMarks;  
+    std::vector<RatioMark> ratiosMarks;
 };
 
 class Parameters {
@@ -32,6 +32,9 @@ class Parameters {
     static const juce::Array<juce::String> getGenNewKeysTacticsNames() {
         return {"+diverse intervals", "random"};
     }
+
+    enum TuningType { MPE = 1, MTS_ESP = 2 };
+    static const juce::Array<juce::String> getTuningTypeNames() { return {"MPE", "MTS"}; }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ HOTKEYS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     enum hotkeys {
@@ -54,7 +57,7 @@ class Parameters {
     static constexpr float defaultVelocity = 100.0f / 127;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Minimum values ~~~~~~~~~~~~~~~~~~~~~~~~
-    static constexpr int min_editorWidth = 1440;
+    static constexpr int min_editorWidth = 1430;
     static constexpr int min_editorHeight = 600;
     static constexpr int min_num_bars = 1;
     static constexpr int min_num_beats = 1;
@@ -80,7 +83,6 @@ class Parameters {
     static constexpr float min_pitchMemoryTVminNonzero = 0.0f;
     // ================= Vocal to melody =================
     static constexpr int min_vocalToMelodyDCents = 10;
-    static constexpr float min_micGain_dB = -24.0f;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Maximum values ~~~~~~~~~~~~~~~~~~~~~~~~
     static constexpr int max_editorWidth = 10000;
@@ -109,10 +111,9 @@ class Parameters {
     static constexpr float max_pitchMemoryTVminNonzero = 0.5f;
     // ================= Vocal to melody =================
     static constexpr int max_vocalToMelodyDcents = 90;
-    static constexpr float max_micGain_dB = 24.0f;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~ Saved params ~~~~~~~~~~~~~~~~~~~~~~~~~
-    int editorWidth = 1440;
+    int editorWidth = 1430;
     int editorHeight = 700;
     int num_beats = 4;
     int num_subdivs = 4;
@@ -123,7 +124,8 @@ class Parameters {
     float octave_height_px = init_octave_height_px;
     float bar_width_px = init_bar_width_px;
     bool showGhostNotesKeys = true;
-    std::set<int> ghostNotesChannels = {};
+    std::set<int> ghostNotesChannels = {}; ///< for MTS-ESP
+    std::set<int> ghostNotesInstIds = {};  ///< for MPE
     std::atomic<double> A4Freq = 440.0;
     float noteRectHeightCoef = 0.04f;
     bool constNoteRectHeight = false;
@@ -134,9 +136,12 @@ class Parameters {
     int goodEnoughErrorRatiosMarks = 4;
     Theme::ThemeType themeType = Theme::ThemeType::Gray;
     Theme theme;
-    bool playDraggedNotes = true;
-    int channelIndex = -1;                       ///< -1 means uninited state, normal range 0-15
+    ///< For MTS-ESP. -1 means uninited state, range: [0,...,15]
+    int channelIndex = -1;
+    ///< For MPE. -1 means uninited state, range: [0, 1, 2, ...]
+    int instanceId = -1;
     float maxChordDtimeClockDiagram = 1.0f / 32; ///< in bars
+    bool resetPitchBendOnNoteOff = false;        ///< setting for MPE tuning
     // ================== Intellectual ==================
     // Partials/dissonance
     std::atomic<int> findPartialsFFTSize = 8192;
@@ -158,7 +163,6 @@ class Parameters {
     std::atomic<int> vocalToMelodyDCents = 50;
     std::atomic<bool> vocalToMelodyKeySnap = true;
     std::atomic<bool> vocalToMelodyMakeBends = true;
-    std::atomic<float> micGain_dB = 0.0f;
 
     /**
      * @brief Add partials for a specific tone
@@ -248,10 +252,26 @@ class Parameters {
     // ===================================================
     CircularStack<State> stateHistory{100};
 
-    Parameters() : zones(true, float(num_bars)), theme(themeType) {}
+    ///< For normal use (get read-only local tuningType)
+    TuningType getTuningType() const { return tuningType; }
+
+    ///< Sets global tuning type (not affecting local tuningType)
+    static void setTuningType(TuningType newType) { globalTuningType.store(newType); }
+
+    ///< Get global tuningType. For getStateInformation in PluginProcessor ONLY!
+    static TuningType getGlobalTuningType() { return globalTuningType.load(); }
+
+    ///< Syncs local tuningType with global. For setStateInformation in PluginProcessor ONLY!
+    void applyGlobalTuningType() { tuningType = globalTuningType.load(); }
+
+    Parameters() : zones(true, float(num_bars)), theme(themeType) { tuningType = globalTuningType; }
 
   private:
+    // ~~~~~~~~~~~~~~~~~~~~~~~ Not saved params ~~~~~~~~~~~~~~~~~~~~~~~
+    TuningType tuningType;
     // ~~~~~~~~~~~~~~~~~~~~~~~~~ Saved params ~~~~~~~~~~~~~~~~~~~~~~~~~
+    ///< Global tuning type that is same between instances
+    inline static std::atomic<TuningType> globalTuningType = TuningType::MPE;
     int num_bars = 6;
     // ================== Intellectual ==================
     /**
@@ -263,5 +283,10 @@ class Parameters {
     // GUI and processor threads can try to get/set partials at the same time
     std::mutex partialsMutex;
     // ==================================================
+
+    juce::File getProjectDirectory() {
+        return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+            .getChildFile("XenRoll");
+    }
 };
 } // namespace audio_plugin

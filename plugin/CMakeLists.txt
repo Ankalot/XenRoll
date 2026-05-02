@@ -77,6 +77,7 @@ set(SOURCE_FILES source/PluginEditor.cpp
     source/VocalToMelodyMenu.cpp
     source/ClockDiagramMenu.cpp
     source/ClockDiagramPanel.cpp
+    source/NotesSharingMPE.cpp
     ${MTS_ESP_DIR}/libMTSMaster.cpp
     ${PITCH_DETECTOR_DIR}/PitchDetectorMPM.cpp)
 
@@ -116,6 +117,8 @@ set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h
     ${INCLUDE_DIR}/VocalToMelodyMenu.h
     ${INCLUDE_DIR}/ClockDiagramMenu.h
     ${INCLUDE_DIR}/ClockDiagramPanel.h
+    ${INCLUDE_DIR}/NotesSharingMPE.h
+    ${INCLUDE_DIR}/GlobalSettings.h
     ${MTS_ESP_DIR}/libMTSMaster.h
     ${PITCH_DETECTOR_DIR}/PitchDetectorMPM.h)
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})

@@ -60,13 +60,14 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
 
     constNoteRectHeightLabel = std::make_unique<juce::Label>();
     constNoteRectHeightLabel->setText("Note Rectangle Height is constant:",
-                                   juce::dontSendNotification);
+                                      juce::dontSendNotification);
     constNoteRectHeightLabel->setFont(currentFont);
     addAndMakeVisible(constNoteRectHeightLabel.get());
 
     constNoteRectHeightCheckbox = std::make_unique<juce::ToggleButton>();
     constNoteRectHeightLabel->attachToComponent(constNoteRectHeightCheckbox.get(), true);
-    constNoteRectHeightCheckbox->setToggleState(params->constNoteRectHeight, juce::dontSendNotification);
+    constNoteRectHeightCheckbox->setToggleState(params->constNoteRectHeight,
+                                                juce::dontSendNotification);
     constNoteRectHeightCheckbox->onStateChange = [this, params]() {
         params->constNoteRectHeight = constNoteRectHeightCheckbox->getToggleState();
     };
@@ -101,12 +102,30 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
 
     playDraggedNotesCheckbox = std::make_unique<juce::ToggleButton>();
     playDraggedNotesLabel->attachToComponent(playDraggedNotesCheckbox.get(), true);
-    playDraggedNotesCheckbox->setToggleState(params->playDraggedNotes, juce::dontSendNotification);
-    playDraggedNotesCheckbox->onStateChange = [this, params]() {
-        params->playDraggedNotes = playDraggedNotesCheckbox->getToggleState();
+    playDraggedNotesCheckbox->setToggleState(GlobalSettings::getInstance().getPlayDraggedNotes(),
+                                             juce::dontSendNotification);
+    playDraggedNotesCheckbox->onStateChange = [this]() {
+        GlobalSettings::getInstance().setPlayDraggedNotes(
+            playDraggedNotesCheckbox->getToggleState());
     };
     playDraggedNotesCheckbox->setSize(rowHeight, rowHeight);
     addAndMakeVisible(playDraggedNotesCheckbox.get());
+
+    resetPitchBendOnNoteOffLabel = std::make_unique<juce::Label>();
+    resetPitchBendOnNoteOffLabel->setText("Reset pitch bend on note off (MPE only):",
+                                          juce::dontSendNotification);
+    resetPitchBendOnNoteOffLabel->setFont(currentFont);
+    addAndMakeVisible(resetPitchBendOnNoteOffLabel.get());
+
+    resetPitchBendOnNoteOffCheckbox = std::make_unique<juce::ToggleButton>();
+    resetPitchBendOnNoteOffLabel->attachToComponent(resetPitchBendOnNoteOffCheckbox.get(), true);
+    resetPitchBendOnNoteOffCheckbox->setToggleState(params->resetPitchBendOnNoteOff,
+                                                    juce::dontSendNotification);
+    resetPitchBendOnNoteOffCheckbox->onStateChange = [this, params]() {
+        params->resetPitchBendOnNoteOff = resetPitchBendOnNoteOffCheckbox->getToggleState();
+    };
+    resetPitchBendOnNoteOffCheckbox->setSize(rowHeight, rowHeight);
+    addAndMakeVisible(resetPitchBendOnNoteOffCheckbox.get());
 }
 
 void SettingsPanel::resized() {
@@ -141,6 +160,11 @@ void SettingsPanel::resized() {
     auto playRow = area.removeFromTop(rowHeight + padding);
     playDraggedNotesLabel->setBounds(playRow.removeFromLeft(labelWidth));
     playDraggedNotesCheckbox->setBounds(playRow);
+
+    // Reset pitch bend on note off (MPE)
+    auto resetBendRow = area.removeFromTop(rowHeight + padding);
+    resetPitchBendOnNoteOffLabel->setBounds(resetBendRow.removeFromLeft(labelWidth));
+    resetPitchBendOnNoteOffCheckbox->setBounds(resetBendRow);
 }
 
 void SettingsPanel::paint(juce::Graphics &g) { g.fillAll(params->theme.darker); }

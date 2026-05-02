@@ -19,46 +19,9 @@
 namespace audio_plugin {
 namespace bip = boost::interprocess;
 
-using ShmemAllocator = bip::allocator<Note, bip::managed_shared_memory::segment_manager>;
-using ShmemVector = bip::vector<Note, ShmemAllocator>;
-
-struct ChannelsSheet {
-    ///< Index in instanceSlots array. -1 means there is no server.
-    int serverIndex = -1;
-    ///< Array that indicates what midi channels are taken by instances
-    bool instanceSlots[16]{false};
-    /**
-     * We need pids because instance can crash and don't set instanceSlots[i] = false.
-     * It's that most likely everyone will be in the same process, then it turns out
-     * that the crash will be noticeable only when the DAW crashes, but it's okay.
-     */
-    os_things::process_id pids[16]{0};
-    /**
-     * Heartbeat timestamp (milliseconds since epoch) - updated by server.
-     * Is needed because os can assign same pid to new process after crash and
-     * then there won't be any server
-     */
-    std::atomic<uint64_t> serverHeartbeat{0};
-};
-
-struct ChannelFreqs {
-    /**
-     * serverAction = 1   -  MTS_SetMultiChannel(true, midichannel)
-     * serverAction = -1  -  MTS_SetMultiChannel(false, midichannel)
-     * serverAction = 0   -  nothing
-     */
-    int serverAction = 0;
-    /**
-     * needToUpdate = true   -  MTS_SetMultiChannelNoteTunings(freqs, midichannel)
-     * needToUpdate = false  -  nothing
-     */
-    std::atomic<bool> needToUpdate{false};
-    double freqs[128]{0.0};
-};
-
 /**
  * @brief The class that is responsible for synchronization between different instances of this
- * plugin
+ * plugin. ONLY WITH MTS-ESP TUNING.
  */
 class PluginInstanceManager {
   public:
@@ -81,6 +44,8 @@ class PluginInstanceManager {
      */
     void changeChannelIndex(int desChInd);
 
+    std::set<int> getAllInstanceChannels();
+
     /**
      * @brief Get notes from specific channels
      * @param chIndxs Set of channel indices (0-15)
@@ -93,6 +58,43 @@ class PluginInstanceManager {
     std::string getErrorMessage() { return errorMessage; }
 
   private:
+    using ShmemAllocator = bip::allocator<Note, bip::managed_shared_memory::segment_manager>;
+    using ShmemVector = bip::vector<Note, ShmemAllocator>;
+
+    struct ChannelsSheet {
+        ///< Index in instanceSlots array. -1 means there is no server.
+        int serverIndex = -1;
+        ///< Array that indicates what midi channels are taken by instances
+        bool instanceSlots[16]{false};
+        /**
+         * We need pids because instance can crash and don't set instanceSlots[i] = false.
+         * It's that most likely everyone will be in the same process, then it turns out
+         * that the crash will be noticeable only when the DAW crashes, but it's okay.
+         */
+        os_things::process_id pids[16]{0};
+        /**
+         * Heartbeat timestamp (milliseconds since epoch) - updated by server.
+         * Is needed because os can assign same pid to new process after crash and
+         * then there won't be any server
+         */
+        std::atomic<uint64_t> serverHeartbeat{0};
+    };
+
+    struct ChannelFreqs {
+        /**
+         * serverAction = 1   -  MTS_SetMultiChannel(true, midichannel)
+         * serverAction = -1  -  MTS_SetMultiChannel(false, midichannel)
+         * serverAction = 0   -  nothing
+         */
+        int serverAction = 0;
+        /**
+         * needToUpdate = true   -  MTS_SetMultiChannelNoteTunings(freqs, midichannel)
+         * needToUpdate = false  -  nothing
+         */
+        std::atomic<bool> needToUpdate{false};
+        double freqs[128]{0.0};
+    };
+
     void initAll();
     void initSharedMemory();
     void initInstance();

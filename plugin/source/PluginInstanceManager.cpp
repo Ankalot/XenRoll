@@ -343,6 +343,23 @@ void PluginInstanceManager::changeChannelIndex(int desChInd) {
     updateServerCondition->notify_one();
 }
 
+std::set<int> PluginInstanceManager::getAllInstanceChannels() {
+    if (!isActive) {
+        return {};
+    }
+
+    bip::scoped_lock<bip::named_mutex> lock(*chShMutex);
+
+    std::set<int> allInstanceChannels;
+    for (int i = 0; i < 16; ++i) {
+        if (channelsSheet->instanceSlots[i]) {
+            allInstanceChannels.insert(i);
+        }
+    }
+
+    return allInstanceChannels;
+}
+
 std::vector<Note> PluginInstanceManager::getChannelsNotes(const std::set<int> chIndxs) {
     std::vector<Note> chNotes = {};
     for (const auto i : chIndxs) {

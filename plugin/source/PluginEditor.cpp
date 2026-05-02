@@ -52,6 +52,9 @@ void CustomLookAndFeel::updateColors() {
     setColour(juce::ToggleButton::tickColourId, theme->brightest);
     setColour(juce::ToggleButton::textColourId, theme->brightest);
     setColour(juce::ToggleButton::tickDisabledColourId, theme->brighter);
+
+    // Default colors for ScrollBar
+    setColour(juce::ScrollBar::thumbColourId, theme->bright);
 }
 
 void SmallLookAndFeel::updateColors() {
@@ -104,6 +107,9 @@ void SmallLookAndFeel::updateColors() {
     setColour(juce::ToggleButton::tickColourId, theme->brightest);
     setColour(juce::ToggleButton::textColourId, theme->brightest);
     setColour(juce::ToggleButton::tickDisabledColourId, theme->brighter);
+
+    // Default colors for ScrollBar
+    setColour(juce::ScrollBar::thumbColourId, theme->bright);
 }
 
 void SmallLookAndFeel::drawButtonBackground(juce::Graphics &g, juce::Button &button,
@@ -306,6 +312,20 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(keysHarmonicityButton.get());
 
+    tuningTypeCombo = std::make_unique<juce::ComboBox>();
+    tuningTypeCombo->setLookAndFeel(customLF.get());
+    tuningTypeCombo->addItemList(Parameters::getTuningTypeNames(), 1);
+    tuningTypeCombo->setSelectedId(static_cast<int>(processorRef.params.getTuningType()));
+    tuningTypeCombo->onChange = [this]() {
+        this->processorRef.params.setTuningType(
+            static_cast<Parameters::TuningType>(tuningTypeCombo->getSelectedId()));
+    };
+    tuningTypeCombo->setTooltip("AFTER THE CHANGE: SAVE & RESTART PROJECT! [MPE: max 15 "
+                                "simultaneously playing pitches; default] [MTS-ESP: max 16 "
+                                "instances, each instance uses separate midi channel; check out "
+                                "the details in the README on Github: github.com/ankalot/xenroll]");
+    addAndMakeVisible(tuningTypeCombo.get());
+
     ghostNotesKeysButton = std::make_unique<SVGButton>(
         &processorRef.params.theme, BinaryData::Ghost_notes_keys_svg,
         BinaryData::Ghost_notes_keys_svgSize, true, processorRef.params.showGhostNotesKeys,
@@ -327,8 +347,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(notesFromGhostNotesButton.get());
 
-    instancesMenu = std::make_unique<InstancesMenu>(processorRef.params.channelIndex,
-                                                    &processorRef.params, this);
+    instancesMenu = std::make_unique<InstancesMenu>(&processorRef.params, this);
     addAndMakeVisible(instancesMenu.get());
     instancesMenu->setVisible(false);
 
@@ -385,18 +404,28 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     };
     addAndMakeVisible(numBarsInput.get());
 
-    midiChannelLabel = std::make_unique<juce::Label>();
+    indexLabel = std::make_unique<juce::Label>();
     bool isActive = processorRef.getIsActive();
-    juce::String midiChannelText = "MIDI CHANNEL: ";
-    if (isActive) {
-        midiChannelText += juce::String(processorRef.params.channelIndex + 1);
-    } else {
-        midiChannelText += "-";
+    juce::String indexText;
+    if (processorRef.params.getTuningType() == Parameters::TuningType::MPE) {
+        indexText = "ID: ";
+        if (isActive) {
+            indexText += juce::String(processorRef.params.instanceId + 1);
+        } else {
+            indexText += "-";
+        }
+    } else if (processorRef.params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+        indexText = "CH: ";
+        if (isActive) {
+            indexText += juce::String(processorRef.params.channelIndex + 1);
+        } else {
+            indexText += "-";
+        }
     }
-    midiChannelLabel->setText(midiChannelText, juce::dontSendNotification);
+    indexLabel->setText(indexText, juce::dontSendNotification);
     currentFont.setHeight(Theme::medium);
-    midiChannelLabel->setFont(currentFont);
-    addAndMakeVisible(midiChannelLabel.get());
+    indexLabel->setFont(currentFont);
+    addAndMakeVisible(indexLabel.get());
 
     camOnPlayHeadButton = std::make_unique<SVGButton>(
         &processorRef.params.theme, BinaryData::Fix_cam_svg, BinaryData::Fix_cam_svgSize, true,
@@ -704,10 +733,11 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
     const int bottom_y =
         topPanel_height_px + leftView_height_px + slider_width_px + bottom_gap_height_px;
 
-    juce::String text = midiChannelLabel->getText();
-    juce::Font font = midiChannelLabel->getFont();
+    juce::String text = indexLabel->getText();
+    juce::Font font = indexLabel->getFont();
     int textWidth = juce::roundToInt(getTextWidth(text, font));
-    int bottom_x_pos = width - buttons_gap_width_px * 5 - textWidth - 3 * bottom_height_px;
+    int bottom_x_pos =
+        width - buttons_gap_width_px * 7 - textWidth - 3 * bottom_height_px - bottom_combo_width_px;
 
     // Draw vertical separator lines
     g.setColour(processorRef.params.theme.darkest);
@@ -846,12 +876,13 @@ void AudioPluginAudioProcessorEditor::resized() {
                              bottom_y - moreToolsMenu->getHeight() - 10, moreToolsMenu->getWidth(),
                              moreToolsMenu->getHeight());
 
-    text = midiChannelLabel->getText();
-    font = midiChannelLabel->getFont();
-    textWidth = juce::roundToInt(getTextWidth(text, font));
-    bottom_x_pos = width - buttons_gap_width_px - textWidth;
-    midiChannelLabel->setBounds(width - buttons_gap_width_px - textWidth, bottom_y, textWidth,
-                                bottom_height_px);
+    text = indexLabel->getText();
+    font = indexLabel->getFont();
+    textWidth = juce::roundToInt(getTextWidth(text, font)) + 2 * buttons_gap_width_px;
+    bottom_x_pos = width - textWidth;
+    indexLabel->setBounds(bottom_x_pos, bottom_y, textWidth, bottom_height_px);
+    bottom_x_pos -= buttons_gap_width_px + bottom_combo_width_px;
+    tuningTypeCombo->setBounds(bottom_x_pos, bottom_y, bottom_combo_width_px, bottom_height_px);
     bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
     ghostNotesKeysButton->setBounds(bottom_x_pos, bottom_y, bottom_height_px, bottom_height_px);
     bottom_x_pos -= buttons_gap_width_px + bottom_height_px;
@@ -1614,15 +1645,22 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
 
     bool pitchOverflow = processorRef.thereIsPitchOverflow();
     if (pitchOverflow) {
-        showMessageBoxAsync(
-            juce::AlertWindow::WarningIcon, "Pitches Overflow",
-            juce::String("You have exceeded the limit on the number of unique pitches (128). ") +
-                "This number includes all notes from the piano roll and those that are "
-                "played " +
-                "manually (using mouse, keyboard or midi controller) with a unique pitch.\n\n" +
-                "FIX: remove some notes and/or don't manually play that many keys on which " +
-                "you don't have notes from the piano roll.",
-            "OK", this);
+        juce::String msg;
+        if (processorRef.params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+            msg = juce::String(
+                      "You have exceeded the limit on the number of unique pitches (128). ") +
+                  "This number includes all notes from the piano roll and those that are played " +
+                  "manually (using mouse, keyboard or midi controller) with a unique pitch.\n\n" +
+                  "FIX: remove some notes and/or don't manually play that many keys on which " +
+                  "you don't have notes from the piano roll.";
+        } else if (processorRef.params.getTuningType() == Parameters::TuningType::MPE) {
+            msg = juce::String("You have exceeded the limit on the number of pitches played ") +
+                  "simultaneously (15). This number includes played notes from the piano roll " +
+                  "and those that are played manually (using mouse, keyboard or midi "
+                  "controller).\n\n" +
+                  "FIX: remove some notes and/or don't manually play that many keys.";
+        }
+        showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Pitches Overflow", msg, "OK", this);
     }
 
     if (processorRef.params.recordManuallyPlayedNotes) {

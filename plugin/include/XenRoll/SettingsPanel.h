@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GlobalSettings.h"
 #include "Parameters.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -12,6 +13,13 @@ class SettingsPanel : public juce::Component {
 
     void resized() override;
     void paint(juce::Graphics &g) override;
+
+    void visibilityChanged() override {
+        if (isVisible()) {
+            playDraggedNotesCheckbox->setToggleState(
+                GlobalSettings::getInstance().getPlayDraggedNotes(), juce::dontSendNotification);
+        }
+    }
 
   private:
     Parameters *params;
@@ -33,6 +41,9 @@ class SettingsPanel : public juce::Component {
 
     std::unique_ptr<juce::Label> playDraggedNotesLabel;
     std::unique_ptr<juce::ToggleButton> playDraggedNotesCheckbox;
+
+    std::unique_ptr<juce::Label> resetPitchBendOnNoteOffLabel;
+    std::unique_ptr<juce::ToggleButton> resetPitchBendOnNoteOffCheckbox;
 
     const int padding = 15;
     const int rowHeight = 28;

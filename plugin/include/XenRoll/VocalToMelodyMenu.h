@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GlobalSettings.h"
 #include "Parameters.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -24,6 +25,12 @@ class VocalToMelodyMenu : public juce::Component {
                    vertPadding + rowHeight + buttonHeight + 2 * rowSkip, Theme::wider);
         g.drawLine(0, vertPadding + 8 * rowHeight + buttonHeight + 8 * rowSkip, width,
                    vertPadding + 8 * rowHeight + buttonHeight + 8 * rowSkip, Theme::wider);
+    }
+
+    void visibilityChanged() override {
+        if (isVisible()) {
+            micGain_dBSlider->setValue(GlobalSettings::getInstance().getMicGain_dB());
+        }
     }
 
   private:

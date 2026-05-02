@@ -2,57 +2,106 @@
 #include "XenRoll/PluginEditor.h"
 
 namespace audio_plugin {
-InstancesMenu::InstancesMenu(const int chIndex, Parameters *params,
-                             AudioPluginAudioProcessorEditor *editor)
-    : chIndex(chIndex), params(params), editor(editor) {
+
+InstancesMenu::InstancesMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor)
+    : params(params), editor(editor) {
     setAlwaysOnTop(true);
     setWantsKeyboardFocus(false);
     setVisible(false);
 
+    if (params->getTuningType() == Parameters::TuningType::MPE) {
+        myInd = params->instanceId;
+    } else if (params->getTuningType() == Parameters::TuningType::MTS_ESP) {
+        myInd = params->channelIndex;
+    }
+
     // Setup title
     titleLabel = std::make_unique<juce::Label>();
     titleLabel->setText("View notes from instances", juce::dontSendNotification);
-    juce::Font currentFont = titleLabel->getFont();
-    currentFont.setHeight(Theme::small_);
-    titleLabel->setFont(currentFont);
+    font = titleLabel->getFont();
+    font.setHeight(Theme::small_);
+    titleLabel->setFont(font);
     titleLabel->setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel.get());
 
-    // Setup labels and checkboxes
-    for (int i = 0; i < 16; ++i) {
-        if (i != chIndex) {
-            channelsLabels[i] = std::make_unique<juce::Label>();
-            channelsLabels[i]->setText("MIDI Channel " + juce::String(i + 1),
-                                       juce::dontSendNotification);
-            channelsLabels[i]->setFont(currentFont);
-            addAndMakeVisible(channelsLabels[i].get());
+    // Setup viewport
+    viewport.setScrollBarsShown(true, false);
+    addAndMakeVisible(viewport);
+    viewport.setViewedComponent(&contentComponent, false);
 
-            channelsCheckboxes[i] = std::make_unique<juce::ToggleButton>();
-            channelsCheckboxes[i]->setToggleState(params->ghostNotesChannels.contains(i),
-                                                  juce::dontSendNotification);
-            channelsCheckboxes[i]->onStateChange = [this, params, editor, i]() {
-                if (channelsCheckboxes[i]->getToggleState()) {
-                    params->ghostNotesChannels.insert(i);
+    setSize(width, height);
+
+    // Setup content
+    possibleInds = getPossibleInds();
+    buildMenu();
+}
+
+void InstancesMenu::buildMenu() {
+    instancesLabels.clear();
+    instancesCheckboxes.clear();
+
+    juce::String text;
+    if (params->getTuningType() == Parameters::TuningType::MPE) {
+        text = "Id ";
+    } else if (params->getTuningType() == Parameters::TuningType::MTS_ESP) {
+        text = "Ch ";
+    }
+
+    int num = 0;
+    for (int ind : possibleInds) {
+        auto instanceLabel = std::make_unique<juce::Label>();
+        instanceLabel->setText(text + juce::String(ind + 1), juce::dontSendNotification);
+        instanceLabel->setFont(font);
+        contentComponent.addAndMakeVisible(instanceLabel.get());
+        instancesLabels.push_back(std::move(instanceLabel));
+
+        auto instanceCheckbox = std::make_unique<juce::ToggleButton>();
+        if (params->getTuningType() == Parameters::TuningType::MPE) {
+            instanceCheckbox->setToggleState(params->ghostNotesInstIds.contains(ind),
+                                             juce::dontSendNotification);
+            instanceCheckbox->onStateChange = [this, ind, num]() {
+                if (this->instancesCheckboxes[num]->getToggleState()) {
+                    params->ghostNotesInstIds.insert(ind);
                 } else {
-                    params->ghostNotesChannels.erase(i);
+                    params->ghostNotesInstIds.erase(ind);
                 }
                 editor->updateGhostNotes();
             };
-            addAndMakeVisible(channelsCheckboxes[i].get());
+        } else if (params->getTuningType() == Parameters::TuningType::MTS_ESP) {
+            instanceCheckbox->setToggleState(params->ghostNotesChannels.contains(ind),
+                                             juce::dontSendNotification);
+            instanceCheckbox->onStateChange = [this, ind, num]() {
+                if (this->instancesCheckboxes[num]->getToggleState()) {
+                    params->ghostNotesChannels.insert(ind);
+                } else {
+                    params->ghostNotesChannels.erase(ind);
+                }
+                editor->updateGhostNotes();
+            };
         }
+        contentComponent.addAndMakeVisible(instanceCheckbox.get());
+        instancesCheckboxes.push_back(std::move(instanceCheckbox));
+        num++;
     }
 
-    const int totalHeight = titleHeight + (15 * rowHeight) + 20;
-    setSize(width, totalHeight);
-    titleLabel->setBounds(5, 10, width - 10, titleHeight);
-    int ind = 0;
-    for (int i = 0; i < 16; ++i) {
-        if (i != chIndex) {
-            int yPos = titleHeight + 10 + ind * rowHeight;
-            channelsLabels[i]->setBounds(10, yPos, 160, rowHeight);
-            channelsCheckboxes[i]->setBounds(160, yPos, 30, rowHeight);
-            ind++;
-        }
+    const int contentWidth = viewport.getWidth();
+    const int contentHeight = num * rowHeight;
+    contentComponent.setSize(contentWidth, contentHeight);
+
+    int yPos;
+    for (int i = 0; i < num; ++i) {
+        yPos = i * rowHeight;
+        instancesLabels[i]->setBounds(viewportHorPadding, yPos,
+                                      contentWidth - viewportHorPadding - 30, rowHeight);
+        instancesCheckboxes[i]->setBounds(contentWidth - viewportHorPadding - 30, yPos, 22,
+                                          rowHeight);
     }
 }
+
+std::set<int> InstancesMenu::getPossibleInds() {
+    std::set<int> inds = editor->getAllInstancesIndexes();
+    inds.erase(myInd);
+    return inds;
+}
+
 } // namespace audio_plugin

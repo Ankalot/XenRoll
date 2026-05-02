@@ -6,21 +6,22 @@
 namespace audio_plugin {
 class AudioPluginAudioProcessorEditor;
 
-/**
- * @brief Small menu for selecting other instances of this plugin whose notes should be viewed (as
- * ghost notes)
- */
 class InstancesMenu : public juce::Component {
   public:
-    /**
-     * @brief Construct an InstancesMenu
-     * @param chIndex Current MIDI channel index (0-15)
-     * @param params Pointer to parameters
-     * @param editor Pointer to the plugin editor
-     */
-    InstancesMenu(const int chIndex, Parameters *params, AudioPluginAudioProcessorEditor *editor);
+    InstancesMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor);
+    ~InstancesMenu() override = default;
 
-    ~InstancesMenu() override {};
+    void buildMenu();
+
+    void visibilityChanged() override {
+        if (isVisible()) {
+            std::set<int> mbNewPossibleInds = getPossibleInds();
+            if (mbNewPossibleInds != possibleInds) {
+                possibleInds = mbNewPossibleInds;
+                buildMenu();
+            }
+        }
+    }
 
     void paint(juce::Graphics &g) override {
         g.fillAll(params->theme.darker);
@@ -28,24 +29,38 @@ class InstancesMenu : public juce::Component {
         g.drawRect(getLocalBounds(), Theme::wider);
     }
 
-    // void resized() override {};
+    void resized() override {
+        auto bounds = getLocalBounds().reduced(Theme::wider);
+        titleLabel->setBounds(bounds.removeFromTop(titleHeight));
+        viewport.setBounds(bounds.withTrimmedRight(viewportMargin)
+                               .withTrimmedBottom(viewportMargin)
+                               .withTrimmedLeft(viewportMargin));
+    }
 
   private:
     AudioPluginAudioProcessorEditor *editor;
     Parameters *params;
-    const int chIndex;
+
+    int myInd;
+    std::set<int> possibleInds;
+
+    // Viewport + inner content
+    juce::Viewport viewport;
+    juce::Component contentComponent; // Holds all labels & checkboxes
+
     std::unique_ptr<juce::Label> titleLabel;
-    // actually there are 15 of them but for the sake of simplicity i make array with size 16
-    std::array<std::unique_ptr<juce::Label>, 16> channelsLabels;
-    std::array<std::unique_ptr<juce::ToggleButton>, 16> channelsCheckboxes;
+    std::vector<std::unique_ptr<juce::Label>> instancesLabels;
+    std::vector<std::unique_ptr<juce::ToggleButton>> instancesCheckboxes;
 
-    bool onTab = false;
-    bool onMenu = false;
-
-    const int timerMs = 200;
     const int width = 200;
+    const int height = 200;
     const int titleHeight = 32;
     const int rowHeight = 24;
+    const int viewportMargin = 10;
+    const int viewportHorPadding = 10;
+    juce::Font font;
+
+    std::set<int> getPossibleInds();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InstancesMenu)
 };

@@ -138,12 +138,13 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
 
     micGain_dBSlider = std::make_unique<juce::Slider>();
     micGain_dBSlider->setLookAndFeel(editor->smallLF.get());
-    micGain_dBSlider->setRange(params->min_micGain_dB, params->max_micGain_dB, 0.1);
-    micGain_dBSlider->setValue(params->micGain_dB);
+    micGain_dBSlider->setRange(GlobalSettings::getInstance().min_micGain_dB,
+                               GlobalSettings::getInstance().max_micGain_dB, 0.1);
+    micGain_dBSlider->setValue(GlobalSettings::getInstance().getMicGain_dB());
     micGain_dBSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 45, rowHeight);
     micGain_dBSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    micGain_dBSlider->onDragEnd = [this, params, editor]() {
-        params->micGain_dB = static_cast<float>(micGain_dBSlider->getValue());
+    micGain_dBSlider->onDragEnd = [this]() {
+        GlobalSettings::getInstance().setMicGain_dB(micGain_dBSlider->getValue());
     };
     addAndMakeVisible(micGain_dBSlider.get());
 
