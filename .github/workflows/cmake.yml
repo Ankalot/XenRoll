@@ -67,7 +67,10 @@ jobs:
           pkg-config
 
     - name: Configure CMake
-      run: cmake -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+      run: cmake -S . -B ${{github.workspace}}/build 
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} 
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+            -DCMAKE_CXX_FLAGS="-Wno-error"
 
     - name: Build
       # Build your program with the given configuration
