@@ -1049,12 +1049,12 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
 
     // Zones
     auto zonesTree = paramsTree.getOrCreateChildWithName("Zones", nullptr);
-    for (const auto &zp : params.zones.getZonesPoints()) {
+    for (const float zp : params.zones.getZonesPoints()) {
         juce::ValueTree pt("Point");
         pt.setProperty("v", zp, nullptr);
         zonesTree.appendChild(pt, nullptr);
     }
-    for (const auto &zof : params.zones.getZonesOnOff()) {
+    for (const bool zof : params.zones.getZonesOnOff()) {
         juce::ValueTree onOff("OnOff");
         onOff.setProperty("v", zof, nullptr);
         zonesTree.appendChild(onOff, nullptr);
