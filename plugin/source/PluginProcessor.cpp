@@ -1106,6 +1106,10 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
     }
 
     // RatioMarks
+    paramsTree.setProperty("autoCorrectRatiosMarks", params.autoCorrectRatiosMarks, nullptr);
+    paramsTree.setProperty("maxDenRatiosMarks", params.maxDenRatiosMarks, nullptr);
+    paramsTree.setProperty("goodEnoughErrorRatiosMarks", params.goodEnoughErrorRatiosMarks,
+                           nullptr);
     auto ratiosTree = paramsTree.getOrCreateChildWithName("RatioMarks", nullptr);
     for (const auto &rm : params.ratiosMarks) {
         juce::ValueTree rmNode("RatioMark");
@@ -1116,10 +1120,6 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
         rmNode.setProperty("higherNoteIndex", rm.getHigherNoteIndex(), nullptr);
         ratiosTree.appendChild(rmNode, nullptr);
     }
-    paramsTree.setProperty("autoCorrectRatiosMarks", params.autoCorrectRatiosMarks, nullptr);
-    paramsTree.setProperty("maxDenRatiosMarks", params.maxDenRatiosMarks, nullptr);
-    paramsTree.setProperty("goodEnoughErrorRatiosMarks", params.goodEnoughErrorRatiosMarks,
-                           nullptr);
 
     // Vocal to melody
     paramsTree.setProperty("vocalToMelodyGenCurve", params.vocalToMelodyGenCurve.load(), nullptr);
@@ -1318,6 +1318,12 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
     }
 
     // RatioMarks
+    params.autoCorrectRatiosMarks = static_cast<bool>(
+        paramsTree.getProperty("autoCorrectRatiosMarks", params.autoCorrectRatiosMarks));
+    params.maxDenRatiosMarks =
+        paramsTree.getProperty("maxDenRatiosMarks", params.maxDenRatiosMarks);
+    params.goodEnoughErrorRatiosMarks =
+        paramsTree.getProperty("goodEnoughErrorRatiosMarks", params.goodEnoughErrorRatiosMarks);
     auto ratiosTree = paramsTree.getChildWithName("RatioMarks");
     params.ratiosMarks.clear();
     if (ratiosTree.isValid()) {
@@ -1333,12 +1339,6 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
             }
         }
     }
-    params.autoCorrectRatiosMarks = static_cast<bool>(
-        paramsTree.getProperty("autoCorrectRatiosMarks", params.autoCorrectRatiosMarks));
-    params.maxDenRatiosMarks =
-        paramsTree.getProperty("maxDenRatiosMarks", params.maxDenRatiosMarks);
-    params.goodEnoughErrorRatiosMarks =
-        paramsTree.getProperty("goodEnoughErrorRatiosMarks", params.goodEnoughErrorRatiosMarks);
 
     // Vocal to melody
     params.vocalToMelodyGenCurve = static_cast<bool>(
