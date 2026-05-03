@@ -3,6 +3,7 @@
   "name": "xenroll",
   "version": "0.3.3.2",
   "dependencies": [
-    "boost-interprocess"
+    "boost-interprocess",
+    "boost-uuid"
   ]
 }
