@@ -45,6 +45,9 @@ class SettingsPanel : public juce::Component {
     std::unique_ptr<juce::Label> resetPitchBendOnNoteOffLabel;
     std::unique_ptr<juce::ToggleButton> resetPitchBendOnNoteOffCheckbox;
 
+    std::unique_ptr<juce::Label> semiBendRangeLabel;
+    std::unique_ptr<juce::ComboBox> semiBendRangeCombo;
+
     const int padding = 15;
     const int rowHeight = 28;
     const int labelWidth = 350;

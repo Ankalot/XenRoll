@@ -665,6 +665,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 // =                                  USING MPE                                   =
                 // ================================================================================
 
+                centsPerBendMPE = params.semiBendRangeMPE * 100.0 / 8192;
                 // Taking into account A4 freq (default is 440 Hz)
                 corrTotalCentsMPE = 1200 * log2(params.A4Freq / 440.0);
 
@@ -1024,7 +1025,6 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
     paramsTree.setProperty("a4Freq", params.A4Freq.load(), nullptr);
     paramsTree.setProperty("noteRectHeightCoef", params.noteRectHeightCoef, nullptr);
     paramsTree.setProperty("constNoteRectHeight", params.constNoteRectHeight, nullptr);
-    paramsTree.setProperty("resetPitchBendOnNoteOff", params.resetPitchBendOnNoteOff, nullptr);
 
     // Tuning & instances sync
     paramsTree.setProperty("tuningType", static_cast<int>(params.getGlobalTuningType()), nullptr);
@@ -1037,6 +1037,8 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
         idNode.setProperty("v", id, nullptr);
         ghostInstTree.appendChild(idNode, nullptr);
     }
+    paramsTree.setProperty("resetPitchBendOnNoteOff", params.resetPitchBendOnNoteOff, nullptr);
+    paramsTree.setProperty("semiBendRangeMPE", params.semiBendRangeMPE, nullptr);
 
     // For MTS-ESP:
     paramsTree.setProperty("channelIndex", params.channelIndex, nullptr);
@@ -1187,8 +1189,6 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         static_cast<float>(paramsTree.getProperty("noteRectHeightCoef", params.noteRectHeightCoef));
     params.constNoteRectHeight = static_cast<bool>(
         paramsTree.getProperty("constNoteRectHeight", params.constNoteRectHeight));
-    params.resetPitchBendOnNoteOff = static_cast<bool>(
-        paramsTree.getProperty("resetPitchBendOnNoteOff", params.resetPitchBendOnNoteOff));
 
     // Tuning & instances sync
     auto newTuningType = static_cast<Parameters::TuningType>(static_cast<int>(
@@ -1213,6 +1213,10 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
             }
         }
     }
+    params.resetPitchBendOnNoteOff = static_cast<bool>(
+        paramsTree.getProperty("resetPitchBendOnNoteOff", params.resetPitchBendOnNoteOff));
+    params.semiBendRangeMPE =
+        static_cast<int>(paramsTree.getProperty("semiBendRangeMPE", params.semiBendRangeMPE));
 
     // For MTS-ESP:
     int desiredChannelIndex = paramsTree.getProperty("channelIndex", params.channelIndex);

@@ -348,8 +348,11 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     // In contrast to MTS-ESP, with MPE 2+ notes with same totalCents can be played simultaneously
     //      (useful if these notes have different bend)
 
-    ///< No pitch bend = 8192; 0 and 16383 are -48 and +48 semitones respectively
-    const double centsPerBendMPE = 96 * 100 / 16384.0;
+    /**
+     * No pitch bend = 8192; 0 and 16383 are -semiBendRangeMPE and +semiBendRangeMPE semitones
+     * respectively
+     */
+    double centsPerBendMPE = 48 * 100.0 / 8192;
 
     ///< Is used to correct totalCents taking into account A4 freq
     double corrTotalCentsMPE = 0;

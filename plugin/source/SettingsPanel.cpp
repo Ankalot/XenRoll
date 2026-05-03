@@ -126,6 +126,24 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     };
     resetPitchBendOnNoteOffCheckbox->setSize(rowHeight, rowHeight);
     addAndMakeVisible(resetPitchBendOnNoteOffCheckbox.get());
+
+    semiBendRangeLabel = std::make_unique<juce::Label>();
+    semiBendRangeLabel->setFont(currentFont);
+    semiBendRangeLabel->setText("MPE pitch bend range:",
+                                juce::dontSendNotification);
+    addAndMakeVisible(semiBendRangeLabel.get());
+
+    semiBendRangeCombo = std::make_unique<juce::ComboBox>();
+    semiBendRangeCombo->addItem(juce::juce_wchar(0x00B1) + juce::String("12 semitones"), 12);
+    semiBendRangeCombo->addItem(juce::juce_wchar(0x00B1) + juce::String("24 semitones"), 24);
+    semiBendRangeCombo->addItem(juce::juce_wchar(0x00B1) + juce::String("48 semitones"), 48);
+    semiBendRangeCombo->addItem(juce::juce_wchar(0x00B1) + juce::String("96 semitones"), 96);
+    semiBendRangeCombo->setSelectedId(params->semiBendRangeMPE);
+    semiBendRangeLabel->attachToComponent(semiBendRangeCombo.get(), true);
+    semiBendRangeCombo->onChange = [this, params]() {
+        params->semiBendRangeMPE = semiBendRangeCombo->getSelectedId();
+    };
+    addAndMakeVisible(semiBendRangeCombo.get());
 }
 
 void SettingsPanel::resized() {
@@ -165,6 +183,11 @@ void SettingsPanel::resized() {
     auto resetBendRow = area.removeFromTop(rowHeight + padding);
     resetPitchBendOnNoteOffLabel->setBounds(resetBendRow.removeFromLeft(labelWidth));
     resetPitchBendOnNoteOffCheckbox->setBounds(resetBendRow);
+
+    // Semi bend range (MPE)
+    auto bendRangeMPERow = area.removeFromTop(rowHeight + padding);
+    semiBendRangeLabel->setBounds(bendRangeMPERow.removeFromLeft(labelWidth));
+    semiBendRangeCombo->setBounds(bendRangeMPERow);
 }
 
 void SettingsPanel::paint(juce::Graphics &g) { g.fillAll(params->theme.darker); }

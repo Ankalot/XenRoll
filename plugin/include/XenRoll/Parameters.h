@@ -142,6 +142,8 @@ class Parameters {
     int instanceId = -1;
     float maxChordDtimeClockDiagram = 1.0f / 32; ///< in bars
     bool resetPitchBendOnNoteOff = false;        ///< setting for MPE tuning
+    ///< Possible values: {12, 24, 48, 96}. Setting for MPE tuning
+    int semiBendRangeMPE = 48;
     // ================== Intellectual ==================
     // Partials/dissonance
     std::atomic<int> findPartialsFFTSize = 8192;
