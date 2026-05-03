@@ -53,7 +53,7 @@ void NotesSharingMPE::initSharedMemory() {
         throw std::runtime_error("Unable to acquire mutex lock within timeout - possible deadlock");
     }
 
-    instancesNotes = sharedMemory->find_or_construct<ShmemMap>("InstanceNotes")(
+    instancesData = sharedMemory->find_or_construct<ShmemMap>("InstancesData")(
         IntComparator(), ShmemAllocator(sharedMemory->get_segment_manager()));
 }
 
@@ -66,20 +66,29 @@ void NotesSharingMPE::initInstance(int id) {
         instanceId = findSmallestFreeId();
     }
 
-    // Create empty vector for this instance directly in the map
-    // The map's allocator will handle the vector's memory in shared space
-    ShmemVector emptyVector(ShmemAllocator(sharedMemory->get_segment_manager()));
-    instancesNotes->emplace(instanceId, emptyVector);
+    uniqueId = boost::uuids::random_generator()();
+    os_things::process_id myProcessId = os_things::get_current_pid();
+
+    instancesData->emplace(
+        std::piecewise_construct, std::forward_as_tuple(instanceId),
+        std::forward_as_tuple(myProcessId, uniqueId, sharedMemory->get_segment_manager()));
 
     isActive = true;
 }
 
 int NotesSharingMPE::findSmallestFreeId() {
     int id = 0;
-    while (instancesNotes->find(id) != instancesNotes->end()) {
+    while (true) {
+        auto it = instancesData->find(id);
+        if (it != instancesData->end()) {
+            if (!os_things::is_process_active(it->second.process_id)) {
+                return id;
+            }
+        } else {
+            return id;
+        }
         ++id;
     }
-    return id;
 }
 
 NotesSharingMPE::~NotesSharingMPE() {
@@ -87,15 +96,18 @@ NotesSharingMPE::~NotesSharingMPE() {
         return;
     }
 
-    bool shouldCleanup = false;
+    bool shouldCleanup = true;
     {
         bip::scoped_lock<bip::named_mutex> lock(*mutex);
 
-        instancesNotes->erase(instanceId);
+        instancesData->erase(instanceId);
 
         // Check if we're the last instance
-        if (instancesNotes->empty()) {
-            shouldCleanup = true;
+        for (const auto &[id, val] : *instancesData) {
+            if (os_things::is_process_active(val.process_id)) {
+                shouldCleanup = false;
+                break;
+            }
         }
     }
 
@@ -118,7 +130,7 @@ std::set<int> NotesSharingMPE::getAllInstanceIds() const {
 
     bip::scoped_lock<bip::named_mutex> lock(*mutex);
 
-    for (auto it = instancesNotes->begin(); it != instancesNotes->end(); ++it) {
+    for (auto it = instancesData->begin(); it != instancesData->end(); ++it) {
         ids.insert(it->first);
     }
 
@@ -132,9 +144,9 @@ void NotesSharingMPE::updateNotes(const std::vector<Note> &notes) {
 
     bip::scoped_lock<bip::named_mutex> lock(*mutex);
 
-    auto it = instancesNotes->find(instanceId);
-    if (it != instancesNotes->end()) {
-        it->second.assign(notes.begin(), notes.end());
+    auto it = instancesData->find(instanceId);
+    if (it != instancesData->end()) {
+        it->second.notes.assign(notes.begin(), notes.end());
     }
 }
 
@@ -149,8 +161,15 @@ void NotesSharingMPE::changeInstanceId(int desInstId) {
         return;
     }
 
-    ShmemVector emptyVector(ShmemAllocator(sharedMemory->get_segment_manager()));
-    instancesNotes->emplace(instanceId, emptyVector);
+    // Delete our previous id
+    if (instancesData->contains(instanceId) && (*instancesData)[instanceId].uniqueId == uniqueId) {
+        instancesData->erase(instanceId);
+    }
+
+    os_things::process_id myProcessId = os_things::get_current_pid();
+    instancesData->emplace(
+        std::piecewise_construct, std::forward_as_tuple(desInstId),
+        std::forward_as_tuple(myProcessId, uniqueId, sharedMemory->get_segment_manager()));
 
     instanceId = desInstId;
 }
@@ -165,9 +184,9 @@ std::vector<Note> NotesSharingMPE::getInstancesNotes(const std::set<int> &instan
     bip::scoped_lock<bip::named_mutex> lock(*mutex);
 
     for (int id : instancesIds) {
-        auto it = instancesNotes->find(id);
-        if (it != instancesNotes->end()) {
-            result.insert(result.end(), it->second.begin(), it->second.end());
+        auto it = instancesData->find(id);
+        if (it != instancesData->end()) {
+            result.insert(result.end(), it->second.notes.begin(), it->second.notes.end());
         }
     }
 

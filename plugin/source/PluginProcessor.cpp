@@ -32,7 +32,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     threadPool = std::make_unique<juce::ThreadPool>(1);
     partialsFinder = std::make_shared<PartialsFinder>();
     wasPianoRoll = !params.findPartialsMode.load();
-    for (int i = 0; i < params.num_octaves * 12; ++i) {
+    for (int i = 0; i < 128; ++i) {
         freqs12EDO[i] = getFreqFromTotalCents(i * 100.0f);
     }
     partialsFinderBuffer = std::make_unique<AccumulatingBuffer>();
@@ -156,7 +156,7 @@ bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout &layout
 
 int AudioPluginAudioProcessor::findFreqInd(double freq) {
     for (int i = 0; i < 128; ++i) {
-        if (freqs[i] == freq) {
+        if (std::abs(freqs[i] - freq) < 1e-6) {
             return i;
         }
     }
@@ -297,7 +297,7 @@ int AudioPluginAudioProcessor::freqToTotalCents(float freq) {
     // totalCents = 4 * 1200 + 900 = 5700
     const int A4TotalCents = 4 * 1200 + 900;
     double cents = 1200.0 * std::log2(freq / params.A4Freq.load());
-    return static_cast<int>(std::round(A4TotalCents + cents));
+    return juce::roundToInt(A4TotalCents + cents);
 }
 
 void AudioPluginAudioProcessor::vocalIsSilent() {
@@ -784,15 +784,15 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                             int ch = getFreeChannelMPE();
                             if (ch != -1) {
                                 pitchesOverflow = false;
+                                int noteOnSample = int(
+                                    ceil(numSamples * (note.time - playHeadTime) / barsInBlock));
                                 std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
                                 juce::MidiMessage pitchBend =
                                     juce::MidiMessage::pitchWheel(ch, bendMPE);
-                                midiMessages.addEvent(pitchBend, 0);
+                                midiMessages.addEvent(pitchBend, noteOnSample);
                                 juce::MidiMessage noteOn =
                                     juce::MidiMessage::noteOn(ch, midiNote, note.velocity);
-                                midiMessages.addEvent(
-                                    noteOn, int(ceil(numSamples * (note.time - playHeadTime) /
-                                                     barsInBlock)));
+                                midiMessages.addEvent(noteOn, noteOnSample);
                                 channelInUseMPE[ch - 2] = midiNote;
                                 noteToChannelMPE[{i, totalCents}] = ch;
                                 addCurrPlayedNotesTotalCentsMPE(totalCents);
@@ -984,7 +984,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     } else {
                         juce::MidiMessage noteOff =
                             juce::MidiMessage::noteOff(params.channelIndex + 1, ind);
-                        midiMessages.addEvent(noteOff, 1);
+                        midiMessages.addEvent(noteOff, 0);
                         int totalCents;
                         if (beforeBendTotalCents[ind] != -1) {
                             totalCents = beforeBendTotalCents[ind];
@@ -1655,17 +1655,17 @@ double AudioPluginAudioProcessor::getNoteFreq(const Note &note) {
     if ((note.bend != 0) && (note.time < playHeadTime) &&
         (playHeadTime <= note.time + note.duration))
         dBend = note.bend * (playHeadTime - note.time) / note.duration;
-    float dCents = (note.octave * 1200 + note.cents + dBend) - (4 * 1200 + 900);
+    double dCents = (note.octave * 1200 + note.cents + dBend) - (4 * 1200 + 900);
     return params.A4Freq.load() * pow(2.0, dCents / 1200.0);
 }
 
 double AudioPluginAudioProcessor::getFreqFromTotalCents(float totalCents) {
-    float dCents = totalCents - (4 * 1200 + 900);
+    double dCents = totalCents - (4 * 1200 + 900);
     return params.A4Freq.load() * pow(2.0, dCents / 1200.0);
 }
 
 int AudioPluginAudioProcessor::getTotalCentsFromFreq(double freq) {
-    return int(round(1200 * log2(freq / params.A4Freq.load()) + (4 * 1200 + 900)));
+    return juce::roundToInt(1200 * log2(freq / params.A4Freq.load()) + (4 * 1200 + 900));
 }
 
 void AudioPluginAudioProcessor::prepareNotes() {

@@ -410,7 +410,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     std::pair<int, int> calcMidiNoteAndBendMPE(int totalCents) {
         double correctedTotalCents = totalCents + corrTotalCentsMPE;
         // 0 totalCents = C0 = 12th midi note
-        int midiNote = 12 + juce::roundToInt(correctedTotalCents / 100.0);
+        int midiNote = juce::jlimit(0, 127, 12 + juce::roundToInt(correctedTotalCents / 100.0));
         double bendCents = correctedTotalCents - (midiNote - 12) * 100;
         int bendMPE = juce::jlimit(0, 16383, 8192 + juce::roundToInt(bendCents / centsPerBendMPE));
         return std::make_pair(midiNote, bendMPE);
