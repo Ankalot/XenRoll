@@ -19,8 +19,6 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     AudioPluginAudioProcessor();
     ~AudioPluginAudioProcessor() override;
 
-    void changeInstanceSync(Parameters::TuningType newTuningType);
-
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
@@ -161,13 +159,15 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     std::unique_ptr<PluginInstanceManager> pluginInstanceManager; ///< For MTS-ESP
     bool isActive = false;
     std::unique_ptr<NotesSharingMPE> notesSharingMPE; ///< For MPE
+
+    void changeInstanceSync(Parameters::TuningType newTuningType);
     // ============================================================================================
 
     // ===================================== PARTIALS FINDING =====================================
     double freqs12EDO[128]{0.0};
     std::array<bool, 128> activeMidiNotes{false};
     bool wasPianoRoll = true;
-    int recordingMidiNote;
+    int recordingMidiNote = -1;
     bool isRecording = false;
     std::unique_ptr<AccumulatingBuffer> partialsFinderBuffer;
     std::shared_ptr<PartialsFinder> partialsFinder;
@@ -216,7 +216,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     std::vector<float> vocalAccumBuffer; ///< Accumulation buffer for vocal input
     int vocalAccumCount = 0;             ///< Number of samples currently in buffer
     ///< It is playHeadTime but with delay that is caused by vocalAccumBuffer, in bars
-    double pitchTime;
+    double pitchTime = 0.0;
 
     void processVocalInput(const juce::AudioBuffer<float> &buffer, int numSamples,
                            double sampleRate);
@@ -286,7 +286,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
      * A flag that indicates whether we have started playing notes (noteOn) from
      * manuallyPlayedNotesTotalCents
      */
-    bool startedPlayingManuallyPressedNotes;
+    bool startedPlayingManuallyPressedNotes = false;
 
     std::atomic<double> playHeadTime = 0.0; ///< in bars
     // ============================================================================================

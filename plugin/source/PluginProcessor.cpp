@@ -601,7 +601,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
     } else {
         // If piano roll mode right after partials finding mode
         if (!wasPianoRoll) {
-            rePrepareNotes();
+            prepareNotes();
             wasPianoRoll = true;
         }
     }
