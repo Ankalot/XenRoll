@@ -282,7 +282,7 @@ class Parameters {
      * key - total cents of tone, value - partials of tone
      * Partials consist of pairs {freq, amp}, where freq is in Hz and amp is linear (gain)
      */
-    std::map<int, partialsVec> tonesPartials = {{5700, {{A4Freq, 1.0f}}}};
+    std::map<int, partialsVec> tonesPartials = {{5700, {{static_cast<float>(A4Freq.load()), 1.0f}}}};
     // GUI and processor threads can try to get/set partials at the same time
     std::mutex partialsMutex;
     // ==================================================

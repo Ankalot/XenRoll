@@ -164,7 +164,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         partialsTotalCents = p.params.get_tonesPartials().begin()->first;
     }
     dissonanceMeter =
-        std::make_shared<DissonanceMeter>(partials, partialsTotalCents, p.params.A4Freq,
+        std::make_shared<DissonanceMeter>(partials, partialsTotalCents,
+                                          static_cast<float>(p.params.A4Freq.load()),
                                           p.params.roughCompactFrac, p.params.dissonancePow);
 
     pitchMemory = std::make_shared<PitchMemory>(

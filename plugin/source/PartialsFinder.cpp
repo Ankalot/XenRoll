@@ -1,7 +1,7 @@
 #include "XenRoll/PartialsFinder.h"
 
 namespace audio_plugin {
-PartialsFinder::PartialsFinder() { fft = std::make_unique<juce::dsp::FFT>(std::log2(fftSize)); }
+PartialsFinder::PartialsFinder() { fft = std::make_unique<juce::dsp::FFT>(static_cast<int>(std::log2(fftSize))); }
 
 void PartialsFinder::setdBThr(float newdBThr) { dBThr = newdBThr; }
 
@@ -326,7 +326,7 @@ void PartialsFinder::setFFTSize(int newFFTSize) {
     newFFTSize = juce::roundToInt(std::pow(2, std::log2(fftSize)));
     if (fftSize != newFFTSize) {
         fftSize = newFFTSize;
-        fft = std::make_unique<juce::dsp::FFT>(std::log2(fftSize));
+        fft = std::make_unique<juce::dsp::FFT>(static_cast<int>(std::log2(fftSize)));
     }
 }
 } // namespace audio_plugin

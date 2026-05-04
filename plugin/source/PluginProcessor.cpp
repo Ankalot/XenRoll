@@ -1654,6 +1654,7 @@ std::vector<Note> AudioPluginAudioProcessor::getOtherInstancesNotes() {
     } else if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
         return pluginInstanceManager->getChannelsNotes(params.ghostNotesChannels);
     }
+    return {};
 }
 
 float AudioPluginAudioProcessor::getPlayHeadTime() { return float(playHeadTime); }
@@ -1766,7 +1767,7 @@ std::tuple<float, int, int> AudioPluginAudioProcessor::getBpmNumDenom() {
             return std::make_tuple(float(bpm), timeSig.numerator, timeSig.denominator);
         }
     }
-    return std::make_tuple(120.0, 4, 4);
+    return std::make_tuple(120.0f, 4, 4);
 }
 
 std::set<int> AudioPluginAudioProcessor::getAllCurrPlayedNotesTotalCents() {

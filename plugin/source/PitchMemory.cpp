@@ -48,7 +48,7 @@ std::optional<PitchMemoryResults> PitchMemory::findPitchTraces(const std::vector
         pitchesTotalCentsSet.insert(note.octave * 1200 + note.cents);
     }
     std::vector<int> pitchesTotalCents(pitchesTotalCentsSet.begin(), pitchesTotalCentsSet.end());
-    const int numPitches = pitchesTotalCents.size();
+    const int numPitches = static_cast<int>(pitchesTotalCents.size());
     std::map<int, int> totalCentsToIndex;
     for (int i = 0; i < numPitches; ++i) {
         totalCentsToIndex[pitchesTotalCents[i]] = i;
@@ -56,7 +56,7 @@ std::optional<PitchMemoryResults> PitchMemory::findPitchTraces(const std::vector
     pitchTraces.first = pitchesTotalCents;
 
     // 2. First note
-    int numNotes = sortedNotes.size();
+    int numNotes = static_cast<int>(sortedNotes.size());
     if (numNotes == 0) {
         return std::make_pair(pitchTraces, notesHarmonicity);
     }
@@ -126,7 +126,7 @@ std::optional<PitchMemoryResults> PitchMemory::findPitchTraces(const std::vector
             const int traceTotalCents = pitchesTotalCents[i];
             if (traceTotalCents != totalCents) {
                 tracesValues[i] = std::min(
-                    1.0, tracesValues[i] * std::pow(2, std::min(1.0f, TV + TV_add_influence) * HV));
+                    1.0f, tracesValues[i] * std::pow(2.0f, std::min(1.0f, TV + TV_add_influence) * HV));
                 if (tracesValues[i] < TV_min_nonzero) {
                     tracesValues[i] = 0.0f;
                 }
@@ -143,7 +143,7 @@ PitchMemory::findKeysHarmonicity(const PitchMemoryResults &pitchMemoryResults,
                                  const std::atomic<bool> &terminate) {
     // Data from pitchMemoryResults
     const std::vector<int> &pitchesTotalCents = pitchMemoryResults.first.first;
-    const int numPitches = pitchesTotalCents.size();
+    const int numPitches = static_cast<int>(pitchesTotalCents.size());
     if (numPitches == 0) {
         return {};
     }

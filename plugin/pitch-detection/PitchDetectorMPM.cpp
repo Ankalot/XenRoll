@@ -7,7 +7,7 @@ namespace pitch_detection {
 PitchDetectorMPM::PitchDetectorMPM(int fftSize)
     : fftSize(fftSize), minVoiceFreq(70.0f), maxVoiceFreq(1500.0f), peakCount(0) {
     // Initialize FFT
-    fft = std::make_unique<juce::dsp::FFT>(std::log2(fftSize));
+    fft = std::make_unique<juce::dsp::FFT>(static_cast<int>(std::log2(fftSize)));
 
     // Initialize window (Hann window)
     window = std::make_unique<juce::dsp::WindowingFunction<float>>(

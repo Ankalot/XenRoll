@@ -14,8 +14,8 @@ void DissonanceMeter::setPartials(const partialsVec &partials, int partialsTotal
     partialsA4 = partials;
     if (partialsA4.empty())
         return;
-    for (auto [freq, amp] : partialsA4) {
-        freq = freq * std::pow(2, (partialsTotalCents - A4totalCents) / 1200.0);
+    for (auto &[freq, amp] : partialsA4) {
+        freq = freq * std::pow(2.0f, (partialsTotalCents - A4totalCents) / 1200.0f);
     }
 
     // Delete some partials if there are too much
@@ -75,19 +75,19 @@ float DissonanceMeter::calcGeomIndNorm(const Ratio &r) {
     if ((r.num == 1) && (r.den == 1)) {
         return 1;
     }
-    return sqrt(2) / sqrt(r.num * r.den);
+    return std::sqrt(2.0f) / std::sqrt(static_cast<float>(r.num) * r.den);
 }
 
-float DissonanceMeter::calcERB(float f) { return 24.7 * std::log10(4.37 * f / 1000 + 1); }
+float DissonanceMeter::calcERB(float f) { return 24.7f * std::log10(4.37f * f / 1000.0f + 1.0f); }
 
-float DissonanceMeter::calcDL(float f) { return calcERB(f) * 0.35; }
+float DissonanceMeter::calcDL(float f) { return calcERB(f) * 0.35f; }
 
-float DissonanceMeter::calcSigma(float f) { return std::log2(calcDL(f) / f + 1) * 1200; }
+float DissonanceMeter::calcSigma(float f) { return std::log2(calcDL(f) / f + 1.0f) * 1200.0f; }
 
 float DissonanceMeter::calcCompactnessGeom(int totalCents1, int totalCents2) {
-    float f1 = A4freq * std::pow(2, (totalCents1 - A4totalCents) / 1200.0);
+    float f1 = A4freq * std::pow(2.0f, (totalCents1 - A4totalCents) / 1200.0f);
     int cents = totalCents2 - totalCents1;
-    float f2 = f1 * std::pow(2, cents / 1200.0);
+    float f2 = f1 * std::pow(2.0f, cents / 1200.0f);
     float sigma = calcSigma(f2);
 
     float compactness = 0;
@@ -95,7 +95,7 @@ float DissonanceMeter::calcCompactnessGeom(int totalCents1, int totalCents2) {
         float ratioCents = r.cents();
         if ((cents - 2 * sigma < ratioCents) && (ratioCents < cents + 2 * sigma)) {
             float geomInd = calcGeomIndNorm(r);
-            float ratioComp = geomInd * std::exp(-0.5 * std::pow((cents - ratioCents) / sigma, 2));
+            float ratioComp = geomInd * std::exp(-0.5f * std::pow((cents - ratioCents) / sigma, 2.0f));
             if (ratioComp > compactness) {
                 compactness = ratioComp;
             }
@@ -107,12 +107,12 @@ float DissonanceMeter::calcCompactnessGeom(int totalCents1, int totalCents2) {
     return compactness;
 }
 
-float DissonanceMeter::calcTenney(const Ratio &r) { return std::log2(r.num * r.den); }
+float DissonanceMeter::calcTenney(const Ratio &r) { return std::log2(static_cast<float>(r.num) * r.den); }
 
 float DissonanceMeter::calcCompactnessTenneyNotScaled(int totalCents1, int totalCents2) {
-    float f1 = A4freq * std::pow(2, (totalCents1 - A4totalCents) / 1200.0);
+    float f1 = A4freq * std::pow(2.0f, (totalCents1 - A4totalCents) / 1200.0f);
     int cents = totalCents2 - totalCents1;
-    float f2 = f1 * std::pow(2, cents / 1200.0);
+    float f2 = f1 * std::pow(2.0f, cents / 1200.0f);
     float k = std::max(calcSigma(f2) * tenneyParWidthCoef, 8.0f);
 
     float compactness = 1e9;
@@ -181,8 +181,8 @@ float DissonanceMeter::calcRoughnessNotScaled(int totalCents1, int totalCents2,
     partials.reserve(partialsA4.size() * 2);
 
     // Find partials of two tones
-    float ratio1 = std::pow(2, (totalCents1 - A4totalCents) / 1200.0);
-    float ratio2 = std::pow(2, (totalCents2 - A4totalCents) / 1200.0);
+    float ratio1 = std::pow(2.0f, (totalCents1 - A4totalCents) / 1200.0f);
+    float ratio2 = std::pow(2.0f, (totalCents2 - A4totalCents) / 1200.0f);
     for (const auto &[freq, amp] : partialsA4) {
         float freq1 = freq * ratio1;
         if ((20 < freq1) && (freq1 < 20000)) {
@@ -196,7 +196,7 @@ float DissonanceMeter::calcRoughnessNotScaled(int totalCents1, int totalCents2,
 
     // Find sum and diff partials
     if (includeSumsDiffs) {
-        int numPartials = partials.size();
+        int numPartials = static_cast<int>(partials.size());
         for (int i = 0; i < numPartials; ++i) {
             for (int j = i + 1; j < numPartials; ++j) {
                 float freqDiff = abs(partials[i].first - partials[j].first);
@@ -228,9 +228,9 @@ float DissonanceMeter::calcRoughnessNotScaled(int totalCents1, int totalCents2,
     const float A1 = -3.51f;
     const float A2 = -5.75f;
     float D = 0.0f;
-    const int N = partials.size();
-    for (size_t i = 0; i < N; ++i) {
-        for (size_t j = i + 1; j < N; ++j) {
+    const int N = static_cast<int>(partials.size());
+    for (int i = 0; i < N; ++i) {
+        for (int j = i + 1; j < N; ++j) {
             const auto &p1 = partials[i];
             const auto &p2 = partials[j];
 

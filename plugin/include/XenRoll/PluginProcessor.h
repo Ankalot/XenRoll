@@ -150,6 +150,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
         } else if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
             return pluginInstanceManager->getAllInstanceChannels();
         }
+        return {};
     }
 
     void changedChannelsEconomyModeMPE() {

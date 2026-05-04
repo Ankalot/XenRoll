@@ -20,7 +20,7 @@ void ClockDiagramPanel::refresh() {
 
     for (const Note &note : notes) {
         if ((note.time <= time) && (time < note.time + note.duration)) {
-            float cents =
+            int cents =
                 (note.cents + juce::roundToInt(note.bend * (time - note.time) / note.duration)) %
                 1200;
             actualNotesTimeAndCents.push_back(std::make_pair(note.time, cents));
