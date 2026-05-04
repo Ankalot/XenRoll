@@ -27,6 +27,8 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     a4FreqLabel = std::make_unique<juce::Label>();
     a4FreqLabel->setText("A4 Frequency (Hz):", juce::dontSendNotification);
     a4FreqLabel->setFont(currentFont);
+    a4FreqLabel->setTooltip("If MPE tuning mode: either change A4 freq here, or change it in "
+                            "the synthesizer, but not everywhere!");
     addAndMakeVisible(a4FreqLabel.get());
 
     a4FreqSlider = std::make_unique<juce::Slider>();
@@ -130,6 +132,9 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     semiBendRangeLabel = std::make_unique<juce::Label>();
     semiBendRangeLabel->setFont(currentFont);
     semiBendRangeLabel->setText("MPE pitch bend range (MPE only):", juce::dontSendNotification);
+    semiBendRangeLabel->setTooltip(
+        "1. It should be the same as in synth!\n2. Lower range means higher accuracy in tuning BUT "
+        "lower max bend for bended notes.");
     addAndMakeVisible(semiBendRangeLabel.get());
 
     semiBendRangeCombo = std::make_unique<juce::ComboBox>();
@@ -148,6 +153,10 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     channelsEconomyModeMPELabel->setText("MIDI channels economy mode (MPE only):",
                                          juce::dontSendNotification);
     channelsEconomyModeMPELabel->setFont(currentFont);
+    channelsEconomyModeMPELabel->setTooltip(
+        "If active: notes that have same {cents % 100} will occupy same MIDI channels. So the "
+        "maximum number of simultaneously playing notes can be more than 15. It will cause errors "
+        "if the synth does not support polyphony on each MIDI channel in MPE mode!");
     addAndMakeVisible(channelsEconomyModeMPELabel.get());
 
     channelsEconomyModeMPECheckbox = std::make_unique<juce::ToggleButton>();
@@ -167,48 +176,39 @@ void SettingsPanel::resized() {
 
     // Starting octave
     auto octaveRow = area.removeFromTop(rowHeight + padding);
-    startingOctaveLabel->setBounds(octaveRow.removeFromLeft(labelWidth));
-    startingOctaveCombo->setBounds(octaveRow);
+    startingOctaveCombo->setBounds(octaveRow.withTrimmedLeft(labelWidth));
 
     // A4 frequency
     auto freqRow = area.removeFromTop(rowHeight + padding);
-    a4FreqLabel->setBounds(freqRow.removeFromLeft(labelWidth));
-    a4FreqSlider->setBounds(freqRow);
+    a4FreqSlider->setBounds(freqRow.withTrimmedLeft(labelWidth));
 
     // Height coefficient
     auto heightRow = area.removeFromTop(rowHeight + padding);
-    heightCoefLabel->setBounds(heightRow.removeFromLeft(labelWidth));
-    heightCoefSlider->setBounds(heightRow);
+    heightCoefSlider->setBounds(heightRow.withTrimmedLeft(labelWidth));
 
     // Const height of notes' rectangles
     auto constHeightRow = area.removeFromTop(rowHeight + padding);
-    constNoteRectHeightLabel->setBounds(constHeightRow.removeFromLeft(labelWidth));
-    constNoteRectHeightCheckbox->setBounds(constHeightRow);
+    constNoteRectHeightCheckbox->setBounds(constHeightRow.withTrimmedLeft(labelWidth));
 
     // Color theme
     auto themeRow = area.removeFromTop(rowHeight + padding);
-    themeTypeLabel->setBounds(themeRow.removeFromLeft(labelWidth));
-    themeTypeCombo->setBounds(themeRow);
+    themeTypeCombo->setBounds(themeRow.withTrimmedLeft(labelWidth));
 
     // Play dragged notes
     auto playRow = area.removeFromTop(rowHeight + padding);
-    playDraggedNotesLabel->setBounds(playRow.removeFromLeft(labelWidth));
-    playDraggedNotesCheckbox->setBounds(playRow);
+    playDraggedNotesCheckbox->setBounds(playRow.withTrimmedLeft(labelWidth));
 
     // Reset pitch bend on note off (MPE)
     auto resetBendRow = area.removeFromTop(rowHeight + padding);
-    resetPitchBendOnNoteOffLabel->setBounds(resetBendRow.removeFromLeft(labelWidth));
-    resetPitchBendOnNoteOffCheckbox->setBounds(resetBendRow);
+    resetPitchBendOnNoteOffCheckbox->setBounds(resetBendRow.withTrimmedLeft(labelWidth));
 
     // Semi bend range (MPE)
     auto bendRangeMPERow = area.removeFromTop(rowHeight + padding);
-    semiBendRangeLabel->setBounds(bendRangeMPERow.removeFromLeft(labelWidth));
-    semiBendRangeCombo->setBounds(bendRangeMPERow);
+    semiBendRangeCombo->setBounds(bendRangeMPERow.withTrimmedLeft(labelWidth));
 
     // Channels economy mode (MPE)
     auto chEconMPERow = area.removeFromTop(rowHeight + padding);
-    channelsEconomyModeMPELabel->setBounds(chEconMPERow.removeFromLeft(labelWidth));
-    channelsEconomyModeMPECheckbox->setBounds(chEconMPERow);
+    channelsEconomyModeMPECheckbox->setBounds(chEconMPERow.withTrimmedLeft(labelWidth));
 }
 
 void SettingsPanel::paint(juce::Graphics &g) { g.fillAll(params->theme.darker); }

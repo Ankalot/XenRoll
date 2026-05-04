@@ -53,7 +53,7 @@ class SettingsPanel : public juce::Component {
 
     const int padding = 15;
     const int rowHeight = 28;
-    const int labelWidth = 350;
+    const int labelWidth = 400;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SettingsPanel)
 };

@@ -96,6 +96,7 @@ PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters *params,
     addAndMakeVisible(TVminNonzeroSlider.get());
 
     showOnlyHarmonicityCheckbox = std::make_unique<juce::ToggleButton>();
+    showOnlyHarmonicityLabel->attachToComponent(showOnlyHarmonicityCheckbox.get(), true);
     showOnlyHarmonicityCheckbox->setToggleState(params->pitchMemoryShowOnlyHarmonicity,
                                                 juce::dontSendNotification);
     showOnlyHarmonicityCheckbox->onStateChange = [this, params]() {
@@ -151,20 +152,16 @@ void PitchMemorySettingsPanel::resized() {
     auto area = getLocalBounds().reduced(padding);
 
     auto row = area.removeFromTop(rowHeight + padding);
-    TVvalForZeroHVLabel->setBounds(row.removeFromLeft(labelWidth));
-    TVvalForZeroHVSlider->setBounds(row);
+    TVvalForZeroHVSlider->setBounds(row.withTrimmedLeft(labelWidth));
 
     row = area.removeFromTop(rowHeight + padding);
-    TVaddInfluenceLabel->setBounds(row.removeFromLeft(labelWidth));
-    TVaddInfluenceSlider->setBounds(row);
+    TVaddInfluenceSlider->setBounds(row.withTrimmedLeft(labelWidth));
 
     row = area.removeFromTop(rowHeight + padding);
-    TVminNonzeroLabel->setBounds(row.removeFromLeft(labelWidth));
-    TVminNonzeroSlider->setBounds(row);
+    TVminNonzeroSlider->setBounds(row.withTrimmedLeft(labelWidth));
 
     row = area.removeFromTop(rowHeight + padding);
-    showOnlyHarmonicityLabel->setBounds(row.removeFromLeft(labelWidth));
-    showOnlyHarmonicityCheckbox->setBounds(row);
+    showOnlyHarmonicityCheckbox->setBounds(row.withTrimmedLeft(labelWidth));
 
     area.removeFromTop(padding + juce::roundToInt(Theme::wider));
     algoDescrLabel->setSize(area.getWidth() - 10, 470);

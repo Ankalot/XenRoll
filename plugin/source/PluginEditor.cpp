@@ -320,10 +320,10 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         this->processorRef.params.setTuningType(
             static_cast<Parameters::TuningType>(tuningTypeCombo->getSelectedId()));
     };
-    tuningTypeCombo->setTooltip("AFTER THE CHANGE: SAVE & RESTART PROJECT! [MPE: max 15 "
-                                "simultaneously playing pitches; default] [MTS-ESP: max 16 "
+    tuningTypeCombo->setTooltip("AFTER THE CHANGE: SAVE & RESTART PROJECT!\nMPE: max 15 "
+                                "simultaneously playing pitches; default\nMTS-ESP: max 16 "
                                 "instances, each instance uses separate midi channel; check out "
-                                "the details in the README on Github: github.com/ankalot/xenroll]");
+                                "the details in the README on Github: github.com/ankalot/xenroll");
     addAndMakeVisible(tuningTypeCombo.get());
 
     ghostNotesKeysButton = std::make_unique<SVGButton>(
