@@ -14,8 +14,6 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                          ),
       manPlNotesTotCentsHistory(128), params() {
 
-    channelInUseMPE.fill(-1);
-
     // INSTANCES SYNC (params.getTuningType() IS DEFAULT HERE, BECAUSE IT ONLY WILL
     //                 BE READ IN setStateInformation)
     if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
@@ -27,6 +25,9 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
         isActive = notesSharingMPE->getIsActive();
         params.instanceId = notesSharingMPE->getInstanceId();
     }
+
+    // For MPE use only:
+    channelsManagerMPE = std::make_unique<ChannelsManagerMPE>(params.channelsEconomyModeMPE);
 
     // PARTIALS FINDING
     threadPool = std::make_unique<juce::ThreadPool>(1);
@@ -48,6 +49,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor() {}
 
 void AudioPluginAudioProcessor::changeInstanceSync(Parameters::TuningType newTuningType) {
+    suspendProcessing(true);
     if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
         pluginInstanceManager.reset();
         params.channelIndex = -1;
@@ -69,6 +71,7 @@ void AudioPluginAudioProcessor::changeInstanceSync(Parameters::TuningType newTun
         isActive = notesSharingMPE->getIsActive();
         params.instanceId = notesSharingMPE->getInstanceId();
     }
+    suspendProcessing(false);
 }
 
 const juce::String AudioPluginAudioProcessor::getName() const {
@@ -670,14 +673,15 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 corrTotalCentsMPE = 1200 * log2(params.A4Freq / 440.0);
 
                 // Stop playing unexisting notes (manually pressed)
-                for (auto it = manPlNoteToChannelMPE.begin(); it != manPlNoteToChannelMPE.end();) {
-                    const auto &[totalCents, ch] = *it;
+                for (auto it = manPlNoteToChAndMidiNoteMPE.begin();
+                     it != manPlNoteToChAndMidiNoteMPE.end();) {
+                    const auto &[totalCents, chAndMidiNote] = *it;
                     if (!manuallyPlayedNotesTotalCents.contains(totalCents)) {
                         juce::MidiMessage noteOff =
-                            juce::MidiMessage::noteOff(ch, channelInUseMPE[ch - 2]);
+                            juce::MidiMessage::noteOff(chAndMidiNote.first, chAndMidiNote.second);
                         midiMessages.addEvent(noteOff, 0);
-                        channelInUseMPE[ch - 2] = -1;
-                        it = manPlNoteToChannelMPE.erase(it);
+                        it = manPlNoteToChAndMidiNoteMPE.erase(it);
+                        channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
                     } else {
                         ++it;
                     }
@@ -685,8 +689,9 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
 
                 // Stop playing unexisting notes (from piano roll)
                 if (isPlaying) {
-                    for (auto it = noteToChannelMPE.begin(); it != noteToChannelMPE.end();) {
-                        const auto &[key, ch] = *it;
+                    for (auto it = noteToChAndMidiNoteMPE.begin();
+                         it != noteToChAndMidiNoteMPE.end();) {
+                        const auto &[key, chAndMidiNote] = *it;
                         int i = key.first;
                         int totalCents = key.second;
                         bool stopPlayingThisNote = false;
@@ -704,25 +709,25 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         }
 
                         if (stopPlayingThisNote) {
-                            juce::MidiMessage noteOff =
-                                juce::MidiMessage::noteOff(ch, channelInUseMPE[ch - 2]);
+                            juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
+                                chAndMidiNote.first, chAndMidiNote.second);
                             midiMessages.addEvent(noteOff, 0);
-                            channelInUseMPE[ch - 2] = -1;
-                            it = noteToChannelMPE.erase(it);
+                            it = noteToChAndMidiNoteMPE.erase(it);
                             delCurrPlayedNotesTotalCentsMPE(totalCents);
+                            channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
                         } else {
                             ++it;
                         }
                     }
                 } else if (wasPlaying) {
-                    for (const auto &[key, ch] : noteToChannelMPE) {
+                    for (const auto &[key, chAndMidiNote] : noteToChAndMidiNoteMPE) {
                         juce::MidiMessage noteOff =
-                            juce::MidiMessage::noteOff(ch, channelInUseMPE[ch - 2]);
+                            juce::MidiMessage::noteOff(chAndMidiNote.first, chAndMidiNote.second);
                         midiMessages.addEvent(noteOff, 0);
-                        channelInUseMPE[ch - 2] = -1;
                         delCurrPlayedNotesTotalCentsMPE(key.second);
+                        channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
                     }
-                    noteToChannelMPE.clear();
+                    noteToChAndMidiNoteMPE.clear();
                 }
 
                 // Play notes from piano roll
@@ -734,29 +739,26 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         if ((note.time + note.duration >= playHeadTime) &&
                             (note.time + note.duration < playHeadTime + barsInBlock)) {
                             int totalCents = note.octave * 1200 + note.cents;
-                            if (noteToChannelMPE.contains({i, totalCents})) {
-                                int ch = noteToChannelMPE[{i, totalCents}];
-                                juce::MidiMessage noteOff =
-                                    juce::MidiMessage::noteOff(ch, channelInUseMPE[ch - 2]);
-                                midiMessages.addEvent(
-                                    noteOff, int(floor(numSamples *
-                                                       (note.time + note.duration - playHeadTime) /
-                                                       barsInBlock)));
-                                channelInUseMPE[ch - 2] = -1;
-                                noteToChannelMPE.erase({i, totalCents});
+                            if (noteToChAndMidiNoteMPE.contains({i, totalCents})) {
+                                int noteOffSample = int(
+                                    floor(numSamples * (note.time + note.duration - playHeadTime) /
+                                          barsInBlock));
+                                const auto &chAndMidiNote = noteToChAndMidiNoteMPE[{i, totalCents}];
+                                juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
+                                    chAndMidiNote.first, chAndMidiNote.second);
+                                midiMessages.addEvent(noteOff, noteOffSample);
+                                noteToChAndMidiNoteMPE.erase({i, totalCents});
                                 delCurrPlayedNotesTotalCentsMPE(totalCents);
 
-                                if (params.resetPitchBendOnNoteOff) {
+                                if (params.resetPitchBendOnNoteOff && (note.bend != 0)) {
                                     std::tie(midiNote, bendMPE) =
                                         calcMidiNoteAndBendMPE(totalCents);
                                     juce::MidiMessage pitchBend =
-                                        juce::MidiMessage::pitchWheel(ch, bendMPE);
-                                    midiMessages.addEvent(
-                                        pitchBend,
-                                        int(floor(numSamples *
-                                                  (note.time + note.duration - playHeadTime) /
-                                                  barsInBlock)));
+                                        juce::MidiMessage::pitchWheel(chAndMidiNote.first, bendMPE);
+                                    midiMessages.addEvent(pitchBend, noteOffSample);
                                 }
+
+                                channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
                             }
                         }
                     }
@@ -766,11 +768,11 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         if ((note.bend != 0) && (note.time < playHeadTime) &&
                             (playHeadTime <= note.time + note.duration)) {
                             int totalCents = note.octave * 1200 + note.cents;
-                            if (noteToChannelMPE.contains({i, totalCents})) {
-                                int ch = noteToChannelMPE[{i, totalCents}];
+                            if (noteToChAndMidiNoteMPE.contains({i, totalCents})) {
+                                const auto &chAndMidiNote = noteToChAndMidiNoteMPE[{i, totalCents}];
                                 int bendMPE = calcBendMPE(note);
                                 juce::MidiMessage pitchBend =
-                                    juce::MidiMessage::pitchWheel(ch, bendMPE);
+                                    juce::MidiMessage::pitchWheel(chAndMidiNote.first, bendMPE);
                                 midiMessages.addEvent(pitchBend, 0);
                             }
                         }
@@ -781,7 +783,9 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         if ((note.time >= playHeadTime) &&
                             (note.time < playHeadTime + barsInBlock)) {
                             int totalCents = note.octave * 1200 + note.cents;
-                            int ch = getFreeChannelMPE();
+                            std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
+                            int ch =
+                                channelsManagerMPE->allocateChannelMPE(bendMPE, note.bend != 0);
                             if (ch != -1) {
                                 pitchesOverflow = false;
                                 int noteOnSample = int(
@@ -793,8 +797,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                 juce::MidiMessage noteOn =
                                     juce::MidiMessage::noteOn(ch, midiNote, note.velocity);
                                 midiMessages.addEvent(noteOn, noteOnSample);
-                                channelInUseMPE[ch - 2] = midiNote;
-                                noteToChannelMPE[{i, totalCents}] = ch;
+                                noteToChAndMidiNoteMPE[{i, totalCents}] =
+                                    std::make_pair(ch, midiNote);
                                 addCurrPlayedNotesTotalCentsMPE(totalCents);
                             } else {
                                 pitchesOverflow = true;
@@ -809,18 +813,18 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     int midiNote, bendMPE;
                     for (const int totalCents : manuallyPlayedNotesTotalCents) {
                         if (manuallyPlayedNotesAreNew[i]) {
-                            int ch = getFreeChannelMPE();
+                            std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
+                            int ch = channelsManagerMPE->allocateChannelMPE(bendMPE, false);
                             if (ch != -1) {
                                 pitchesOverflow = false;
-                                std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
                                 juce::MidiMessage pitchBend =
                                     juce::MidiMessage::pitchWheel(ch, bendMPE);
                                 midiMessages.addEvent(pitchBend, 0);
                                 juce::MidiMessage noteOn =
                                     juce::MidiMessage::noteOn(ch, midiNote, params.defaultVelocity);
                                 midiMessages.addEvent(noteOn, 0);
-                                channelInUseMPE[ch - 2] = midiNote;
-                                manPlNoteToChannelMPE[totalCents] = ch;
+                                manPlNoteToChAndMidiNoteMPE[totalCents] =
+                                    std::make_pair(ch, midiNote);
                             } else {
                                 pitchesOverflow = true;
                             }
@@ -1039,6 +1043,7 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
     }
     paramsTree.setProperty("resetPitchBendOnNoteOff", params.resetPitchBendOnNoteOff, nullptr);
     paramsTree.setProperty("semiBendRangeMPE", params.semiBendRangeMPE, nullptr);
+    paramsTree.setProperty("channelsEconomyModeMPE", params.channelsEconomyModeMPE, nullptr);
 
     // For MTS-ESP:
     paramsTree.setProperty("channelIndex", params.channelIndex, nullptr);
@@ -1217,6 +1222,9 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         paramsTree.getProperty("resetPitchBendOnNoteOff", params.resetPitchBendOnNoteOff));
     params.semiBendRangeMPE =
         static_cast<int>(paramsTree.getProperty("semiBendRangeMPE", params.semiBendRangeMPE));
+    params.channelsEconomyModeMPE = static_cast<bool>(
+        paramsTree.getProperty("channelsEconomyModeMPE", params.channelsEconomyModeMPE));
+    channelsManagerMPE->setEconomyMode(params.channelsEconomyModeMPE);
 
     // For MTS-ESP:
     int desiredChannelIndex = paramsTree.getProperty("channelIndex", params.channelIndex);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AccumulatingBuffer.h"
+#include "ChannelsManagerMPE.h"
 #include "GlobalSettings.h"
 #include "Note.h"
 #include "NotesSharingMPE.h"
@@ -151,9 +152,15 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
         }
     }
 
+    void changedChannelsEconomyModeMPE() {
+        channelsManagerMPE->setEconomyMode(params.channelsEconomyModeMPE);
+    }
+
   private:
     // The magic number for defining the new ValueTree format
     static constexpr int MAGIC_NUMBER = 7777777;
+
+    void legacySetStateInformation(const void *data, int sizeInBytes);
 
     // ====================================== INSTANCES SYNC ======================================
     std::unique_ptr<PluginInstanceManager> pluginInstanceManager; ///< For MTS-ESP
@@ -344,30 +351,29 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     // ============================================================================================
 
     // ========================================= USING MPE ========================================
-    // First midi channel is for globale messages, channels 2-16 are for separate
-    // In contrast to MTS-ESP, with MPE 2+ notes with same totalCents can be played simultaneously
+    // First midi channel is for globale messages, channels 2-16 are for notes
+    // In contrast to MTS-ESP, there 2+ notes with same totalCents can be played simultaneously
     //      (useful if these notes have different bend)
 
     /**
      * No pitch bend = 8192; 0 and 16383 are -semiBendRangeMPE and +semiBendRangeMPE semitones
-     * respectively
+     * respectively. Is updated in processBlock().
      */
     double centsPerBendMPE = 48 * 100.0 / 8192;
 
-    ///< Is used to correct totalCents taking into account A4 freq
+    ///< Is used to correct totalCents taking into account A4 freq. Is updated in processBlock().
     double corrTotalCentsMPE = 0;
 
-    ///< For midi channels 2-16, -1 = occupied, Other value = midi note
-    std::array<int, 15> channelInUseMPE;
-    ///< {Note's index and totalCents} -> channel (2-16)
-    std::map<std::pair<int, int>, int> noteToChannelMPE;
-    ///< Manually played note's totalCents -> channel (2-16)
-    std::map<int, int> manPlNoteToChannelMPE;
+    ///< {note's index, note's totalCents} -> {midi channel (2-16), midi note number}
+    std::map<std::pair<int, int>, std::pair<int, int>> noteToChAndMidiNoteMPE;
+    ///< Manually played note's totalCents -> {midi channel (2-16), midi note number}
+    std::map<int, std::pair<int, int>> manPlNoteToChAndMidiNoteMPE;
+    std::unique_ptr<ChannelsManagerMPE> channelsManagerMPE;
 
     /**
      * totalcents of notes that are currently played from piano roll -> number of that notes
      * We need map instead of set because there can be several notes that are been played with
-     * same totalCents but with different note bend
+     * same totalCents (but with different note bend, for example)
      */
     std::map<int, int> currPlayedNotesTotalCentsMPE;
 
@@ -389,20 +395,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     }
 
     /**
-     *  Returns free midi channel 2-16 and occupies it. If there are no free channels,
-     *  returns -1
-     */
-    int getFreeChannelMPE() {
-        for (int i = 0; i < 15; ++i) {
-            if (channelInUseMPE[i] == -1) {
-                return i + 2;
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * @brief Calculate midi note and bend (for MPE) from totalCents
+     * @brief Calculate midi note and midi pitch bend from totalCents
      * @param totalCents octave*1200 + cents
      * @return std::pair<int, int>: first value is midi note in range [0...127] and
      * second value is MPE bend in range [0...16383], where 8192 is no bend
@@ -424,8 +417,6 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
         int bendMPE = juce::jlimit(0, 16383, 8192 + juce::roundToInt(bendCents / centsPerBendMPE));
         return bendMPE;
     }
-
-    void legacySetStateInformation(const void *data, int sizeInBytes);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
 };

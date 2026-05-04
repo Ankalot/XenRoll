@@ -144,6 +144,7 @@ class Parameters {
     bool resetPitchBendOnNoteOff = false;        ///< setting for MPE tuning
     ///< Possible values: {12, 24, 48, 96}. Setting for MPE tuning
     int semiBendRangeMPE = 48;
+    bool channelsEconomyModeMPE = false; ///< Setting for MPE tuning
     // ================== Intellectual ==================
     // Partials/dissonance
     std::atomic<int> findPartialsFFTSize = 8192;

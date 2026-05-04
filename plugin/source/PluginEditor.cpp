@@ -1658,7 +1658,9 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
                   "simultaneously (15). This number includes played notes from the piano roll " +
                   "and those that are played manually (using mouse, keyboard or midi "
                   "controller).\n\n" +
-                  "FIX: remove some notes and/or don't manually play that many keys.";
+                  "FIX: remove some notes and/or don't manually play that many keys. ALSO you can "
+                  "enable 'MIDI channels economy mode' in settings (but it will cause errors if "
+                  "the synthesizer does not support polyphony on each MIDI channel in MPE mode!)";
         }
         showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Pitches Overflow", msg, "OK", this);
     }

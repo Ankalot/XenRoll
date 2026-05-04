@@ -119,6 +119,7 @@ set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h
     ${INCLUDE_DIR}/ClockDiagramPanel.h
     ${INCLUDE_DIR}/NotesSharingMPE.h
     ${INCLUDE_DIR}/GlobalSettings.h
+    ${INCLUDE_DIR}/ChannelsManagerMPE.h
     ${MTS_ESP_DIR}/libMTSMaster.h
     ${PITCH_DETECTOR_DIR}/PitchDetectorMPM.h)
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})

@@ -404,6 +404,10 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     std::set<int> getAllInstancesIndexes() { return processorRef.getAllInstancesIndexes(); }
 
+    void changedChannelsEconomyModeMPE() {
+        processorRef.changedChannelsEconomyModeMPE();
+    }
+
   private:
     AudioPluginAudioProcessor &processorRef;
 

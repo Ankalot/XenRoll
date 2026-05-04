@@ -48,6 +48,9 @@ class SettingsPanel : public juce::Component {
     std::unique_ptr<juce::Label> semiBendRangeLabel;
     std::unique_ptr<juce::ComboBox> semiBendRangeCombo;
 
+    std::unique_ptr<juce::Label> channelsEconomyModeMPELabel;
+    std::unique_ptr<juce::ToggleButton> channelsEconomyModeMPECheckbox;
+
     const int padding = 15;
     const int rowHeight = 28;
     const int labelWidth = 350;

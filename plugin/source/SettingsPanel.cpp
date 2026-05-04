@@ -129,8 +129,7 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
 
     semiBendRangeLabel = std::make_unique<juce::Label>();
     semiBendRangeLabel->setFont(currentFont);
-    semiBendRangeLabel->setText("MPE pitch bend range:",
-                                juce::dontSendNotification);
+    semiBendRangeLabel->setText("MPE pitch bend range (MPE only):", juce::dontSendNotification);
     addAndMakeVisible(semiBendRangeLabel.get());
 
     semiBendRangeCombo = std::make_unique<juce::ComboBox>();
@@ -144,6 +143,23 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
         params->semiBendRangeMPE = semiBendRangeCombo->getSelectedId();
     };
     addAndMakeVisible(semiBendRangeCombo.get());
+
+    channelsEconomyModeMPELabel = std::make_unique<juce::Label>();
+    channelsEconomyModeMPELabel->setText("MIDI channels economy mode (MPE only):",
+                                         juce::dontSendNotification);
+    channelsEconomyModeMPELabel->setFont(currentFont);
+    addAndMakeVisible(channelsEconomyModeMPELabel.get());
+
+    channelsEconomyModeMPECheckbox = std::make_unique<juce::ToggleButton>();
+    channelsEconomyModeMPELabel->attachToComponent(channelsEconomyModeMPECheckbox.get(), true);
+    channelsEconomyModeMPECheckbox->setToggleState(params->channelsEconomyModeMPE,
+                                                   juce::dontSendNotification);
+    channelsEconomyModeMPECheckbox->onStateChange = [this, params, editor]() {
+        params->channelsEconomyModeMPE = channelsEconomyModeMPECheckbox->getToggleState();
+        editor->changedChannelsEconomyModeMPE();
+    };
+    channelsEconomyModeMPECheckbox->setSize(rowHeight, rowHeight);
+    addAndMakeVisible(channelsEconomyModeMPECheckbox.get());
 }
 
 void SettingsPanel::resized() {
@@ -188,6 +204,11 @@ void SettingsPanel::resized() {
     auto bendRangeMPERow = area.removeFromTop(rowHeight + padding);
     semiBendRangeLabel->setBounds(bendRangeMPERow.removeFromLeft(labelWidth));
     semiBendRangeCombo->setBounds(bendRangeMPERow);
+
+    // Channels economy mode (MPE)
+    auto chEconMPERow = area.removeFromTop(rowHeight + padding);
+    channelsEconomyModeMPELabel->setBounds(chEconMPERow.removeFromLeft(labelWidth));
+    channelsEconomyModeMPECheckbox->setBounds(chEconMPERow);
 }
 
 void SettingsPanel::paint(juce::Graphics &g) { g.fillAll(params->theme.darker); }
