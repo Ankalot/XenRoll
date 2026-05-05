@@ -154,9 +154,10 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
                                          juce::dontSendNotification);
     channelsEconomyModeMPELabel->setFont(currentFont);
     channelsEconomyModeMPELabel->setTooltip(
-        "If active: notes that have same {cents % 100} will occupy same MIDI channels. So the "
-        "maximum number of simultaneously playing notes can be more than 15. It will cause errors "
-        "if the synth does not support polyphony on each MIDI channel in MPE mode!");
+        "If active: notes with no bend that have same {cents % 100} will occupy same MIDI "
+        "channels. So the maximum number of simultaneously playing notes can be more than 15. It "
+        "will cause errors if the synth does not support polyphony on each MIDI channel in MPE "
+        "mode!");
     addAndMakeVisible(channelsEconomyModeMPELabel.get());
 
     channelsEconomyModeMPECheckbox = std::make_unique<juce::ToggleButton>();

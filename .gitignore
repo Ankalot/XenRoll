@@ -1,6 +1,7 @@
 .vs
 libs/
 build/
+build_relWithDebInfo/
 build_debug/
 build_release/
 xcode-build/

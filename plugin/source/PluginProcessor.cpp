@@ -518,6 +518,14 @@ void AudioPluginAudioProcessor::startRecordingVocal() {
     // this fill is not necessary but why not lol
     std::fill(vocalAccumBuffer.begin(), vocalAccumBuffer.end(), 0.0f);
 
+    // Pre-allocate to avoid real-time allocations during recording
+    recNotesVec.reserve(1024);
+    {
+        std::scoped_lock lock(pitchCurveMutex);
+        pitchCurve.first.reserve(8192);
+        pitchCurve.second.reserve(8192);
+    }
+
     // Reset pitch detector
     if (pitchDetector) {
         pitchDetector->reset();
@@ -739,15 +747,16 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         if ((note.time + note.duration >= playHeadTime) &&
                             (note.time + note.duration < playHeadTime + barsInBlock)) {
                             int totalCents = note.octave * 1200 + note.cents;
-                            if (noteToChAndMidiNoteMPE.contains({i, totalCents})) {
+                            const auto &itNote = noteToChAndMidiNoteMPE.find({i, totalCents});
+                            if (itNote != noteToChAndMidiNoteMPE.end()) {
                                 int noteOffSample = int(
                                     floor(numSamples * (note.time + note.duration - playHeadTime) /
                                           barsInBlock));
-                                const auto &chAndMidiNote = noteToChAndMidiNoteMPE[{i, totalCents}];
+                                const auto &chAndMidiNote = itNote->second;
                                 juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
                                     chAndMidiNote.first, chAndMidiNote.second);
                                 midiMessages.addEvent(noteOff, noteOffSample);
-                                noteToChAndMidiNoteMPE.erase({i, totalCents});
+                                noteToChAndMidiNoteMPE.erase(itNote);
                                 delCurrPlayedNotesTotalCentsMPE(totalCents);
 
                                 if (params.resetPitchBendOnNoteOff && (note.bend != 0)) {
@@ -768,8 +777,9 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         if ((note.bend != 0) && (note.time < playHeadTime) &&
                             (playHeadTime <= note.time + note.duration)) {
                             int totalCents = note.octave * 1200 + note.cents;
-                            if (noteToChAndMidiNoteMPE.contains({i, totalCents})) {
-                                const auto &chAndMidiNote = noteToChAndMidiNoteMPE[{i, totalCents}];
+                            const auto &itNote = noteToChAndMidiNoteMPE.find({i, totalCents});
+                            if (itNote != noteToChAndMidiNoteMPE.end()) {
+                                const auto &chAndMidiNote = itNote->second;
                                 int bendMPE = calcBendMPE(note);
                                 juce::MidiMessage pitchBend =
                                     juce::MidiMessage::pitchWheel(chAndMidiNote.first, bendMPE);
@@ -790,7 +800,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                 pitchesOverflow = false;
                                 int noteOnSample = int(
                                     ceil(numSamples * (note.time - playHeadTime) / barsInBlock));
-                                std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
                                 juce::MidiMessage pitchBend =
                                     juce::MidiMessage::pitchWheel(ch, bendMPE);
                                 midiMessages.addEvent(pitchBend, noteOnSample);
