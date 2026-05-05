@@ -80,10 +80,13 @@ void TopPanel::paint(juce::Graphics &g) {
     zp.push_back(float(params->get_num_bars()));
     auto zpOnOff = params->zones.getZonesOnOff();
     g.setColour(params->theme.dark);
+    // Without this, I see a super thin light strip on my screen between two adjacent off zones.
+    const float delta = 0.5f;
     for (int i = 0; i < zpOnOff.size(); ++i) {
         if (!zpOnOff[i]) {
-            float leftPoint_px = juce::jmax(float(clipX), zp[i] * bar_width_px);
-            float rightPoint_px = juce::jmin(float(clipX + clipWidth), zp[i + 1] * bar_width_px);
+            float leftPoint_px = juce::jmax(float(clipX), zp[i] * bar_width_px) - delta;
+            float rightPoint_px =
+                juce::jmin(float(clipX + clipWidth), zp[i + 1] * bar_width_px + delta);
             if ((leftPoint_px < clipX + clipWidth) && (rightPoint_px > clipX)) {
                 g.fillRect(leftPoint_px, 0.0f, rightPoint_px - leftPoint_px,
                            float(topPanel_height_px));

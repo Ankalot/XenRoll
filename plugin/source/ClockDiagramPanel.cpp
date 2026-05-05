@@ -54,10 +54,11 @@ void ClockDiagramPanel::paint(juce::Graphics &g) {
     g.setColour(params->theme.bright.withAlpha(opacity));
     g.fillEllipse(getLocalBounds().toFloat());
 
+    const float centreX = padding + radius;
+    const float centreY = padding + radius;
+
     // 12-EDO ticks
     g.setColour(params->theme.darker);
-    int centreX = padding + radius;
-    int centreY = padding + radius;
     for (int i = 0; i < 12; ++i) {
         float angle = i * juce::MathConstants<float>::twoPi / 12.0f;
         float startX = centreX + std::cos(angle) * (radius - tickLength);
@@ -69,16 +70,17 @@ void ClockDiagramPanel::paint(juce::Graphics &g) {
 
     // Circle
     g.setColour(params->theme.darkest);
-    g.drawEllipse(padding, padding, 2 * radius, 2 * radius, Theme::wide);
+    g.drawEllipse((float)padding, (float)padding, 2.0f * radius, 2.0f * radius, Theme::wide);
 
     // Lines
+    const auto pathStrokeType = juce::PathStrokeType(Theme::wider, juce::PathStrokeType::curved);
     g.setColour(params->theme.activated);
     for (const auto &chordOrNote : chordsAndNotes) {
         if (chordOrNote.size() == 1) {
             // Single note
             const int cents = *(chordOrNote.begin());
-            float angle = juce::MathConstants<float>::twoPi * (1 - cents / 1200.0f) +
-                          juce::MathConstants<float>::pi / 2;
+            float angle = juce::MathConstants<float>::twoPi * (1.0f - cents / 1200.0f) +
+                          juce::MathConstants<float>::halfPi;
 
             float startX = centreX + std::cos(angle) * (radius - tickLength);
             float startY = centreY - std::sin(angle) * (radius - tickLength);
@@ -91,10 +93,10 @@ void ClockDiagramPanel::paint(juce::Graphics &g) {
             auto it = chordOrNote.begin();
             int cents1 = *it++;
             int cents2 = *it;
-            float angle1 = juce::MathConstants<float>::twoPi * (1 - cents1 / 1200.0f) +
-                           juce::MathConstants<float>::pi / 2;
-            float angle2 = juce::MathConstants<float>::twoPi * (1 - cents2 / 1200.0f) +
-                           juce::MathConstants<float>::pi / 2;
+            float angle1 = juce::MathConstants<float>::twoPi * (1.0f - cents1 / 1200.0f) +
+                           juce::MathConstants<float>::halfPi;
+            float angle2 = juce::MathConstants<float>::twoPi * (1.0f - cents2 / 1200.0f) +
+                           juce::MathConstants<float>::halfPi;
 
             float x1 = centreX + std::cos(angle1) * radius;
             float y1 = centreY - std::sin(angle1) * radius;
@@ -111,9 +113,8 @@ void ClockDiagramPanel::paint(juce::Graphics &g) {
 
             for (; it != chordOrNote.end(); ++it) {
                 int cents = *it;
-                float angle = juce::MathConstants<float>::twoPi * (1 - cents / 1200.0f) +
-                              juce::MathConstants<float>::pi / 2;
-
+                float angle = juce::MathConstants<float>::twoPi * (1.0f - cents / 1200.0f) +
+                              juce::MathConstants<float>::halfPi;
                 float x = centreX + std::cos(angle) * radius;
                 float y = centreY - std::sin(angle) * radius;
 
@@ -126,16 +127,29 @@ void ClockDiagramPanel::paint(juce::Graphics &g) {
             }
             polygon.closeSubPath();
 
-            g.strokePath(polygon, juce::PathStrokeType(Theme::wider));
+            g.setColour(params->theme.activated.withAlpha(0.15f));
+            g.fillPath(polygon);
+            g.setColour(params->theme.activated);
+            g.strokePath(polygon, pathStrokeType);
         }
+    }
+
+    // Dots
+    g.setColour(params->theme.activated);
+    for (const int cents : allCents) {
+        float angle = juce::MathConstants<float>::twoPi * (1.0f - cents / 1200.0f) +
+                      juce::MathConstants<float>::halfPi;
+        float x = centreX + std::cos(angle) * radius;
+        float y = centreY - std::sin(angle) * radius;
+        g.fillEllipse(x - Theme::wider / 2, y - Theme::wider / 2, Theme::wider, Theme::wider);
     }
 
     // Labels
     g.setColour(params->theme.darkest);
     g.setFont(Theme::small_);
     for (const auto &cents : allCents) {
-        float angle = juce::MathConstants<float>::twoPi * (1 - cents / 1200.0f) +
-                      juce::MathConstants<float>::pi / 2;
+        float angle = juce::MathConstants<float>::twoPi * (1.0f - cents / 1200.0f) +
+                      juce::MathConstants<float>::halfPi;
 
         int labelDistance = radius + labelIndent;
         float x = centreX + std::cos(angle) * labelDistance;
