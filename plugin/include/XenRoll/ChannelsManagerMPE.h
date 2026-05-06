@@ -25,7 +25,7 @@ class ChannelsManagerMPE {
         for (int i = 14; i >= 0; --i) {
             int ind = channelsIndexesMPE[i];
             if ((channelsNumMPE[ind] == 0 || !noteWithBend) && (channelsBendMPE[ind] == bendMPE) &&
-                (!economyMode || (channelsNumMPE[ind] == 0))) {
+                (economyMode || (channelsNumMPE[ind] == 0))) {
                 channelsNumMPE[ind]++;
                 if (noteWithBend) {
                     channelsBendMPE[ind] = -1;
