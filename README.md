@@ -13,7 +13,7 @@
 * You can have several independent instances of this plugin in a single project and view ghost notes from other instances.
 * XenRoll uses either MPE or MTS-ESP (as a master) for microtuning.
 
-&emsp;&emsp;[Video examples](##Examples)
+&emsp;&emsp;[Video examples](#Examples)
 
 ## How to get it?
 &emsp;&emsp;So far, only VST3 versions for Windows, Linux, and macOS are available.
@@ -38,6 +38,8 @@ Go to the Releases tab and download the corresponding archive. Instructions are 
 [^3]: Don't forget to sync this value with the synth/sampler!  
 [^4]: Whether two or more notes with the same pitch (the pitch of a bent note equals its initial pitch) can be played simultaneously.
 
+<br>
+
 ### List of synths/samplers that definitely work with XenRoll:
 | Type | Name | Developer | MPE mode, setup | MTS-ESP mode, setup |
 |-|-|-|-|-|
@@ -58,9 +60,9 @@ To debug the plugin through VS Code with any DAW, configure the .vscode/launch.j
 
 ## Examples
 
-<video src="https://raw.githubusercontent.com/Ankalot/XenRoll/main/readme_assets/video1.webm" controls="controls" width="100%"></video>
+[video1.webm](https://github.com/user-attachments/assets/4a99f3c0-8248-4c2b-8dc9-abed06732c94)
 
-<video src="https://raw.githubusercontent.com/Ankalot/XenRoll/main/readme_assets/video2.webm" controls="controls" width="100%"></video>
+[video2.webm](https://github.com/user-attachments/assets/31e051ac-3b39-4d79-a27b-7b720a744238)
 
 ## License
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
