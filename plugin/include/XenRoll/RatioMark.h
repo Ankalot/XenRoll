@@ -45,11 +45,19 @@ struct RatioMark {
 
     void setLowerKeyTotalCents(int newLowerKeyTotalCents) {
         lowerKeyTotalCents = newLowerKeyTotalCents;
+        if (lowerKeyTotalCents > higherKeyTotalCents) {
+            std::swap(lowerKeyTotalCents, higherKeyTotalCents);
+            std::swap(lowerNoteIndex, higherNoteIndex);
+        }
         calculateRatioAndError();
     }
 
     void setHigherKeyTotalCents(int newHigherKeyTotalCents) {
         higherKeyTotalCents = newHigherKeyTotalCents;
+        if (lowerKeyTotalCents > higherKeyTotalCents) {
+            std::swap(lowerKeyTotalCents, higherKeyTotalCents);
+            std::swap(lowerNoteIndex, higherNoteIndex);
+        }
         calculateRatioAndError();
     }
 
