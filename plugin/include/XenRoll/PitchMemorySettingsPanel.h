@@ -43,7 +43,7 @@ class PitchMemorySettingsPanel : public juce::Component {
     std::unique_ptr<juce::Label> algoDescrLabel;
     std::unique_ptr<juce::ToggleButton> showOnlyHarmonicityCheckbox;
 
-    const int padding = 15;
+    const int padding = 8;
     const int textBoxWidth = 50;
     const int rowHeight = 28;
     const int labelWidth = 400;

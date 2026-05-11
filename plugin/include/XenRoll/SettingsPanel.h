@@ -24,11 +24,24 @@ class SettingsPanel : public juce::Component {
   private:
     Parameters *params;
 
+    // Section headers
+    std::unique_ptr<juce::Label> basicSettingsHeader;
+    std::unique_ptr<juce::Label> visualSettingsHeader;
+    std::unique_ptr<juce::Label> mpeSettingsHeader;
+
+    // Basic settings
     std::unique_ptr<juce::Label> startingOctaveLabel;
     std::unique_ptr<juce::ComboBox> startingOctaveCombo;
 
     std::unique_ptr<juce::Label> a4FreqLabel;
     std::unique_ptr<juce::Slider> a4FreqSlider;
+
+    std::unique_ptr<juce::Label> playDraggedNotesLabel;
+    std::unique_ptr<juce::ToggleButton> playDraggedNotesCheckbox;
+
+    // Visual settings
+    std::unique_ptr<juce::Label> themeTypeLabel;
+    std::unique_ptr<juce::ComboBox> themeTypeCombo;
 
     std::unique_ptr<juce::Label> heightCoefLabel;
     std::unique_ptr<juce::Slider> heightCoefSlider;
@@ -36,24 +49,21 @@ class SettingsPanel : public juce::Component {
     std::unique_ptr<juce::Label> constNoteRectHeightLabel;
     std::unique_ptr<juce::ToggleButton> constNoteRectHeightCheckbox;
 
-    std::unique_ptr<juce::Label> themeTypeLabel;
-    std::unique_ptr<juce::ComboBox> themeTypeCombo;
-
-    std::unique_ptr<juce::Label> playDraggedNotesLabel;
-    std::unique_ptr<juce::ToggleButton> playDraggedNotesCheckbox;
+    // MPE tuning mode settings
+    std::unique_ptr<juce::Label> semiBendRangeLabel;
+    std::unique_ptr<juce::ComboBox> semiBendRangeCombo;
 
     std::unique_ptr<juce::Label> resetPitchBendOnNoteOffLabel;
     std::unique_ptr<juce::ToggleButton> resetPitchBendOnNoteOffCheckbox;
 
-    std::unique_ptr<juce::Label> semiBendRangeLabel;
-    std::unique_ptr<juce::ComboBox> semiBendRangeCombo;
-
     std::unique_ptr<juce::Label> channelsEconomyModeMPELabel;
     std::unique_ptr<juce::ToggleButton> channelsEconomyModeMPECheckbox;
 
-    const int padding = 15;
+    const int padding = 8;
     const int rowHeight = 28;
+    const int headerRowHeight = 34;
     const int labelWidth = 400;
+    const int sectionSpacing = 16;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SettingsPanel)
 };

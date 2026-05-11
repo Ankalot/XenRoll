@@ -151,17 +151,21 @@ PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters *params,
 void PitchMemorySettingsPanel::resized() {
     auto area = getLocalBounds().reduced(padding);
 
-    auto row = area.removeFromTop(rowHeight + padding);
+    auto row = area.removeFromTop(rowHeight);
     TVvalForZeroHVSlider->setBounds(row.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
 
-    row = area.removeFromTop(rowHeight + padding);
+    row = area.removeFromTop(rowHeight);
     TVaddInfluenceSlider->setBounds(row.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
 
-    row = area.removeFromTop(rowHeight + padding);
+    row = area.removeFromTop(rowHeight);
     TVminNonzeroSlider->setBounds(row.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
 
-    row = area.removeFromTop(rowHeight + padding);
+    row = area.removeFromTop(rowHeight);
     showOnlyHarmonicityCheckbox->setBounds(row.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
 
     area.removeFromTop(padding + juce::roundToInt(Theme::wider));
     algoDescrLabel->setSize(area.getWidth() - 10, 470);

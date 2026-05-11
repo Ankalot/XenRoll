@@ -7,10 +7,19 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     setVisible(false);
     setAlwaysOnTop(true);
 
+    // ==================== BASIC SETTINGS ====================
+    basicSettingsHeader = std::make_unique<juce::Label>();
+    juce::Font headerFont = basicSettingsHeader->getFont();
+    headerFont.setHeight(Theme::big);
+    basicSettingsHeader->setFont(headerFont);
+    basicSettingsHeader->setText("Basic Settings", juce::dontSendNotification);
+    basicSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
+    addAndMakeVisible(basicSettingsHeader.get());
+
     startingOctaveLabel = std::make_unique<juce::Label>();
-    juce::Font currentFont = startingOctaveLabel->getFont();
-    currentFont.setHeight(Theme::medium);
-    startingOctaveLabel->setFont(currentFont);
+    juce::Font settingFont = startingOctaveLabel->getFont();
+    settingFont.setHeight(Theme::medium);
+    startingOctaveLabel->setFont(settingFont);
     startingOctaveLabel->setText("Starting Octave for manual playing:", juce::dontSendNotification);
     addAndMakeVisible(startingOctaveLabel.get());
 
@@ -26,7 +35,7 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
 
     a4FreqLabel = std::make_unique<juce::Label>();
     a4FreqLabel->setText("A4 Frequency (Hz):", juce::dontSendNotification);
-    a4FreqLabel->setFont(currentFont);
+    a4FreqLabel->setFont(settingFont);
     a4FreqLabel->setTooltip("If MPE tuning mode: either change A4 freq here, or change it in "
                             "the synthesizer, but not everywhere!");
     addAndMakeVisible(a4FreqLabel.get());
@@ -43,8 +52,32 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     };
     addAndMakeVisible(a4FreqSlider.get());
 
+    playDraggedNotesLabel = std::make_unique<juce::Label>();
+    playDraggedNotesLabel->setText("Play notes when you place/drag them:",
+                                   juce::dontSendNotification);
+    playDraggedNotesLabel->setFont(settingFont);
+    addAndMakeVisible(playDraggedNotesLabel.get());
+
+    playDraggedNotesCheckbox = std::make_unique<juce::ToggleButton>();
+    playDraggedNotesLabel->attachToComponent(playDraggedNotesCheckbox.get(), true);
+    playDraggedNotesCheckbox->setToggleState(GlobalSettings::getInstance().getPlayDraggedNotes(),
+                                             juce::dontSendNotification);
+    playDraggedNotesCheckbox->onStateChange = [this]() {
+        GlobalSettings::getInstance().setPlayDraggedNotes(
+            playDraggedNotesCheckbox->getToggleState());
+    };
+    playDraggedNotesCheckbox->setSize(rowHeight, rowHeight);
+    addAndMakeVisible(playDraggedNotesCheckbox.get());
+
+    // ==================== VISUAL SETTINGS ====================
+    visualSettingsHeader = std::make_unique<juce::Label>();
+    visualSettingsHeader->setFont(headerFont);
+    visualSettingsHeader->setText("Visual Settings", juce::dontSendNotification);
+    visualSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
+    addAndMakeVisible(visualSettingsHeader.get());
+
     heightCoefLabel = std::make_unique<juce::Label>();
-    heightCoefLabel->setFont(currentFont);
+    heightCoefLabel->setFont(settingFont);
     heightCoefLabel->setText("Note Rectangle Height Coefficient:", juce::dontSendNotification);
     addAndMakeVisible(heightCoefLabel.get());
 
@@ -63,7 +96,7 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     constNoteRectHeightLabel = std::make_unique<juce::Label>();
     constNoteRectHeightLabel->setText("Note Rectangle Height is constant:",
                                       juce::dontSendNotification);
-    constNoteRectHeightLabel->setFont(currentFont);
+    constNoteRectHeightLabel->setFont(settingFont);
     addAndMakeVisible(constNoteRectHeightLabel.get());
 
     constNoteRectHeightCheckbox = std::make_unique<juce::ToggleButton>();
@@ -77,7 +110,7 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     addAndMakeVisible(constNoteRectHeightCheckbox.get());
 
     themeTypeLabel = std::make_unique<juce::Label>();
-    themeTypeLabel->setFont(currentFont);
+    themeTypeLabel->setFont(settingFont);
     themeTypeLabel->setText("Color theme:", juce::dontSendNotification);
     addAndMakeVisible(themeTypeLabel.get());
 
@@ -93,30 +126,23 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     themeTypeCombo->onChange = [this, params, editor]() {
         params->themeType = static_cast<Theme::ThemeType>(themeTypeCombo->getSelectedId());
         editor->updateTheme();
+        basicSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
+        visualSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
+        mpeSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
     };
     addAndMakeVisible(themeTypeCombo.get());
 
-    playDraggedNotesLabel = std::make_unique<juce::Label>();
-    playDraggedNotesLabel->setText("Play notes when you place/drag them:",
-                                   juce::dontSendNotification);
-    playDraggedNotesLabel->setFont(currentFont);
-    addAndMakeVisible(playDraggedNotesLabel.get());
-
-    playDraggedNotesCheckbox = std::make_unique<juce::ToggleButton>();
-    playDraggedNotesLabel->attachToComponent(playDraggedNotesCheckbox.get(), true);
-    playDraggedNotesCheckbox->setToggleState(GlobalSettings::getInstance().getPlayDraggedNotes(),
-                                             juce::dontSendNotification);
-    playDraggedNotesCheckbox->onStateChange = [this]() {
-        GlobalSettings::getInstance().setPlayDraggedNotes(
-            playDraggedNotesCheckbox->getToggleState());
-    };
-    playDraggedNotesCheckbox->setSize(rowHeight, rowHeight);
-    addAndMakeVisible(playDraggedNotesCheckbox.get());
+    // =============== MPE TUNING MODE SETTINGS ===============
+    mpeSettingsHeader = std::make_unique<juce::Label>();
+    mpeSettingsHeader->setFont(headerFont);
+    mpeSettingsHeader->setText("MPE Tuning Mode Settings", juce::dontSendNotification);
+    mpeSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
+    addAndMakeVisible(mpeSettingsHeader.get());
 
     resetPitchBendOnNoteOffLabel = std::make_unique<juce::Label>();
-    resetPitchBendOnNoteOffLabel->setText("Reset pitch bend on note off (MPE only):",
+    resetPitchBendOnNoteOffLabel->setText("Reset pitch bend on note off:",
                                           juce::dontSendNotification);
-    resetPitchBendOnNoteOffLabel->setFont(currentFont);
+    resetPitchBendOnNoteOffLabel->setFont(settingFont);
     addAndMakeVisible(resetPitchBendOnNoteOffLabel.get());
 
     resetPitchBendOnNoteOffCheckbox = std::make_unique<juce::ToggleButton>();
@@ -130,8 +156,8 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     addAndMakeVisible(resetPitchBendOnNoteOffCheckbox.get());
 
     semiBendRangeLabel = std::make_unique<juce::Label>();
-    semiBendRangeLabel->setFont(currentFont);
-    semiBendRangeLabel->setText("MPE pitch bend range (MPE only):", juce::dontSendNotification);
+    semiBendRangeLabel->setFont(settingFont);
+    semiBendRangeLabel->setText("MPE pitch bend range:", juce::dontSendNotification);
     semiBendRangeLabel->setTooltip(
         "1. It should be the same as in synth!\n2. Lower range means higher accuracy in tuning BUT "
         "lower max bend for bended notes.");
@@ -150,9 +176,8 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     addAndMakeVisible(semiBendRangeCombo.get());
 
     channelsEconomyModeMPELabel = std::make_unique<juce::Label>();
-    channelsEconomyModeMPELabel->setText("MIDI channels economy mode (MPE only):",
-                                         juce::dontSendNotification);
-    channelsEconomyModeMPELabel->setFont(currentFont);
+    channelsEconomyModeMPELabel->setText("MIDI channels economy mode:", juce::dontSendNotification);
+    channelsEconomyModeMPELabel->setFont(settingFont);
     channelsEconomyModeMPELabel->setTooltip(
         "If active: notes with no bend that have same {cents % 100} will occupy same MIDI "
         "channels. So the maximum number of simultaneously playing notes can be more than 15. It "
@@ -174,41 +199,56 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
 
 void SettingsPanel::resized() {
     auto area = getLocalBounds().reduced(padding);
+    const int areaWidth = area.getWidth();
 
-    // Starting octave
-    auto octaveRow = area.removeFromTop(rowHeight + padding);
+    // --- Basic Settings ---
+    auto basicHeaderRow = area.removeFromTop(headerRowHeight);
+    basicSettingsHeader->setBounds(basicHeaderRow.withTrimmedRight(areaWidth - labelWidth));
+    area.removeFromTop(padding);
+
+    auto octaveRow = area.removeFromTop(rowHeight);
     startingOctaveCombo->setBounds(octaveRow.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
 
-    // A4 frequency
-    auto freqRow = area.removeFromTop(rowHeight + padding);
+    auto freqRow = area.removeFromTop(rowHeight);
     a4FreqSlider->setBounds(freqRow.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
 
-    // Height coefficient
-    auto heightRow = area.removeFromTop(rowHeight + padding);
-    heightCoefSlider->setBounds(heightRow.withTrimmedLeft(labelWidth));
-
-    // Const height of notes' rectangles
-    auto constHeightRow = area.removeFromTop(rowHeight + padding);
-    constNoteRectHeightCheckbox->setBounds(constHeightRow.withTrimmedLeft(labelWidth));
-
-    // Color theme
-    auto themeRow = area.removeFromTop(rowHeight + padding);
-    themeTypeCombo->setBounds(themeRow.withTrimmedLeft(labelWidth));
-
-    // Play dragged notes
-    auto playRow = area.removeFromTop(rowHeight + padding);
+    auto playRow = area.removeFromTop(rowHeight);
     playDraggedNotesCheckbox->setBounds(playRow.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding + sectionSpacing);
 
-    // Reset pitch bend on note off (MPE)
-    auto resetBendRow = area.removeFromTop(rowHeight + padding);
-    resetPitchBendOnNoteOffCheckbox->setBounds(resetBendRow.withTrimmedLeft(labelWidth));
+    // --- Visual Settings ---
+    auto visualHeaderRow = area.removeFromTop(headerRowHeight);
+    visualSettingsHeader->setBounds(visualHeaderRow.withTrimmedRight(areaWidth - labelWidth));
+    area.removeFromTop(padding);
 
-    // Semi bend range (MPE)
-    auto bendRangeMPERow = area.removeFromTop(rowHeight + padding);
+    auto themeRow = area.removeFromTop(rowHeight);
+    themeTypeCombo->setBounds(themeRow.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
+
+    auto heightRow = area.removeFromTop(rowHeight);
+    heightCoefSlider->setBounds(heightRow.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
+
+    auto constHeightRow = area.removeFromTop(rowHeight);
+    constNoteRectHeightCheckbox->setBounds(constHeightRow.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding + sectionSpacing);
+
+    // --- MPE Tuning Mode Settings ---
+    auto mpeHeaderRow = area.removeFromTop(headerRowHeight);
+    mpeSettingsHeader->setBounds(mpeHeaderRow.withTrimmedRight(areaWidth - labelWidth));
+    area.removeFromTop(padding);
+
+    auto bendRangeMPERow = area.removeFromTop(rowHeight);
     semiBendRangeCombo->setBounds(bendRangeMPERow.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
 
-    // Channels economy mode (MPE)
-    auto chEconMPERow = area.removeFromTop(rowHeight + padding);
+    auto resetBendRow = area.removeFromTop(rowHeight);
+    resetPitchBendOnNoteOffCheckbox->setBounds(resetBendRow.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
+
+    auto chEconMPERow = area.removeFromTop(rowHeight);
     channelsEconomyModeMPECheckbox->setBounds(chEconMPERow.withTrimmedLeft(labelWidth));
 }
 
