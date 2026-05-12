@@ -163,10 +163,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         partials = p.params.get_tonesPartials().begin()->second;
         partialsTotalCents = p.params.get_tonesPartials().begin()->first;
     }
-    dissonanceMeter =
-        std::make_shared<DissonanceMeter>(partials, partialsTotalCents,
-                                          static_cast<float>(p.params.A4Freq.load()),
-                                          p.params.roughCompactFrac, p.params.dissonancePow);
+    dissonanceMeter = std::make_shared<DissonanceMeter>(
+        partials, partialsTotalCents, static_cast<float>(p.params.A4Freq.load()),
+        p.params.roughCompactFrac, p.params.dissonancePow);
 
     pitchMemory = std::make_shared<PitchMemory>(
         dissonanceMeter, processorRef.params.pitchMemoryTVvalForZeroHV,
@@ -813,7 +812,7 @@ void AudioPluginAudioProcessorEditor::resized() {
                                 dnd_popup_width_px, dnd_popup_height_px);
 
     helpViewport->setBounds(allBesidesBottomRect);
-    helpPanel->setSize(width - slider_width_px, 1000);
+    helpPanel->setSize(width - slider_width_px, helpPanel->getRequiredHeight());
 
     settingsPanel->setBounds(allBesidesBottomRect);
     dissonancePanel->setBounds(allBesidesBottomRect);

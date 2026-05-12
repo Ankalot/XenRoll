@@ -372,6 +372,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
         customLF->updateColors();
         smallLF->updateColors();
         mainViewport->updateColors();
+        helpViewport->updateColors();
         pitchMemorySettingsPanel->updateColors();
         sendLookAndFeelChange();
     }
@@ -404,9 +405,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     std::set<int> getAllInstancesIndexes() { return processorRef.getAllInstancesIndexes(); }
 
-    void changedChannelsEconomyModeMPE() {
-        processorRef.changedChannelsEconomyModeMPE();
-    }
+    void changedChannelsEconomyModeMPE() { processorRef.changedChannelsEconomyModeMPE(); }
 
   private:
     AudioPluginAudioProcessor &processorRef;

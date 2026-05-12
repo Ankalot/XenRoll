@@ -1,10 +1,11 @@
 #pragma once
 
+#include "Parameters.h"
 #include "Theme.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace audio_plugin {
-// Is needed for scrolling
+
 class HelpViewport : public juce::Viewport {
   public:
     HelpViewport(Theme *theme) : theme(theme) {
@@ -13,6 +14,13 @@ class HelpViewport : public juce::Viewport {
         getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
         setViewportIgnoreDragFlag(true);
         setAlwaysOnTop(true);
+    }
+
+    /**
+     * @brief Update scrollbar colors to match current theme
+     */
+    void updateColors() {
+        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
     }
 
     void paint(juce::Graphics &g) override { g.fillAll(theme->darker); }
@@ -32,106 +40,140 @@ class HelpPanel : public juce::Component {
         g.fillAll(theme->darker);
 
         auto bounds = getLocalBounds().reduced(10);
+        int columnWidth = (bounds.getWidth() - columnGap) / 2;
 
-        // Draw Mouse Actions section
-        g.setColour(theme->brightest);
-        g.setFont(Theme::medium);
-        g.drawText("Mouse Actions", bounds.removeFromTop(25), juce::Justification::centredLeft,
-                   false);
-        bounds.removeFromTop(5);
+        auto leftColumn = bounds.removeFromLeft(columnWidth);
+        auto rightColumn = bounds.removeFromRight(columnWidth);
 
+        // ==================== MOUSE ACTIONS (LEFT COLUMN) ====================
+        drawMainHeader(g, leftColumn, "Mouse Actions");
+
+        drawSubHeader(g, leftColumn, "Main Panel (canvas)");
+        drawTable(g, leftColumn,
+                  {{"LClick + empty space", "Create a note / deselect all"},
+                   {"LClick + note", "Select note"},
+                   {"Shift + LClick + note", "Add note to the selection"},
+                   {"Ctrl + LClick + note", "Select all notes of the same pitch (+ Shift to add)"},
+                   {"LDrag + note", "Drag selected note(s)"},
+                   {"Shift + LDrag + note", "Drag slowly (fine pitch adjustment)"},
+                   {"LDrag + note's right edge", "Resize note (change duration)"},
+                   {"RClick + note", "Delete note"},
+                   {"RDrag + empty space", "Rectangle-select notes"},
+                   {"MDrag + empty space", "Pan the view"},
+                   {"MClick + note", "Change the velocity of selected note(s)"},
+                   {"Scroll", "Zoom in/out (time)"},
+                   {"Ctrl + Scroll", "Zoom in/out (pitch)"},
+                   {"Alt + Scroll", "Bend selected notes"},
+                   {"Alt + Shift + Scroll", "Bend selected notes faster"}});
+
+        drawSubHeader(g, leftColumn, "Top Panel (with time)");
+        drawTable(g, leftColumn,
+                  {{"Ctrl + LClick", "Turn zone on"},
+                   {"Ctrl + RClick", "Turn zone off"},
+                   {"Shift + LClick", "Create zone point"},
+                   {"Shift + RClick", "Delete zone point"}});
+
+        drawSubHeader(g, leftColumn, "Left Panel (with keys)");
+        drawTable(g, leftColumn, {{"LClick", "Play key (hold to sustain)"}});
+
+        // ==================== KEYBOARD ACTIONS (RIGHT COLUMN) ====================
+        drawMainHeader(g, rightColumn, "Keyboard Actions");
+
+        drawSubHeader(g, rightColumn, "Basic");
+        drawTable(g, rightColumn,
+                  {{"Z/X/C...A/S/D...Q/W/E...", "Play keys"},
+                   {"Del", "Delete selected notes"},
+                   {"Esc", "Deselect all notes"},
+                   {"Ctrl/Cmd + A", "Select all notes"},
+                   {"Ctrl/Cmd + C", "Copy selected notes"},
+                   {"Ctrl/Cmd + V", "Paste copied notes"},
+                   {"Ctrl/Cmd + Z", "Undo"},
+                   {"Ctrl/Cmd + Y", "Redo"}});
+
+        drawSubHeader(g, rightColumn, "With Cents / Ratio");
+        drawTable(g, rightColumn,
+                  {{"0-9, /, Backspace", "Enter cents or ratio"},
+                   {"Enter", "Set pitch of selected notes (using cents / ratio)"},
+                   {"Shift + Enter", "Increase pitch (add cents / ratio)"},
+                   {"Ctrl + Enter", "Decrease pitch (subtract cents / ratio)"}});
+
+        drawSubHeader(g, rightColumn, "Moving Notes");
+        drawTable(g, rightColumn,
+                  {{"Up/Down", "Move by 1 cent (or 1 key in snap mode)"},
+                   {"Shift + Up/Down", "Move by 1 octave"},
+                   {"Left/Right", "Move by 1 subdivision"},
+                   {"Shift + Left/Right", "Move by 1 bar"}});
+
+        drawSubHeader(g, rightColumn, "Hotkeys");
         drawTable(
-            g, bounds.removeFromTop(480),
-            {{"LCLICK + EMPTY SPACE", "Create a note under cursor or deselect all notes"},
-             {"LCLICK + LEFT PANEL WITH KEYS", "Play a key. You also can hold down it; move it"},
-             {"LCLICK + DRAG RIGHT SIDE OF NOTE", "Resize note (change its duration)"},
-             {"LCLICK + DRAG NOTE", "Drag selected note(-s)"},
-             {"LCLICK + SHIFT + DRAG NOTE", "Drag selected note(-s) but slowly vertically"},
-             {"LCLICK + NOTE", "Select a note"},
-             {"LCLICK + SHIFT + NOTE", "Select a note without deselecting others"},
-             {"LCLICK + CTRL + NOTE",
-              "Select all notes (in active zones) with same key (can be used with SHIFT)"},
-             {"LCLICK + TOP TIME PANEL", "Turn on zone"},
-             {"LCLICK + SHIFT + TOP TIME PANEL", "Create zone point"},
-             {"RCLICK + NOTE", "Delete a note"},
-             {"RCLICK + DRAG EMPTY SPACE", "Select notes in rectangular area"},
-             {"RCLICK + TOP TIME PANEL", "Turn off zone"},
-             {"RCLICK + SHIFT + TOP TIME PANEL", "Delete zone point"},
-             {"MCLICK + DRAG EMPTY SPACE", "Drag view"},
-             {"MCLICK + NOTE", "Change velocity of selected note(-s)"},
-             {"SCROLL", "Time zoom in/out"},
-             {"SCROLL + CTRL", "Pitch zoom in/out"},
-             {"SCROLL + ALT", "Bend selected notes"},
-             {"SCROLL + ALT + SHIFT", "Bend selected notes faster"}});
+            g, rightColumn,
+            {{"Alt + " + keyToString(Parameters::hotkeys::timeSnap_withAlt),
+              "Toggle time snapping"},
+             {"Alt + " + keyToString(Parameters::hotkeys::keySnap_withAlt), "Toggle key snapping"},
+             {"Alt + " + keyToString(Parameters::hotkeys::editRatiosMarks_withAlt),
+              "Toggle ratios marks editing"},
+             {"Alt + " + keyToString(Parameters::hotkeys::pitchMemory_withAlt),
+              "Toggle harmonicity display"}});
+    }
 
-        bounds.removeFromTop(20);
+    int getRequiredHeight() const {
+        const int pad = 20; // 10 top + 10 bottom from reduced(10)
+        const int mainH = mainHeaderHeight + 4;
+        const int subH = sectionHeaderHeight + 2;
 
-        // Draw Keyboard Actions section
-        g.setFont(Theme::medium);
-        g.setColour(theme->brightest);
-        g.drawText("Keyboard Actions", bounds.removeFromTop(25), juce::Justification::centredLeft,
-                   false);
-        bounds.removeFromTop(5);
+        // Left column: Main Panel (15 rows), Top Panel (4 rows), Left Panel (1 row)
+        int left = mainH + subH + 15 * rowHeight + sectionSpacing + subH + 4 * rowHeight +
+                   sectionSpacing + subH + 1 * rowHeight;
 
-        drawTable(g, bounds,
-                  {{"DEL", "Delete selected notes"},
-                   {"ESC", "Deselect all notes"},
-                   {"CTRL/CMD + A", "Select all notes"},
-                   {"CTRL/CMD + C", "Copy selected notes"},
-                   {"CTRL/CMD + V", "Paste copied notes"},
-                   {"CTRL/CMD + Z", "Undo last change"},
-                   {"CTRL/CMD + Y", "Redo last change"},
-                   {"Z/X/C/.../A/S/D/.../Q/W/E/...", "Play a key"},
-                   {"0-9, /, BACKSPACE", "Enter number of cents or ratio"},
-                   {"ENTER + CENTS/RATIO", "Set pitch of selected notes"},
-                   {"ENTER + SHIFT + CENTS/RATIO", "Increase pitch of selected notes"},
-                   {"ENTER + CTRL + CENTS/RATIO", "Decrease pitch of selected notes"},
-                   {"UP", "Raise selected notes by 1 cent (or by 1 key in snap mode)"},
-                   {"DOWN", "Lower selected notes by 1 cent (or by 1 key in snap mode)"},
-                   {"SHIFT + UP", "Raise selected notes up an octave"},
-                   {"SHIFT + DOWN", "Lower selected notes by an octave"},
-                   {"RIGHT", "Move selected notes by 1 subdiv to the right"},
-                   {"LEFT", "Move selected notes by 1 subdiv to the left"},
-                   {"SHIFT + RIGHT", "Move selected notes by 1 bar to the right"},
-                   {"SHIFT + LEFT", "Move selected notes by 1 bar to the left"},
-                   {"ALT + " + juce::String::charToString(static_cast<char>(
-                                   std::toupper(Parameters::hotkeys::timeSnap_withAlt))),
-                    "Switch horizontal (time) snapping mode"},
-                   {"ALT + " + juce::String::charToString(static_cast<char>(
-                                   std::toupper(Parameters::hotkeys::keySnap_withAlt))),
-                    "Switch vertical (pitch) snapping mode"},
-                   {"ALT + " + juce::String::charToString(static_cast<char>(
-                                   std::toupper(Parameters::hotkeys::editRatiosMarks_withAlt))),
-                    "Switch editing ratios marks mode"},
-                   {"ALT + " + juce::String::charToString(static_cast<char>(
-                                   std::toupper(Parameters::hotkeys::pitchMemory_withAlt))),
-                    "Switch the harmonicity display mode"}});
+        // Right column: Basic (8), With Cents (4), Moving Notes (4), Hotkeys (4)
+        int right = mainH + subH + 8 * rowHeight + sectionSpacing + subH + 4 * rowHeight +
+                    sectionSpacing + subH + 4 * rowHeight + sectionSpacing + subH + 4 * rowHeight;
+
+        return pad + juce::jmax(left, right);
     }
 
   private:
     Theme *theme;
-    int firstColumnWidth = 300;
+    const int firstColumnWidth = 280;
+    const int rowHeight = 22;
+    const int sectionHeaderHeight = 22;
+    const int mainHeaderHeight = 28;
+    const int sectionSpacing = 12;
+    const int columnGap = 20;
 
-    /**
-     * @brief Draw a help table
-     * @param g Graphics context
-     * @param bounds Rectangle to draw table in
-     * @param rows Vector of row data (key, description)
-     */
-    void drawTable(juce::Graphics &g, juce::Rectangle<int> bounds,
-                   const std::vector<std::pair<juce::String, juce::String>> &rows) {
-        g.setColour(theme->brighter.withAlpha(0.2f));
-        g.fillRect(bounds);
+    static juce::String keyToString(char key) {
+        return juce::String::charToString(static_cast<char>(std::toupper(key)));
+    }
 
+    void drawMainHeader(juce::Graphics &g, juce::Rectangle<int> &bounds, const juce::String &text) {
         g.setColour(theme->brightest);
+        g.setFont(Theme::medium);
+        auto headerBounds = bounds.removeFromTop(mainHeaderHeight);
+        g.drawText(text, headerBounds, juce::Justification::centredLeft, false);
+        bounds.removeFromTop(4);
+    }
+
+    void drawSubHeader(juce::Graphics &g, juce::Rectangle<int> &bounds, const juce::String &text) {
+        g.setColour(theme->brighter);
+        g.setFont(Theme::small_);
+        auto headerBounds = bounds.removeFromTop(sectionHeaderHeight);
+        g.drawText(text, headerBounds, juce::Justification::centredLeft, false);
+        bounds.removeFromTop(2);
+    }
+
+    void drawTable(juce::Graphics &g, juce::Rectangle<int> &bounds,
+                   const std::vector<std::pair<juce::String, juce::String>> &rows) {
+        int tableHeight = static_cast<int>(rows.size()) * rowHeight;
+        auto tableBounds = bounds.removeFromTop(tableHeight);
+
+        g.setColour(theme->brighter.withAlpha(0.2f));
+        g.fillRect(tableBounds);
+
         g.setFont(Theme::small_);
 
-        int rowHeight = bounds.getHeight() / juce::jmax(1, (int)rows.size());
-
         for (size_t i = 0; i < rows.size(); ++i) {
-            auto rowBounds = bounds.removeFromTop(rowHeight);
+            auto rowBounds = tableBounds.removeFromTop(rowHeight);
 
-            // Draw row background for better readability
             if (i % 2 == 0) {
                 g.setColour(theme->brighter.withAlpha(0.05f));
                 g.fillRect(rowBounds);
@@ -139,14 +181,14 @@ class HelpPanel : public juce::Component {
 
             g.setColour(theme->brightest);
 
-            // Draw key combination (narrower column)
             auto keyBounds = rowBounds.removeFromLeft(firstColumnWidth).reduced(5, 2);
             g.drawText(rows[i].first, keyBounds, juce::Justification::centredLeft, false);
 
-            // Draw description (wider column)
             auto descBounds = rowBounds.reduced(5, 2);
             g.drawText(rows[i].second, descBounds, juce::Justification::centredLeft, false);
         }
+
+        bounds.removeFromTop(sectionSpacing);
     }
 };
 } // namespace audio_plugin
