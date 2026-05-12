@@ -764,12 +764,11 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                     std::lock_guard<std::mutex> lock(mptcMtx);
                     for (const Note &note : notes) {
                         if (note.isSelected) {
-                            dragManuallyPlayedKeysTotalCents.insert(note.cents +
-                                                                    note.octave * 1200);
+                            dragManuallyPlayedKeys.insert(
+                                {note.cents + note.octave * 1200, note.velocity});
                         }
                     }
-                    editor->setManuallyPlayedKeysTotalCents(dragManuallyPlayedKeysTotalCents,
-                                                            "drag");
+                    editor->setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
                 }
                 return;
             }
@@ -820,12 +819,11 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             {
                 std::lock_guard<std::mutex> lock(mptcMtx);
                 // we need to do this for playing a key that is already been played
-                if (dragManuallyPlayedKeysTotalCents.erase(totalCents) != 0) {
-                    editor->setManuallyPlayedKeysTotalCents(dragManuallyPlayedKeysTotalCents,
-                                                            "drag");
+                if (dragManuallyPlayedKeys.erase(totalCents) != 0) {
+                    editor->setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
                 }
-                dragManuallyPlayedKeysTotalCents.insert(totalCents);
-                editor->setManuallyPlayedKeysTotalCents(dragManuallyPlayedKeysTotalCents, "drag");
+                dragManuallyPlayedKeys.insert({totalCents, params->lastVelocity});
+                editor->setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
                 placedNoteKeyCounter[totalCents]++;
             }
 
@@ -840,9 +838,9 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                         std::lock_guard<std::mutex> lock(safeThis->mptcMtx);
                         safeThis->placedNoteKeyCounter[totalCents]--;
                         if (safeThis->placedNoteKeyCounter[totalCents] == 0) {
-                            safeThis->dragManuallyPlayedKeysTotalCents.erase(totalCents);
-                            safeThis->editor->setManuallyPlayedKeysTotalCents(
-                                safeThis->dragManuallyPlayedKeysTotalCents, "drag");
+                            safeThis->dragManuallyPlayedKeys.erase(totalCents);
+                            safeThis->editor->setManuallyPlayedKeys(
+                                safeThis->dragManuallyPlayedKeys, "drag");
                         }
                     }
                 });
@@ -1044,9 +1042,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                     if ((new_cents != notes[i].cents) || (new_octave != notes[i].octave)) {
                         if (GlobalSettings::getInstance().getPlayDraggedNotes()) {
                             std::lock_guard<std::mutex> lock(mptcMtx);
-                            dragManuallyPlayedKeysTotalCents.erase(notes[i].cents +
-                                                                   notes[i].octave * 1200);
-                            dragManuallyPlayedKeysTotalCents.insert(new_cents + new_octave * 1200);
+                            dragManuallyPlayedKeys.erase(notes[i].cents + notes[i].octave * 1200);
+                            dragManuallyPlayedKeys.insert(
+                                {new_cents + new_octave * 1200, notes[i].velocity});
                             updatedManuallyPlayedKeys = true;
                         }
                         changedPitch = true;
@@ -1075,7 +1073,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         }
         if (updatedManuallyPlayedKeys) {
             std::lock_guard<std::mutex> lock(mptcMtx);
-            editor->setManuallyPlayedKeysTotalCents(dragManuallyPlayedKeysTotalCents, "drag");
+            editor->setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
         }
         repaint();
     }
@@ -1140,10 +1138,10 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
         std::lock_guard<std::mutex> lock(mptcMtx);
         for (const Note &note : notes) {
             if (note.isSelected) {
-                dragManuallyPlayedKeysTotalCents.erase(note.cents + note.octave * 1200);
+                dragManuallyPlayedKeys.erase(note.cents + note.octave * 1200);
             }
         }
-        editor->setManuallyPlayedKeysTotalCents(dragManuallyPlayedKeysTotalCents, "drag");
+        editor->setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
     }
 
     if (wasResizing || wasMoving || isMovingRatioMark) {
@@ -2051,9 +2049,8 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             int cents = *(std::next(keys.begin(), keyInd % numKeys));
             int totalCents = octave * 1200 + cents;
             std::lock_guard<std::mutex> lock(mptcMtx);
-            keyboardManuallyPlayedKeysTotalCents.insert(totalCents);
-            editor->setManuallyPlayedKeysTotalCents(keyboardManuallyPlayedKeysTotalCents,
-                                                    "keyboard");
+            keyboardManuallyPlayedKeys.insert({totalCents, params->defaultVelocity});
+            editor->setManuallyPlayedKeys(keyboardManuallyPlayedKeys, "keyboard");
             wasKeyDown[keyChar] = totalCents;
         }
         return true;
@@ -2084,9 +2081,8 @@ bool MainPanel::keyStateChanged(bool isKeyDown) {
                 int totalCents = octave * 1200 + cents;*/
                 int totalCents = wasKeyDown[keyChar];
                 std::lock_guard<std::mutex> lock(mptcMtx);
-                keyboardManuallyPlayedKeysTotalCents.erase(totalCents);
-                editor->setManuallyPlayedKeysTotalCents(keyboardManuallyPlayedKeysTotalCents,
-                                                        "keyboard");
+                keyboardManuallyPlayedKeys.erase(totalCents);
+                editor->setManuallyPlayedKeys(keyboardManuallyPlayedKeys, "keyboard");
                 wasKeyDown.erase(keyChar);
                 werePlaying = true;
             }

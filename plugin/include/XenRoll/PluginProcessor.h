@@ -49,7 +49,11 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
 
     void rePrepareNotes();
     void updateNotes(const std::vector<Note> &new_notes);
-    void setManuallyPlayedNotesTotalCents(const std::set<int> newManuallyPlayedNotesTotalCents);
+    /**
+     * @brief Set the Manually Played Notes ( = Manually Played Keys in Plugin Editor)
+     * @param newManuallyPlayedNotes {totalCents -> velocity}
+     */
+    void setManuallyPlayedNotes(const std::map<int, float> newManuallyPlayedNotes);
 
     const std::vector<Note> &getNotes();
     std::vector<Note> getOtherInstancesNotes();
@@ -280,19 +284,19 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
 
     std::atomic<bool> wasPlaying = false;
 
-    ///< TotalCents of notes(keys) that are currently played manually (not from piano roll)
-    std::set<int> manuallyPlayedNotesTotalCents;
+    ///< {totalCents -> velocity} of notes(keys) that are currently played manually
+    std::map<int, float> manuallyPlayedNotes;
     // Maybe this mutex is unnecessary
     std::mutex manPlNotesTotCentsMutex;
     /**
-     * Shows whether the i-th note(key) from manuallyPlayedNotesTotalCents was played manually
+     * Shows whether the i-th note(key) from manuallyPlayedNotes was played manually
      * before (this determines whether it needs noteOn or it just continues to play)
      */
     std::vector<bool> manuallyPlayedNotesAreNew;
 
     /**
      * A flag that indicates whether we have started playing notes (noteOn) from
-     * manuallyPlayedNotesTotalCents
+     * manuallyPlayedNotes
      */
     bool startedPlayingManuallyPressedNotes = false;
 
@@ -304,7 +308,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     std::vector<int> notesIndexes;
     /**
      * Contains midi note number (0-127) for each note that is played manually (from
-     * manuallyPlayedNotesTotalCents)
+     * manuallyPlayedNotes)
      */
     std::vector<int> manuallyPlayedNotesIndexes;
     /**
@@ -327,7 +331,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
 
     /**
      * Midi note numbers of all notes that are playing now (including notes and
-     * manuallyPlayedNotesTotalCents)
+     * manuallyPlayedNotes)
      */
     std::set<int> currPlayedNotesIndexes;
 

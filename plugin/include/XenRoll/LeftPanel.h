@@ -95,7 +95,7 @@ class LeftPanel : public juce::Component {
     std::set<int> keys; ///< 0-1199 cents
 
     std::set<int> currPlayedNotesTotalCents;
-    std::set<int> manuallyPlayedKeyTotalCents;
+    int manuallyPlayedKeyTotalCents; ///< totalCents
 
     AudioPluginAudioProcessorEditor *editor;
     Parameters *params;

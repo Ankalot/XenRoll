@@ -704,7 +704,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
     stopTimer(); // Ensure timer is stopped before destruction
-    processorRef.setManuallyPlayedNotesTotalCents({});
+    processorRef.setManuallyPlayedNotes({});
     processorRef.params.editorWidth = getWidth();
     processorRef.params.editorHeight = getHeight();
     setLookAndFeel(nullptr);
@@ -940,22 +940,21 @@ void AudioPluginAudioProcessorEditor::resized() {
     repaint();
 }
 
-void AudioPluginAudioProcessorEditor::setManuallyPlayedKeysTotalCents(
-    const std::set<int> &manuallyPlayedKeysTotalCents, const std::string &mode) {
+void AudioPluginAudioProcessorEditor::setManuallyPlayedKeys(
+    const std::map<int, float> &manuallyPlayedKeys, const std::string &mode) {
 
     if (mode == "keyboard") {
-        keyboardManuallyPlayedKeysTotalCents = manuallyPlayedKeysTotalCents;
+        keyboardManuallyPlayedKeys = manuallyPlayedKeys;
     } else if (mode == "drag") {
-        dragManuallyPlayedKeysTotalCents = manuallyPlayedKeysTotalCents;
+        dragManuallyPlayedKeys = manuallyPlayedKeys;
     } else if (mode == "left") {
-        leftManuallyPlayedKeysTotalCents = manuallyPlayedKeysTotalCents;
+        leftManuallyPlayedKeys = manuallyPlayedKeys;
     }
 
-    std::set<int> allManuallyPlayedKeysTotalCents;
-    allManuallyPlayedKeysTotalCents.insert(keyboardManuallyPlayedKeysTotalCents.begin(),
-                                           keyboardManuallyPlayedKeysTotalCents.end());
-    allManuallyPlayedKeysTotalCents.insert(leftManuallyPlayedKeysTotalCents.begin(),
-                                           leftManuallyPlayedKeysTotalCents.end());
+    std::map<int, float> allManuallyPlayedKeys;
+    allManuallyPlayedKeys.insert(keyboardManuallyPlayedKeys.begin(),
+                                 keyboardManuallyPlayedKeys.end());
+    allManuallyPlayedKeys.insert(leftManuallyPlayedKeys.begin(), leftManuallyPlayedKeys.end());
 
     if ((mode != "drag") && processorRef.params.recordManuallyPlayedNotes &&
         processorRef.isPlaying()) {
@@ -964,28 +963,28 @@ void AudioPluginAudioProcessorEditor::setManuallyPlayedKeysTotalCents(
         // stop recording released notes
         for (auto &note : recordedManuallyPlayedNotes) {
             if (!note.isSelected &&
-                !allManuallyPlayedKeysTotalCents.contains(note.octave * 1200 + note.cents)) {
+                !allManuallyPlayedKeys.contains(note.octave * 1200 + note.cents)) {
                 note.isSelected = true;
                 note.duration = currPlayHeadTime - note.time;
             }
         }
 
         // start recording new notes
-        for (auto mpntc : allManuallyPlayedKeysTotalCents) {
+        for (const auto &[totalCents, velocity] : allManuallyPlayedKeys) {
             bool recordNewNote = true;
             for (auto &note : recordedManuallyPlayedNotes) {
-                if (!note.isSelected && (note.octave * 1200 + note.cents == mpntc)) {
+                if (!note.isSelected && (note.octave * 1200 + note.cents == totalCents)) {
                     recordNewNote = false;
                     continue;
                 }
             }
             if (recordNewNote) {
                 Note newNote;
-                newNote.octave = mpntc / 1200;
-                newNote.cents = mpntc % 1200;
+                newNote.octave = totalCents / 1200;
+                newNote.cents = totalCents % 1200;
                 newNote.time = currPlayHeadTime;
                 newNote.duration = 0.0f;
-                newNote.velocity = processorRef.params.defaultVelocity;
+                newNote.velocity = velocity;
                 newNote.isSelected = false;
                 newNote.bend = 0;
                 recordedManuallyPlayedNotes.push_back(newNote);
@@ -993,9 +992,8 @@ void AudioPluginAudioProcessorEditor::setManuallyPlayedKeysTotalCents(
         }
     }
 
-    allManuallyPlayedKeysTotalCents.insert(dragManuallyPlayedKeysTotalCents.begin(),
-                                           dragManuallyPlayedKeysTotalCents.end());
-    processorRef.setManuallyPlayedNotesTotalCents(allManuallyPlayedKeysTotalCents);
+    allManuallyPlayedKeys.insert(dragManuallyPlayedKeys.begin(), dragManuallyPlayedKeys.end());
+    processorRef.setManuallyPlayedNotes(allManuallyPlayedKeys);
 }
 
 void AudioPluginAudioProcessorEditor::startRecordingManuallyPlayedNotes() {
@@ -1675,23 +1673,23 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
                     }
                 }
             } else if (playHeadTime < prevPlayHeadTime) {
-                std::set<int> totalCentsRmk;
-                for (auto &note : recordedManuallyPlayedNotes) {
+                const int rmpnNum = recordedManuallyPlayedNotes.size();
+
+                for (int i = 0; i < rmpnNum; ++i) {
+                    auto &note = recordedManuallyPlayedNotes[i];
                     if (!note.isSelected) {
                         note.isSelected = true;
-                        totalCentsRmk.insert(note.octave * 1200 + note.cents);
+
+                        Note newNote;
+                        newNote.octave = note.octave;
+                        newNote.cents = note.cents;
+                        newNote.time = playHeadTime;
+                        newNote.duration = 0.0f;
+                        newNote.velocity = note.velocity;
+                        newNote.isSelected = false;
+                        newNote.bend = 0;
+                        recordedManuallyPlayedNotes.push_back(newNote);
                     }
-                }
-                for (int tcrmk : totalCentsRmk) {
-                    Note newNote;
-                    newNote.octave = tcrmk / 1200;
-                    newNote.cents = tcrmk % 1200;
-                    newNote.time = playHeadTime;
-                    newNote.duration = 0.0f;
-                    newNote.velocity = processorRef.params.defaultVelocity;
-                    newNote.isSelected = false;
-                    newNote.bend = 0;
-                    recordedManuallyPlayedNotes.push_back(newNote);
                 }
             }
             wasPlayingRMPN = true;

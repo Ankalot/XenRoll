@@ -330,9 +330,13 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
      */
     void rePrepareNotes() { processorRef.rePrepareNotes(); }
 
-    ///< mode = "keyboard" | "left" | "drag"
-    void setManuallyPlayedKeysTotalCents(const std::set<int> &manuallyPlayedKeysTotalCents,
-                                         const std::string &mode);
+    /**
+     * @brief Set the Manually Played Keys
+     * @param manuallyPlayedKeys {totalCents -> velocity}
+     * @param mode "keyboard" | "left" | "drag"
+     */
+    void setManuallyPlayedKeys(const std::map<int, float> &manuallyPlayedKeys,
+                               const std::string &mode);
 
     const std::vector<Note> &getNotes() { return processorRef.getNotes(); }
 
@@ -483,8 +487,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     const int top_y = (topPanel_height_px - top_height_px) / 2;
     const int clockDiagramPanel_margin = 10;
 
-    std::set<int> leftManuallyPlayedKeysTotalCents, keyboardManuallyPlayedKeysTotalCents,
-        dragManuallyPlayedKeysTotalCents;
+    ///< {totalCents -> velocity}
+    std::map<int, float> leftManuallyPlayedKeys, keyboardManuallyPlayedKeys, dragManuallyPlayedKeys;
 
     // ============= vocal to melody =============
     bool wasVocalToMelody = false;

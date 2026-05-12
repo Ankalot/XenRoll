@@ -684,7 +684,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 for (auto it = manPlNoteToChAndMidiNoteMPE.begin();
                      it != manPlNoteToChAndMidiNoteMPE.end();) {
                     const auto &[totalCents, chAndMidiNote] = *it;
-                    if (!manuallyPlayedNotesTotalCents.contains(totalCents)) {
+                    if (!manuallyPlayedNotes.contains(totalCents)) {
                         juce::MidiMessage noteOff =
                             juce::MidiMessage::noteOff(chAndMidiNote.first, chAndMidiNote.second);
                         midiMessages.addEvent(noteOff, 0);
@@ -820,7 +820,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 if (!startedPlayingManuallyPressedNotes) {
                     int i = 0;
                     int midiNote, bendMPE;
-                    for (const int totalCents : manuallyPlayedNotesTotalCents) {
+                    for (const auto &[totalCents, velocity] : manuallyPlayedNotes) {
                         if (manuallyPlayedNotesAreNew[i]) {
                             std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
                             int ch = channelsManagerMPE->allocateChannelMPE(bendMPE, false);
@@ -830,7 +830,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                     juce::MidiMessage::pitchWheel(ch, bendMPE);
                                 midiMessages.addEvent(pitchBend, 0);
                                 juce::MidiMessage noteOn =
-                                    juce::MidiMessage::noteOn(ch, midiNote, params.defaultVelocity);
+                                    juce::MidiMessage::noteOn(ch, midiNote, velocity);
                                 midiMessages.addEvent(noteOn, 0);
                                 manPlNoteToChAndMidiNoteMPE[totalCents] =
                                     std::make_pair(ch, midiNote);
@@ -853,11 +853,11 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 // Start playing manually pressed notes
                 if (!startedPlayingManuallyPressedNotes) {
                     int i = 0;
-                    for (const int totalCents : manuallyPlayedNotesTotalCents) {
+                    for (const auto &[totalCents, velocity] : manuallyPlayedNotes) {
                         if (manuallyPlayedNotesAreNew[i]) {
                             int freqInd = manuallyPlayedNotesIndexes[i];
                             juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
-                                params.channelIndex + 1, freqInd, params.defaultVelocity);
+                                params.channelIndex + 1, freqInd, velocity);
                             midiMessages.addEvent(noteOn, 0);
                             currPlayedNotesIndexes.insert(freqInd);
                         }
@@ -1635,18 +1635,18 @@ void AudioPluginAudioProcessor::rePrepareNotes() {
     suspendProcessing(false);
 }
 
-void AudioPluginAudioProcessor::setManuallyPlayedNotesTotalCents(
-    const std::set<int> newManuallyPlayedNotesTotalCents) {
+void AudioPluginAudioProcessor::setManuallyPlayedNotes(
+    const std::map<int, float> newManuallyPlayedNotes) {
     suspendProcessing(true);
     std::scoped_lock lock(manPlNotesTotCentsMutex);
     manuallyPlayedNotesAreNew.clear();
-    manuallyPlayedNotesAreNew.resize(newManuallyPlayedNotesTotalCents.size());
+    manuallyPlayedNotesAreNew.resize(newManuallyPlayedNotes.size());
     int i = 0;
-    for (int newTotalCents : newManuallyPlayedNotesTotalCents) {
-        manuallyPlayedNotesAreNew[i] = !manuallyPlayedNotesTotalCents.contains(newTotalCents);
+    for (auto const &[newTotalCents, _] : newManuallyPlayedNotes) {
+        manuallyPlayedNotesAreNew[i] = !manuallyPlayedNotes.contains(newTotalCents);
         i++;
     }
-    manuallyPlayedNotesTotalCents = newManuallyPlayedNotesTotalCents;
+    manuallyPlayedNotes = newManuallyPlayedNotes;
     startedPlayingManuallyPressedNotes = false;
     prepareNotes();
     if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
@@ -1707,7 +1707,7 @@ void AudioPluginAudioProcessor::prepareNotes() {
 
     // Prepare manuallyPlayedNotesIndexes here so it doesn't crash if pitchesOverflow
     manuallyPlayedNotesIndexes.clear();
-    manuallyPlayedNotesIndexes.resize(manuallyPlayedNotesTotalCents.size());
+    manuallyPlayedNotesIndexes.resize(manuallyPlayedNotes.size());
     // fill with zeroes so it doesn't crash when pitchesOverflow
     std::fill(manuallyPlayedNotesIndexes.begin(), manuallyPlayedNotesIndexes.end(), 0);
 
@@ -1732,8 +1732,8 @@ void AudioPluginAudioProcessor::prepareNotes() {
     }
 
     // Manually played notes
-    // make notes from manuallyPlayedNotesTotalCents, that are not in piano roll, relevant
-    for (const int totalCents : manuallyPlayedNotesTotalCents) {
+    // make notes from manuallyPlayedNotes, that are not in piano roll, relevant
+    for (const auto &[totalCents, _] : manuallyPlayedNotes) {
         double noteFreq = getFreqFromTotalCents(totalCents);
         int noteInd = findFreqInd(noteFreq);
         if (noteInd == -1) {
@@ -1751,7 +1751,7 @@ void AudioPluginAudioProcessor::prepareNotes() {
     }
     // set midi notes (indexes) for manually pressed notes
     int i = 0;
-    for (const int totalCents : manuallyPlayedNotesTotalCents) {
+    for (const auto &[totalCents, velocity] : manuallyPlayedNotes) {
         double noteFreq = getFreqFromTotalCents(totalCents);
         int noteInd = findFreqInd(noteFreq);
         if (noteInd == -1) {
@@ -1790,7 +1790,9 @@ std::set<int> AudioPluginAudioProcessor::getAllCurrPlayedNotesTotalCents() {
         result = currPlayedNotesTotalCents;
     }
     std::scoped_lock lock(manPlNotesTotCentsMutex);
-    result.insert(manuallyPlayedNotesTotalCents.begin(), manuallyPlayedNotesTotalCents.end());
+    for (const auto &[totalCents, _] : manuallyPlayedNotes) {
+        result.insert(totalCents);
+    }
     suspendProcessing(false);
 
     return result;

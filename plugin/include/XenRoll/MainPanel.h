@@ -162,7 +162,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     PitchMemoryResults pitchMemoryResults = {{}, {}};
 
     const juce::String keysPlaySet = "zxcvbnm,./asdfghjkl;qwertyuiop";
-    std::set<int> keyboardManuallyPlayedKeysTotalCents, dragManuallyPlayedKeysTotalCents;
+    std::map<int, float> keyboardManuallyPlayedKeys, dragManuallyPlayedKeys;
     std::map<juce::juce_wchar, int> wasKeyDown; ///< char and totalCents
 
     // new should be added at the end (with push_back) (don't remember why lol)
