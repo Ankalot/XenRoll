@@ -680,7 +680,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 // Taking into account A4 freq (default is 440 Hz)
                 corrTotalCentsMPE = 1200 * log2(params.A4Freq / 440.0);
 
-                // Stop playing unexisting notes (manually pressed)
+                // Stop playing unexisting notes (manually played)
                 for (auto it = manPlNoteToChAndMidiNoteMPE.begin();
                      it != manPlNoteToChAndMidiNoteMPE.end();) {
                     const auto &[totalCents, chAndMidiNote] = *it;
@@ -738,9 +738,10 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     noteToChAndMidiNoteMPE.clear();
                 }
 
+                int midiNote, bendMPE;
+
                 // Play notes from piano roll
                 if (isPlaying) {
-                    int midiNote, bendMPE;
                     // ===================== Note off =====================
                     for (int i = 0; i < notes.size(); ++i) {
                         const Note &note = notes[i];
@@ -816,12 +817,11 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     }
                 }
 
-                // Start playing manually pressed notes
-                if (!startedPlayingManuallyPressedNotes) {
-                    int i = 0;
-                    int midiNote, bendMPE;
+                // Start playing manually played notes
+                {
+                    std::scoped_lock lock(manPlNotesMutex);
                     for (const auto &[totalCents, velocity] : manuallyPlayedNotes) {
-                        if (manuallyPlayedNotesAreNew[i]) {
+                        if (!manPlNoteToChAndMidiNoteMPE.contains(totalCents)) {
                             std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
                             int ch = channelsManagerMPE->allocateChannelMPE(bendMPE, false);
                             if (ch != -1) {
@@ -838,9 +838,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                 pitchesOverflow = true;
                             }
                         }
-                        i++;
                     }
-                    startedPlayingManuallyPressedNotes = true;
                 }
 
                 wasPlaying = isPlaying;
@@ -850,20 +848,36 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 // =                                USING MTS-ESP                                 =
                 // ================================================================================
 
-                // Start playing manually pressed notes
-                if (!startedPlayingManuallyPressedNotes) {
-                    int i = 0;
-                    for (const auto &[totalCents, velocity] : manuallyPlayedNotes) {
-                        if (manuallyPlayedNotesAreNew[i]) {
-                            int freqInd = manuallyPlayedNotesIndexes[i];
-                            juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
-                                params.channelIndex + 1, freqInd, velocity);
-                            midiMessages.addEvent(noteOn, 0);
-                            currPlayedNotesIndexes.insert(freqInd);
+                {
+                    std::scoped_lock lock(manPlNotesMutex);
+                    // Stop playing unexisting notes (manually played)
+                    for (auto it = manPlNoteToMidiNoteMTS.begin();
+                         it != manPlNoteToMidiNoteMTS.end();) {
+                        if (!manuallyPlayedNotes.contains(it->first)) {
+                            juce::MidiMessage noteOff =
+                                juce::MidiMessage::noteOff(params.channelIndex + 1, it->second);
+                            midiMessages.addEvent(noteOff, 0);
+                            currPlayedNotesIndexes.erase(it->second);
+                            it = manPlNoteToMidiNoteMTS.erase(it);
+                        } else {
+                            ++it;
                         }
-                        i++;
                     }
-                    startedPlayingManuallyPressedNotes = true;
+
+                    // Start playing manually played notes
+                    for (const auto &[totalCents, velocity] : manuallyPlayedNotes) {
+                        if (!manPlNoteToMidiNoteMTS.contains(totalCents)) {
+                            double noteFreq = getFreqFromTotalCents(totalCents);
+                            int noteInd = findFreqInd(noteFreq);
+                            if (noteInd != -1) {
+                                juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
+                                    params.channelIndex + 1, noteInd, velocity);
+                                midiMessages.addEvent(noteOn, 0);
+                                currPlayedNotesIndexes.insert(noteInd);
+                                manPlNoteToMidiNoteMTS[totalCents] = noteInd;
+                            }
+                        }
+                    }
                 }
 
                 // Play notes from piano roll
@@ -985,8 +999,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         }
                     }
                     if (!thereStillExistsThisNote) {
-                        for (int i = 0; i < manuallyPlayedNotesIndexes.size(); ++i) {
-                            if (manuallyPlayedNotesIndexes[i] == ind) {
+                        for (const auto &[_, midiNoteInd] : manPlNoteToMidiNoteMTS) {
+                            if (midiNoteInd == ind) {
                                 thereStillExistsThisNote = true;
                                 break;
                             }
@@ -1637,22 +1651,11 @@ void AudioPluginAudioProcessor::rePrepareNotes() {
 
 void AudioPluginAudioProcessor::setManuallyPlayedNotes(
     const std::map<int, float> newManuallyPlayedNotes) {
-    suspendProcessing(true);
-    std::scoped_lock lock(manPlNotesTotCentsMutex);
-    manuallyPlayedNotesAreNew.clear();
-    manuallyPlayedNotesAreNew.resize(newManuallyPlayedNotes.size());
-    int i = 0;
-    for (auto const &[newTotalCents, _] : newManuallyPlayedNotes) {
-        manuallyPlayedNotesAreNew[i] = !manuallyPlayedNotes.contains(newTotalCents);
-        i++;
-    }
+    std::scoped_lock lock(manPlNotesMutex);
     manuallyPlayedNotes = newManuallyPlayedNotes;
-    startedPlayingManuallyPressedNotes = false;
-    prepareNotes();
     if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
-        pluginInstanceManager->waitChannelUpdate();
+        rePrepareNotes();
     }
-    suspendProcessing(false);
 }
 
 const std::vector<Note> &AudioPluginAudioProcessor::getNotes() { return notes; }
@@ -1705,12 +1708,6 @@ void AudioPluginAudioProcessor::prepareNotes() {
         }
     }
 
-    // Prepare manuallyPlayedNotesIndexes here so it doesn't crash if pitchesOverflow
-    manuallyPlayedNotesIndexes.clear();
-    manuallyPlayedNotesIndexes.resize(manuallyPlayedNotes.size());
-    // fill with zeroes so it doesn't crash when pitchesOverflow
-    std::fill(manuallyPlayedNotesIndexes.begin(), manuallyPlayedNotesIndexes.end(), 0);
-
     // set midi notes (indexes) for notes from piano roll
     int noteIndNew = 0;
     for (int i = 0; i < notes.size(); ++i) {
@@ -1740,27 +1737,20 @@ void AudioPluginAudioProcessor::prepareNotes() {
             manPlNotesTotCentsHistory.add(noteFreq);
         }
     }
-    // add to freqs[128] mostly relevant manually pressed notes that are not in freqs[128] array
+    // add to freqs[128] mostly relevant manually played notes that are not in freqs[128] array
     std::vector<double> manPlNotesTotCentsHistoryLast =
         manPlNotesTotCentsHistory.getLast(juce::jmax(128 - numUsedFreqs, 0));
     for (int i = 0; i < manPlNotesTotCentsHistoryLast.size(); ++i) {
         while (freqs[noteIndNew] != noFreq)
             noteIndNew++;
-        freqs[noteIndNew] = manPlNotesTotCentsHistoryLast[i];
-        numUsedFreqs++;
-    }
-    // set midi notes (indexes) for manually pressed notes
-    int i = 0;
-    for (const auto &[totalCents, velocity] : manuallyPlayedNotes) {
-        double noteFreq = getFreqFromTotalCents(totalCents);
-        int noteInd = findFreqInd(noteFreq);
-        if (noteInd == -1) {
+        if (noteIndNew >= 128) {
             pitchesOverflow = true;
             return;
         }
-        manuallyPlayedNotesIndexes[i] = noteInd;
-        i++;
+        freqs[noteIndNew] = manPlNotesTotCentsHistoryLast[i];
+        numUsedFreqs++;
     }
+
     if (!params.findPartialsMode.load())
         pluginInstanceManager->updateFreqs(freqs);
 }
@@ -1789,7 +1779,7 @@ std::set<int> AudioPluginAudioProcessor::getAllCurrPlayedNotesTotalCents() {
     } else if (params.getTuningType() == Parameters::MTS_ESP) {
         result = currPlayedNotesTotalCents;
     }
-    std::scoped_lock lock(manPlNotesTotCentsMutex);
+    std::scoped_lock lock(manPlNotesMutex);
     for (const auto &[totalCents, _] : manuallyPlayedNotes) {
         result.insert(totalCents);
     }

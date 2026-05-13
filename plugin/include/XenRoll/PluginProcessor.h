@@ -286,19 +286,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
 
     ///< {totalCents -> velocity} of notes(keys) that are currently played manually
     std::map<int, float> manuallyPlayedNotes;
-    // Maybe this mutex is unnecessary
-    std::mutex manPlNotesTotCentsMutex;
-    /**
-     * Shows whether the i-th note(key) from manuallyPlayedNotes was played manually
-     * before (this determines whether it needs noteOn or it just continues to play)
-     */
-    std::vector<bool> manuallyPlayedNotesAreNew;
-
-    /**
-     * A flag that indicates whether we have started playing notes (noteOn) from
-     * manuallyPlayedNotes
-     */
-    bool startedPlayingManuallyPressedNotes = false;
+    std::mutex manPlNotesMutex;
 
     std::atomic<double> playHeadTime = 0.0; ///< in bars
     // ============================================================================================
@@ -306,11 +294,8 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     // ======================================= USING MTS-ESP ======================================
     ///< Contains midi note number (0-127) for each note from notes vector
     std::vector<int> notesIndexes;
-    /**
-     * Contains midi note number (0-127) for each note that is played manually (from
-     * manuallyPlayedNotes)
-     */
-    std::vector<int> manuallyPlayedNotesIndexes;
+    ///< Manually played note's totalCents -> midi note number (0-127)
+    std::map<int, int> manPlNoteToMidiNoteMTS;
     /**
      * Is used to indicate that this frequency is not being used. Freq in Hz.
      * And if it is still used for a veeery short period of time (by mistake?), then there will be
