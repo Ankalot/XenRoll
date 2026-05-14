@@ -951,7 +951,7 @@ void AudioPluginAudioProcessorEditor::setManuallyPlayedKeys(
         leftManuallyPlayedKeys = manuallyPlayedKeys;
     }
 
-    std::map<int, float> allManuallyPlayedKeys;
+    allManuallyPlayedKeys.clear();
     allManuallyPlayedKeys.insert(keyboardManuallyPlayedKeys.begin(),
                                  keyboardManuallyPlayedKeys.end());
     allManuallyPlayedKeys.insert(leftManuallyPlayedKeys.begin(), leftManuallyPlayedKeys.end());
@@ -1609,10 +1609,11 @@ void AudioPluginAudioProcessorEditor::updatePitchMemory() {
 
 void AudioPluginAudioProcessorEditor::timerCallback() {
     // This timer runs pretty fast so don't spam mainPanel with excessive repaints!
+    const bool isPlaying = processorRef.isPlaying();
     bool mainPanelNeedsRepaint = false;
     float newPlayHeadTime = processorRef.getPlayHeadTime();
-    leftPanel.get()->setAllCurrPlayedNotesTotalCents(
-        processorRef.getAllCurrPlayedNotesTotalCents());
+    leftPanel.get()->updateCurrPlayingKeys(mainPanel->getNotes(), isPlaying, newPlayHeadTime,
+                                           allManuallyPlayedKeys, isAuditing, auditionTime);
     float prevPlayHeadTime = playHeadTime;
     if (newPlayHeadTime != playHeadTime) {
         mainPanelNeedsRepaint = true;
@@ -1630,7 +1631,7 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
             mainViewport->setCamOnTime(playHeadTime, processorRef.params.bar_width_px);
         }
 
-        if (processorRef.params.showClockDiagram && processorRef.isPlaying()) {
+        if (processorRef.params.showClockDiagram && isPlaying) {
             clockDiagramPanel->setTime(playHeadTime);
         }
     }
@@ -1664,7 +1665,6 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
     }
 
     if (processorRef.params.recordManuallyPlayedNotes) {
-        const bool isPlaying = processorRef.isPlaying();
         if (isPlaying) {
             if (playHeadTime > prevPlayHeadTime) {
                 for (auto &note : recordedManuallyPlayedNotes) {
@@ -1731,7 +1731,7 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
         if (currRecVolume_dB != recVolume_dB) {
             recVolume_dB = currRecVolume_dB;
             repaint(); // Show vocal volume
-        } else if (!processorRef.isPlaying()) {
+        } else if (!isPlaying) {
             repaint(); // Hide vocal volume
         }
         // ====================== NOTES ======================

@@ -1954,25 +1954,6 @@ std::tuple<float, int, int> AudioPluginAudioProcessor::getBpmNumDenom() {
     return std::make_tuple(120.0f, 4, 4);
 }
 
-std::set<int> AudioPluginAudioProcessor::getAllCurrPlayedNotesTotalCents() {
-    suspendProcessing(true);
-    std::set<int> result;
-    if (params.getTuningType() == Parameters::TuningType::MPE) {
-        for (const auto &[totalCents, _] : currPlayedNotesTotalCentsMPE) {
-            result.insert(totalCents);
-        }
-    } else if (params.getTuningType() == Parameters::MTS_ESP) {
-        result = currPlayedNotesTotalCents;
-    }
-    std::scoped_lock lock(manPlNotesMutex);
-    for (const auto &[totalCents, _] : manuallyPlayedNotes) {
-        result.insert(totalCents);
-    }
-    suspendProcessing(false);
-
-    return result;
-}
-
 bool AudioPluginAudioProcessor::thereIsPitchOverflow() {
     if (pitchesOverflow) {
         if (editorKnowsAboutOverflow) {

@@ -411,16 +411,20 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     void changedChannelsEconomyModeMPE() { processorRef.changedChannelsEconomyModeMPE(); }
 
-    void startAuditing(double newAuditionTime) {
-        processorRef.startAuditing(newAuditionTime);
+    void startAuditing(float newAuditionTime) {
+        auditionTime = newAuditionTime;
+        isAuditing = true;
+        processorRef.startAuditing((double)newAuditionTime);
     }
 
     void endAuditing() {
+        isAuditing = false;
         processorRef.endAuditing();
     }
 
-    void setAuditionTime(double newAuditionTime) {
-        processorRef.setAuditionTime(newAuditionTime);
+    void setAuditionTime(float newAuditionTime) {
+        auditionTime = newAuditionTime;
+        processorRef.setAuditionTime((double)newAuditionTime);
     }
 
   private:
@@ -500,7 +504,11 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     const int clockDiagramPanel_margin = 10;
 
     ///< {totalCents -> velocity}
-    std::map<int, float> leftManuallyPlayedKeys, keyboardManuallyPlayedKeys, dragManuallyPlayedKeys;
+    std::map<int, float> leftManuallyPlayedKeys, keyboardManuallyPlayedKeys, dragManuallyPlayedKeys,
+        allManuallyPlayedKeys;
+
+    bool isAuditing = false;
+    float auditionTime = 0.0f;
 
     // ============= vocal to melody =============
     bool wasVocalToMelody = false;

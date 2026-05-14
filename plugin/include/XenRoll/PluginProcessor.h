@@ -69,7 +69,6 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
      * @return Tuple of (BPM, numerator, denominator)
      */
     std::tuple<float, int, int> getBpmNumDenom();
-    std::set<int> getAllCurrPlayedNotesTotalCents();
 
     /**
      * @brief Check if there is a pitch overflow

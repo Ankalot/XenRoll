@@ -21,7 +21,7 @@ void LeftPanel::paint(juce::Graphics &g) {
         for (const int &key : keys) {
             float yPos = (i + 1.0f - float(key) / 1200) * octave_height_px;
             bool keyIsPlaying = false;
-            for (int totalCents : currPlayedNotesTotalCents) {
+            for (int totalCents : currPlayingKeysTotalCents) {
                 if (1200 * (params->num_octaves - i - 1) + key == totalCents) {
                     keyIsPlaying = true;
                     break;
@@ -89,6 +89,38 @@ void LeftPanel::paint(juce::Graphics &g) {
                    juce::Rectangle<int>(-100, static_cast<int>(yPos), 230,
                                         static_cast<int>(octave_height_px)),
                    juce::Justification::centred, false);
+    }
+}
+
+void LeftPanel::updateCurrPlayingKeys(const std::vector<Note> &notes, bool isPlaying,
+                                      float playHeadTime,
+                                      const std::map<int, float> allManuallyPlayedKeys,
+                                      bool isAuditing, float auditionTime) {
+    std::set<int> newCurrPlayingKeysTotalCents;
+
+    if (isPlaying) {
+        for (const Note &note : notes) {
+            if ((note.time <= playHeadTime) && (playHeadTime < note.time + note.duration)) {
+                newCurrPlayingKeysTotalCents.insert(note.octave*1200 + note.cents);
+            }
+        }
+    }
+
+    if (isAuditing) {
+        for (const Note &note : notes) {
+            if ((note.time <= auditionTime) && (auditionTime < note.time + note.duration)) {
+                newCurrPlayingKeysTotalCents.insert(note.octave*1200 + note.cents);
+            }
+        }
+    }
+
+    for (const auto &[totalCents, _] : allManuallyPlayedKeys) {
+        newCurrPlayingKeysTotalCents.insert(totalCents);
+    }
+
+    if (currPlayingKeysTotalCents != newCurrPlayingKeysTotalCents) {
+        currPlayingKeysTotalCents = newCurrPlayingKeysTotalCents;
+        repaint();
     }
 }
 

@@ -875,7 +875,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         if (event.mods.isAltDown()) {
             auditionTime = point.getX() / bar_width_px;
             isAuditing = true;
-            editor->startAuditing((double)auditionTime);
+            editor->startAuditing(auditionTime);
             repaint();
             setMouseCursor(juce::MouseCursor::CrosshairCursor);
             return;
@@ -1104,7 +1104,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         float newAuditionTime = currDragPoint.getX() / bar_width_px;
         if (auditionTime != newAuditionTime) {
             auditionTime = newAuditionTime;
-            editor->setAuditionTime((double)auditionTime);
+            editor->setAuditionTime(auditionTime);
             repaint();
         }
     }

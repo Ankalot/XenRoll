@@ -61,17 +61,10 @@ class LeftPanel : public juce::Component {
         repaint();
     }
 
-    /**
-     * @brief Set the currently played notes
-     * @param newCurrPlayedNotesTotalCents Set of currently played notes (in total cents)
-     * @note Repaints panel (if these currently played notes are new)
-     */
-    void setAllCurrPlayedNotesTotalCents(const std::set<int> &newCurrPlayedNotesTotalCents) {
-        if (currPlayedNotesTotalCents != newCurrPlayedNotesTotalCents) {
-            currPlayedNotesTotalCents = newCurrPlayedNotesTotalCents;
-            repaint();
-        }
-    }
+    ///< Repaints panel if needed
+    void updateCurrPlayingKeys(const std::vector<Note> &notes, bool isPlaying, float playHeadTime,
+                               const std::map<int, float> allManuallyPlayedKeys, bool isAuditing,
+                               float auditionTime);
 
     void mouseDown(const juce::MouseEvent &event) override;
     void mouseDrag(const juce::MouseEvent &event) override;
@@ -94,7 +87,7 @@ class LeftPanel : public juce::Component {
     float octave_height_px;
     std::set<int> keys; ///< 0-1199 cents
 
-    std::set<int> currPlayedNotesTotalCents;
+    std::set<int> currPlayingKeysTotalCents; ///< totalCents
     int manuallyPlayedKeyTotalCents; ///< totalCents
 
     AudioPluginAudioProcessorEditor *editor;
