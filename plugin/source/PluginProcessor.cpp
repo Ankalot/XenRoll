@@ -789,8 +789,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     // Note bend
                     for (const auto &[noteIndAndTotCents, chAndMidiNote] :
                          auditNoteToChAndMidiNoteMPE) {
-                        bendMPE =
-                            calcBendMPE(notes[noteIndAndTotCents.first], auditionTime);
+                        bendMPE = calcBendMPE(notes[noteIndAndTotCents.first], auditionTime);
                         juce::MidiMessage pitchBend =
                             juce::MidiMessage::pitchWheel(chAndMidiNote.first, bendMPE);
                         midiMessages.addEvent(pitchBend, 0);
@@ -880,9 +879,13 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     // ===================== Note on =====================
                     for (int i = 0; i < notes.size(); ++i) {
                         const Note &note = notes[i];
+                        int totalCents = note.octave * 1200 + note.cents;
                         if ((note.time >= playHeadTime) &&
-                            (note.time < playHeadTime + barsInBlock)) {
-                            int totalCents = note.octave * 1200 + note.cents;
+                            (note.time < playHeadTime + barsInBlock) &&
+                            // need to check it so there will be no bug when you turn on/off
+                            // playback so fast that you can't catch the moment isPlaying=false
+                            // to make noteOff (so just don't make unnecassry noteOn)
+                            (!noteToChAndMidiNoteMPE.contains({i, totalCents}))) {
                             std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
                             int ch =
                                 channelsManagerMPE->allocateChannelMPE(bendMPE, note.bend != 0);
@@ -979,8 +982,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         if (i < notes.size()) {
                             const Note &note = notes[i];
                             int noteTotalCents = note.octave * 1200 + note.cents;
-                            if ((noteTotalCents == totalCents) &&
-                                (auditionTime >= note.time) &&
+                            if ((noteTotalCents == totalCents) && (auditionTime >= note.time) &&
                                 (auditionTime < note.time + note.duration)) {
                                 stopPlayingThisNote = false;
                             }
@@ -1033,8 +1035,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                     needUpdateFreqs = true;
                                 }
                             } else if (note.bend != 0) {
-                                freqs[it->second] =
-                                    getNoteFreqAtTime(note, auditionTime);
+                                freqs[it->second] = getNoteFreqAtTime(note, auditionTime);
                                 needUpdateFreqs = true;
                             }
                         }
@@ -1095,9 +1096,12 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     for (int i = 0; i < notes.size(); ++i) {
                         const Note &note = notes[i];
                         // Note on
-                        if ((note.time >=
-                             playHeadTime) && /*!currPlayedNotesTotalCents.contains(note.octave*1200+note.cents)*/
-                            (note.time < playHeadTime + barsInBlock)) {
+                        if ((note.time >= playHeadTime) &&
+                            (note.time < playHeadTime + barsInBlock) &&
+                            // need to check it so there will be no bug when you turn on/off
+                            // playback so fast that you can't catch the moment isPlaying=false
+                            // to make noteOff (so just don't make unnecassry noteOn)
+                            !currPlayedNotesTotalCents.contains(note.octave * 1200 + note.cents)) {
                             const int noteInd = notesIndexes[i];
                             juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
                                 params.channelIndex + 1, noteInd, note.velocity);
