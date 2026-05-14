@@ -15,25 +15,24 @@ LeftPanel::LeftPanel(int leftPanel_width_px, AudioPluginAudioProcessorEditor *ed
 void LeftPanel::paint(juce::Graphics &g) {
     g.fillAll(params->theme.bright);
 
-    // rectangles for keys that are played
+    // rectangles for original keys that are played
+    float rectHeight = adaptKeyHeight(20.0f);
     g.setColour(params->theme.brighter);
-    for (int i = 0; i < params->num_octaves; ++i) {
-        for (const int &key : keys) {
-            float yPos = (i + 1.0f - float(key) / 1200) * octave_height_px;
-            bool keyIsPlaying = false;
-            for (int totalCents : currPlayingKeysTotalCents) {
-                if (1200 * (params->num_octaves - i - 1) + key == totalCents) {
-                    keyIsPlaying = true;
-                    break;
-                }
-            }
-            if (keyIsPlaying) {
-                g.fillRoundedRectangle(juce::Rectangle<float>(0.0f, yPos - adaptKeyHeight(10.0f),
-                                                              float(leftPanel_width_px),
-                                                              adaptKeyHeight(20.0f)),
-                                       4.0f);
-            }
-        }
+    for (int totalCents : currPlayingKeysTotalCents) {
+        float yPos = (params->num_octaves - float(totalCents) / 1200) * octave_height_px;
+        g.fillRoundedRectangle(juce::Rectangle<float>(0.0f, yPos - rectHeight/2,
+                                                      float(leftPanel_width_px), rectHeight),
+                               4.0f);
+    }
+
+    // dashed lines for bent keys (notes) that are played
+    float lineThickness = adaptKeyHeight(5.0f);
+    float dashLengths[] = {lineThickness * 2, lineThickness};
+    g.setColour(params->theme.brighter);
+    for (int totalCents : currPlayingBentKeysTotalCents) {
+        float yPos = (params->num_octaves - float(totalCents) / 1200) * octave_height_px;
+        g.drawDashedLine(juce::Line<float>(0.0f, yPos, float(leftPanel_width_px), yPos),
+                         dashLengths, 2, lineThickness);
     }
 
     // octaves
@@ -97,11 +96,18 @@ void LeftPanel::updateCurrPlayingKeys(const std::vector<Note> &notes, bool isPla
                                       const std::map<int, float> allManuallyPlayedKeys,
                                       bool isAuditing, float auditionTime) {
     std::set<int> newCurrPlayingKeysTotalCents;
+    std::set<int> newCurrPlayingBentKeysTotalCents;
 
     if (isPlaying) {
         for (const Note &note : notes) {
             if ((note.time <= playHeadTime) && (playHeadTime < note.time + note.duration)) {
-                newCurrPlayingKeysTotalCents.insert(note.octave*1200 + note.cents);
+                int totalCents = note.octave * 1200 + note.cents;
+                newCurrPlayingKeysTotalCents.insert(totalCents);
+                if (note.bend != 0) {
+                    totalCents +=
+                        juce::roundToInt(note.bend * (playHeadTime - note.time) / note.duration);
+                    newCurrPlayingBentKeysTotalCents.insert(totalCents);
+                }
             }
         }
     }
@@ -109,7 +115,13 @@ void LeftPanel::updateCurrPlayingKeys(const std::vector<Note> &notes, bool isPla
     if (isAuditing) {
         for (const Note &note : notes) {
             if ((note.time <= auditionTime) && (auditionTime < note.time + note.duration)) {
-                newCurrPlayingKeysTotalCents.insert(note.octave*1200 + note.cents);
+                int totalCents = note.octave * 1200 + note.cents;
+                newCurrPlayingKeysTotalCents.insert(totalCents);
+                if (note.bend != 0) {
+                    totalCents +=
+                        juce::roundToInt(note.bend * (auditionTime - note.time) / note.duration);
+                    newCurrPlayingBentKeysTotalCents.insert(totalCents);
+                }
             }
         }
     }
@@ -118,8 +130,16 @@ void LeftPanel::updateCurrPlayingKeys(const std::vector<Note> &notes, bool isPla
         newCurrPlayingKeysTotalCents.insert(totalCents);
     }
 
+    bool needRepaint = false;
     if (currPlayingKeysTotalCents != newCurrPlayingKeysTotalCents) {
         currPlayingKeysTotalCents = newCurrPlayingKeysTotalCents;
+        needRepaint = true;
+    }
+    if (currPlayingBentKeysTotalCents != newCurrPlayingBentKeysTotalCents) {
+        currPlayingBentKeysTotalCents = newCurrPlayingBentKeysTotalCents;
+        needRepaint = true;
+    }
+    if (needRepaint) {
         repaint();
     }
 }

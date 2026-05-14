@@ -87,8 +87,11 @@ class LeftPanel : public juce::Component {
     float octave_height_px;
     std::set<int> keys; ///< 0-1199 cents
 
-    std::set<int> currPlayingKeysTotalCents; ///< totalCents
-    int manuallyPlayedKeyTotalCents; ///< totalCents
+    ///< has totalCents of keys that are original (not bent)
+    std::set<int> currPlayingKeysTotalCents;
+    ///< has totalCents of bent keys (notes)
+    std::set<int> currPlayingBentKeysTotalCents;
+    int manuallyPlayedKeyTotalCents;
 
     AudioPluginAudioProcessorEditor *editor;
     Parameters *params;
