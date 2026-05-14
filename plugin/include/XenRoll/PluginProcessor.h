@@ -161,6 +161,23 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
         channelsManagerMPE->setEconomyMode(params.channelsEconomyModeMPE);
     }
 
+    void startAuditing(double newAuditionTime) {
+        auditionTime = newAuditionTime;
+        stopAuditing = false;
+        auditionChanged = true;
+        isAuditing = true;
+    }
+
+    void endAuditing() {
+        isAuditing = false;
+        stopAuditing = true;
+    }
+
+    void setAuditionTime(double newAuditionTime) {
+        auditionTime = newAuditionTime;
+        auditionChanged = true;
+    }
+
   private:
     // The magic number for defining the new ValueTree format
     static constexpr int MAGIC_NUMBER = 7777777;
@@ -289,6 +306,11 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     std::mutex manPlNotesMutex;
 
     std::atomic<double> playHeadTime = 0.0; ///< in bars
+
+    std::atomic<bool> isAuditing = false;
+    std::atomic<bool> stopAuditing = false;
+    std::atomic<bool> auditionChanged = false;
+    std::atomic<double> auditionTime = 0.0;
     // ============================================================================================
 
     // ======================================= USING MTS-ESP ======================================
@@ -296,6 +318,8 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     std::vector<int> notesIndexes;
     ///< Manually played note's totalCents -> midi note number (0-127)
     std::map<int, int> manPlNoteToMidiNoteMTS;
+    ///< Audition note's {index, totalCents} -> midi note number (0-127)
+    std::map<std::pair<int, int>, int> auditNoteToMidiNoteMTS;
     /**
      * Is used to indicate that this frequency is not being used. Freq in Hz.
      * And if it is still used for a veeery short period of time (by mistake?), then there will be
@@ -329,6 +353,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     RelevanceQueue<double> manPlNotesTotCentsHistory;
 
     double getNoteFreq(const Note &note);
+    double getNoteFreqAtTime(const Note &note, double time);
     double getFreqFromTotalCents(float totalCents);
     int getTotalCentsFromFreq(double freq);
 
@@ -355,7 +380,8 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     double corrTotalCentsMPE = 0;
 
     ///< {note's index, note's totalCents} -> {midi channel (2-16), midi note number}
-    std::map<std::pair<int, int>, std::pair<int, int>> noteToChAndMidiNoteMPE;
+    std::map<std::pair<int, int>, std::pair<int, int>> noteToChAndMidiNoteMPE,
+        auditNoteToChAndMidiNoteMPE;
     ///< Manually played note's totalCents -> {midi channel (2-16), midi note number}
     std::map<int, std::pair<int, int>> manPlNoteToChAndMidiNoteMPE;
     std::unique_ptr<ChannelsManagerMPE> channelsManagerMPE;
@@ -400,10 +426,10 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     }
 
     ///< Calculate midi bend based on Note.bend while playing it
-    int calcBendMPE(const Note &note) {
+    int calcBendMPE(const Note &note, double currTime) {
         double totalCents = note.octave * 1200 + note.cents + corrTotalCentsMPE;
         double bendCentsBase = totalCents - juce::roundToInt(totalCents / 100.0) * 100;
-        double bendCents = bendCentsBase + note.bend * (playHeadTime - note.time) / note.duration;
+        double bendCents = bendCentsBase + note.bend * (currTime - note.time) / note.duration;
         int bendMPE = juce::jlimit(0, 16383, 8192 + juce::roundToInt(bendCents / centsPerBendMPE));
         return bendMPE;
     }

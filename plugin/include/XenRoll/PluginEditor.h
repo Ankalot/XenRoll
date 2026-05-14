@@ -411,6 +411,18 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     void changedChannelsEconomyModeMPE() { processorRef.changedChannelsEconomyModeMPE(); }
 
+    void startAuditing(double newAuditionTime) {
+        processorRef.startAuditing(newAuditionTime);
+    }
+
+    void endAuditing() {
+        processorRef.endAuditing();
+    }
+
+    void setAuditionTime(double newAuditionTime) {
+        processorRef.setAuditionTime(newAuditionTime);
+    }
+
   private:
     AudioPluginAudioProcessor &processorRef;
 

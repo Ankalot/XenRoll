@@ -132,6 +132,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     float playHeadTime; ///< In bars
     float init_octave_height_px, init_bar_width_px;
     float octave_height_px, bar_width_px;
+    float auditionTime; ///< In bars
+    bool isAuditing = false;
     bool isDragging = false;
     bool isResizing = false;
     bool isMoving = false;

@@ -167,6 +167,19 @@ void MainPanel::paint(juce::Graphics &g) {
         }
     }
 
+    // Audition line
+    if (isAuditing) {
+        g.setColour(params->theme.activated.darker(0.3f));
+        for (const Note &note : notes) {
+            if ((note.time <= auditionTime) && (auditionTime < note.time + note.duration)) {
+                g.setColour(params->theme.activated);
+                break;
+            }
+        }
+        g.drawLine(auditionTime * bar_width_px, float(clipY), auditionTime * bar_width_px,
+                   float(clipY + clipHeight), Theme::narrower);
+    }
+
     // notes
     int j = 0;
     for (const Note &note : notes) {
@@ -859,6 +872,15 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             return;
         }
 
+        if (event.mods.isAltDown()) {
+            auditionTime = point.getX() / bar_width_px;
+            isAuditing = true;
+            editor->startAuditing((double)auditionTime);
+            repaint();
+            setMouseCursor(juce::MouseCursor::CrosshairCursor);
+            return;
+        }
+
         selectStartPos = point;
         juce::Point<float> pointFloat = event.getPosition().toFloat();
         for (int i = int(notes.size()) - 1; i >= 0; --i) {
@@ -1078,6 +1100,15 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         repaint();
     }
 
+    if (isAuditing) {
+        float newAuditionTime = currDragPoint.getX() / bar_width_px;
+        if (auditionTime != newAuditionTime) {
+            auditionTime = newAuditionTime;
+            editor->setAuditionTime((double)auditionTime);
+            repaint();
+        }
+    }
+
     if (isSelecting) {
         selectionRect = juce::Rectangle<int>(selectStartPos, currDragPoint);
         repaint();
@@ -1173,6 +1204,11 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
         needToUnselectAllNotesExcept = -1;
     }
 
+    if (isAuditing) {
+        editor->endAuditing();
+        isAuditing = false;
+    }
+
     if (isSelecting) {
         if (!event.mods.isShiftDown()) {
             unselectAllNotes();
@@ -1250,7 +1286,7 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
 void MainPanel::mouseMove(const juce::MouseEvent &event) {
     // It seems that mouseMove isn't triggered if there is mouse drag, so there is no need in
     // this if statement, but I'll leave it just in case.
-    if (isDragging || isMoving || isResizing || isSelecting || isMovingRatioMark)
+    if (isDragging || isMoving || isResizing || isSelecting || isMovingRatioMark || isAuditing)
         return;
 
     if (params->showClockDiagram && !editor->isPlaying()) {

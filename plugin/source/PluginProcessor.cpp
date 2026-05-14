@@ -738,7 +738,96 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     noteToChAndMidiNoteMPE.clear();
                 }
 
+                // Stop playing auditing notes from piano roll
+                if (isAuditing) {
+                    for (auto it = auditNoteToChAndMidiNoteMPE.begin();
+                         it != auditNoteToChAndMidiNoteMPE.end();) {
+                        const auto &[key, chAndMidiNote] = *it;
+                        int i = key.first;
+                        int totalCents = key.second;
+                        bool stopPlayingThisNote = false;
+
+                        if (i >= notes.size()) {
+                            stopPlayingThisNote = true;
+                        } else {
+                            const Note &note = notes[i];
+                            if (note.octave * 1200 + note.cents != totalCents) {
+                                stopPlayingThisNote = true;
+                            } else {
+                                stopPlayingThisNote = (auditionTime < note.time ||
+                                                       auditionTime >= note.time + note.duration);
+                            }
+                        }
+
+                        if (stopPlayingThisNote) {
+                            juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
+                                chAndMidiNote.first, chAndMidiNote.second);
+                            midiMessages.addEvent(noteOff, 0);
+                            it = auditNoteToChAndMidiNoteMPE.erase(it);
+                            delCurrPlayedNotesTotalCentsMPE(totalCents);
+                            channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
+                        } else {
+                            ++it;
+                        }
+                    }
+                } else if (stopAuditing) {
+                    for (const auto &[key, chAndMidiNote] : auditNoteToChAndMidiNoteMPE) {
+                        juce::MidiMessage noteOff =
+                            juce::MidiMessage::noteOff(chAndMidiNote.first, chAndMidiNote.second);
+                        midiMessages.addEvent(noteOff, 0);
+                        delCurrPlayedNotesTotalCentsMPE(key.second);
+                        channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
+                    }
+                    auditNoteToChAndMidiNoteMPE.clear();
+                    stopAuditing = false;
+                }
+
                 int midiNote, bendMPE;
+
+                // Play auditing notes from piano roll
+                if (isAuditing && auditionChanged) {
+                    // Note bend
+                    for (const auto &[noteIndAndTotCents, chAndMidiNote] :
+                         auditNoteToChAndMidiNoteMPE) {
+                        bendMPE =
+                            calcBendMPE(notes[noteIndAndTotCents.first], auditionTime);
+                        juce::MidiMessage pitchBend =
+                            juce::MidiMessage::pitchWheel(chAndMidiNote.first, bendMPE);
+                        midiMessages.addEvent(pitchBend, 0);
+                    }
+
+                    // Note on
+                    for (int i = 0; i < notes.size(); ++i) {
+                        const Note &note = notes[i];
+                        if ((note.time <= auditionTime) &&
+                            (auditionTime < note.time + note.duration)) {
+                            int totalCents = note.octave * 1200 + note.cents;
+                            if (!auditNoteToChAndMidiNoteMPE.contains({i, totalCents})) {
+                                std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
+                                if (note.bend != 0) {
+                                    bendMPE = calcBendMPE(note, auditionTime);
+                                }
+                                int ch =
+                                    channelsManagerMPE->allocateChannelMPE(bendMPE, note.bend != 0);
+                                if (ch != -1) {
+                                    pitchesOverflow = false;
+                                    juce::MidiMessage pitchBend =
+                                        juce::MidiMessage::pitchWheel(ch, bendMPE);
+                                    midiMessages.addEvent(pitchBend, 0);
+                                    juce::MidiMessage noteOn =
+                                        juce::MidiMessage::noteOn(ch, midiNote, note.velocity);
+                                    midiMessages.addEvent(noteOn, 0);
+                                    auditNoteToChAndMidiNoteMPE[{i, totalCents}] =
+                                        std::make_pair(ch, midiNote);
+                                    addCurrPlayedNotesTotalCentsMPE(totalCents);
+                                } else {
+                                    pitchesOverflow = true;
+                                }
+                            }
+                        }
+                    }
+                    auditionChanged = false;
+                }
 
                 // Play notes from piano roll
                 if (isPlaying) {
@@ -781,7 +870,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                             const auto &itNote = noteToChAndMidiNoteMPE.find({i, totalCents});
                             if (itNote != noteToChAndMidiNoteMPE.end()) {
                                 const auto &chAndMidiNote = itNote->second;
-                                int bendMPE = calcBendMPE(note);
+                                int bendMPE = calcBendMPE(note, playHeadTime);
                                 juce::MidiMessage pitchBend =
                                     juce::MidiMessage::pitchWheel(chAndMidiNote.first, bendMPE);
                                 midiMessages.addEvent(pitchBend, 0);
@@ -880,6 +969,82 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     }
                 }
 
+                // Stop playing auditing notes from piano roll
+                if (isAuditing) {
+                    for (auto it = auditNoteToMidiNoteMTS.begin();
+                         it != auditNoteToMidiNoteMTS.end();) {
+                        int i = it->first.first;
+                        int totalCents = it->first.second;
+                        bool stopPlayingThisNote = true;
+                        if (i < notes.size()) {
+                            const Note &note = notes[i];
+                            int noteTotalCents = note.octave * 1200 + note.cents;
+                            if ((noteTotalCents == totalCents) &&
+                                (auditionTime >= note.time) &&
+                                (auditionTime < note.time + note.duration)) {
+                                stopPlayingThisNote = false;
+                            }
+                        }
+                        if (stopPlayingThisNote) {
+                            int noteInd = it->second;
+                            juce::MidiMessage noteOff =
+                                juce::MidiMessage::noteOff(params.channelIndex + 1, noteInd);
+                            midiMessages.addEvent(noteOff, 0);
+                            currPlayedNotesIndexes.erase(noteInd);
+                            currPlayedNotesTotalCents.erase(totalCents);
+                            it = auditNoteToMidiNoteMTS.erase(it);
+                        } else {
+                            ++it;
+                        }
+                    }
+                } else if (stopAuditing) {
+                    for (const auto &[noteIndAndTotCents, noteInd] : auditNoteToMidiNoteMTS) {
+                        juce::MidiMessage noteOff =
+                            juce::MidiMessage::noteOff(params.channelIndex + 1, noteInd);
+                        midiMessages.addEvent(noteOff, 0);
+                        currPlayedNotesIndexes.erase(noteInd);
+                        currPlayedNotesTotalCents.erase(noteIndAndTotCents.second);
+                    }
+                    auditNoteToMidiNoteMTS.clear();
+                    stopAuditing = false;
+                }
+
+                // Play auditing notes from piano roll
+                if (isAuditing && auditionChanged) {
+                    bool needUpdateFreqs = false;
+                    for (int i = 0; i < notes.size(); ++i) {
+                        const Note &note = notes[i];
+                        if ((note.time <= auditionTime) &&
+                            (auditionTime < note.time + note.duration)) {
+                            int totalCents = note.octave * 1200 + note.cents;
+                            auto it = auditNoteToMidiNoteMTS.find({i, totalCents});
+                            if (it == auditNoteToMidiNoteMTS.end()) {
+                                int noteInd = notesIndexes[i];
+                                if (noteInd == -1)
+                                    continue;
+                                juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
+                                    params.channelIndex + 1, noteInd, note.velocity);
+                                midiMessages.addEvent(noteOn, 0);
+                                currPlayedNotesIndexes.insert(noteInd);
+                                currPlayedNotesTotalCents.insert(totalCents);
+                                auditNoteToMidiNoteMTS[{i, totalCents}] = noteInd;
+                                if (note.bend != 0) {
+                                    freqs[noteInd] = getNoteFreqAtTime(note, auditionTime);
+                                    needUpdateFreqs = true;
+                                }
+                            } else if (note.bend != 0) {
+                                freqs[it->second] =
+                                    getNoteFreqAtTime(note, auditionTime);
+                                needUpdateFreqs = true;
+                            }
+                        }
+                    }
+                    if (needUpdateFreqs) {
+                        pluginInstanceManager->updateFreqs(freqs);
+                    }
+                    auditionChanged = false;
+                }
+
                 // Play notes from piano roll
                 if (isPlaying) {
                     // =======================================
@@ -952,7 +1117,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         pluginInstanceManager->updateFreqs(freqs);
                     }
                 } else {
-                    currPlayedNotesTotalCents.clear();
                     // IF THERE WERE NOTE BENDS AND NOTES DIDN'T END BEFORE WE STOPPED
                     //    PLAYBACK (this isn't necessarily to do)
                     if (wasPlaying) {
@@ -1000,6 +1164,14 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     }
                     if (!thereStillExistsThisNote) {
                         for (const auto &[_, midiNoteInd] : manPlNoteToMidiNoteMTS) {
+                            if (midiNoteInd == ind) {
+                                thereStillExistsThisNote = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!thereStillExistsThisNote) {
+                        for (const auto &[key, midiNoteInd] : auditNoteToMidiNoteMTS) {
                             if (midiNoteInd == ind) {
                                 thereStillExistsThisNote = true;
                                 break;
@@ -1635,6 +1807,7 @@ void AudioPluginAudioProcessor::updateNotes(const std::vector<Note> &new_notes) 
     suspendProcessing(true);
     notes = new_notes;
     prepareNotes();
+    auditionChanged = true;
     suspendProcessing(false);
     if (params.getTuningType() == Parameters::TuningType::MPE) {
         notesSharingMPE->updateNotes(notes);
@@ -1678,6 +1851,14 @@ double AudioPluginAudioProcessor::getNoteFreq(const Note &note) {
         dBend = note.bend * (playHeadTime - note.time) / note.duration;
     double dCents = (note.octave * 1200 + note.cents + dBend) - (4 * 1200 + 900);
     return params.A4Freq.load() * pow(2.0, dCents / 1200.0);
+}
+
+double AudioPluginAudioProcessor::getNoteFreqAtTime(const Note &note, double time) {
+    double dBend = 0.0f;
+    if ((note.bend != 0) && (note.time < time) && (time <= note.time + note.duration))
+        dBend = note.bend * (time - note.time) / note.duration;
+    double dCents = (note.octave * 1200 + note.cents + dBend) - (4 * 1200 + 900);
+    return params.A4Freq.load() * std::pow(2.0, dCents / 1200.0);
 }
 
 double AudioPluginAudioProcessor::getFreqFromTotalCents(float totalCents) {
