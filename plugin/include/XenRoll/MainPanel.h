@@ -144,6 +144,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool wasTimeStretching = false;
     bool isDrawingRatioMark = false;
     bool isMovingRatioMark = false;
+    bool wasMovingRatioMark = false;
     bool prevDragPointIsActual = false;
     bool wasBending = false;
     RatioMark *movingRatioMark;

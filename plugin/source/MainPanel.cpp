@@ -1099,6 +1099,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
             dtime = dtime - sgn(dtime) * floor(abs(dtime) / dt) * dt;
         }
         if (moved) {
+            wasMovingRatioMark = true;
             repaint();
         }
     }
@@ -1275,7 +1276,7 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
         editor->setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
     }
 
-    if (wasResizing || wasMoving || wasTimeStretching || isMovingRatioMark) {
+    if (wasResizing || wasMoving || wasTimeStretching || wasMovingRatioMark) {
         saveState();
     }
 
@@ -1287,6 +1288,7 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
     isTimeStretching = false;
     wasTimeStretching = false;
     isMovingRatioMark = false;
+    wasMovingRatioMark = false;
     dtime = 0.0f;
     dcents = 0;
     prevDragPointIsActual = false;
