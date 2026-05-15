@@ -1,5 +1,7 @@
+// clang-format off
 #include "XenRoll/PluginEditor.h" // must be first!
 #include "XenRoll/MainPanel.h"    // must be second!
+// clang-format on
 #include <random>
 
 namespace audio_plugin {
@@ -740,8 +742,35 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                     notes[i].isSelected = true;
                     repaint();
                     setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
-                    isResizing = true;
                     lastDragPos = getParentComponent()->getLocalPoint(this, event.getPosition());
+
+                    // Time-stretch selected notes
+                    if (event.mods.isAltDown()) {
+                        // Save initial state of selected notes
+                        timeStretchInitialState.clear();
+                        timeStretchSelectionLeft = std::numeric_limits<float>::max();
+                        timeStretchSelectionRight = 0.0f;
+                        timeStretchPivot = point.getX() / bar_width_px;
+                        for (const Note &note : notes) {
+                            if (note.isSelected) {
+                                timeStretchInitialState.push_back({note.time, note.duration});
+                                timeStretchSelectionLeft =
+                                    std::min(timeStretchSelectionLeft, note.time);
+                                timeStretchSelectionRight =
+                                    std::max(timeStretchSelectionRight, note.time + note.duration);
+                            }
+                        }
+                        // Save initial ratio mark times (all for simplicity)
+                        timeStretchInitialRatioMarkTimes.clear();
+                        for (const auto &rm : params->ratiosMarks) {
+                            timeStretchInitialRatioMarkTimes.push_back(rm.time);
+                        }
+                        isTimeStretching = true;
+                        return;
+                    }
+
+                    // Resizing selected notes
+                    isResizing = true;
                     return;
                 }
                 isMoving = true;
@@ -872,6 +901,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             return;
         }
 
+        // Enable notes auditing under cursor
         if (event.mods.isAltDown()) {
             auditionTime = point.getX() / bar_width_px;
             isAuditing = true;
@@ -881,6 +911,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             return;
         }
 
+        // Start rectangular selection
         selectStartPos = point;
         juce::Point<float> pointFloat = event.getPosition().toFloat();
         for (int i = int(notes.size()) - 1; i >= 0; --i) {
@@ -951,7 +982,8 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         bool resized = false;
         float dt = 1.0f / (params->num_beats * params->num_subdivs);
         for (int i = 0; i < notes.size(); ++i) {
-            if (notes[i].isSelected && (notes[i].duration + delta_duration > 1.0 / 256)) {
+            if (notes[i].isSelected &&
+                (notes[i].duration + delta_duration > params->minNoteDuration)) {
                 if (params->timeSnap) {
                     if (abs(dtime) >= dt) {
                         notes[i].duration = std::max(
@@ -971,6 +1003,74 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         }
         if (resized)
             remakeKeys();
+        editor->updateKeys(keys);
+        editor->updateNotes(notes);
+        repaint();
+    }
+
+    if (isTimeStretching) {
+        if (delta.getX() != 0)
+            wasTimeStretching = true;
+
+        float cursorTime = currDragPoint.getX() / bar_width_px;
+
+        float pivotSpan = timeStretchPivot - timeStretchSelectionLeft;
+        if (std::abs(pivotSpan) < 1e-6f)
+            return;
+        float scale = (cursorTime - timeStretchSelectionLeft) / pivotSpan;
+
+        size_t idx = 0;
+        for (int i = 0; i < notes.size(); ++i) {
+            if (notes[i].isSelected) {
+                float initialTime = timeStretchInitialState[idx].first;
+                float initialDuration = timeStretchInitialState[idx].second;
+                float newEnd = timeStretchSelectionLeft +
+                               (initialTime - timeStretchSelectionLeft) * scale +
+                               initialDuration * scale;
+                if (newEnd > params->get_num_bars()) {
+                    float denom = (initialTime - timeStretchSelectionLeft) + initialDuration;
+                    if (denom > 0.0f) {
+                        float allowedScale =
+                            (params->get_num_bars() - timeStretchSelectionLeft) / denom;
+                        scale = std::min(scale, allowedScale);
+                    }
+                }
+                if (initialDuration * scale < params->minNoteDuration) {
+                    float noteMinScale = params->minNoteDuration / initialDuration;
+                    scale = std::max(scale, noteMinScale);
+                }
+                idx++;
+            }
+        }
+
+        // Apply scaled time and duration to selected notes (relative to selectionLeft)
+        idx = 0;
+        for (int i = 0; i < notes.size(); ++i) {
+            if (notes[i].isSelected) {
+                float initialTime = timeStretchInitialState[idx].first;
+                float initialDuration = timeStretchInitialState[idx].second;
+                notes[i].time =
+                    timeStretchSelectionLeft + (initialTime - timeStretchSelectionLeft) * scale;
+                notes[i].duration = initialDuration * scale;
+                idx++;
+            }
+        }
+
+        // Apply to ratio marks proportionally (relative to selectionLeft)
+        for (size_t rmi = 0; rmi < params->ratiosMarks.size(); ++rmi) {
+            auto &rm = params->ratiosMarks[rmi];
+            const int lni = rm.getLowerNoteIndex();
+            const int hni = rm.getHigherNoteIndex();
+            if (((lni == -1) || notes[lni].isSelected) && ((hni == -1) || notes[hni].isSelected) &&
+                ((lni != -1) || (hni != -1))) {
+                float initialRMTime = timeStretchInitialRatioMarkTimes[rmi];
+                rm.time =
+                    timeStretchSelectionLeft + (initialRMTime - timeStretchSelectionLeft) * scale;
+                rm.time = juce::jlimit(0.0f, (float)params->get_num_bars(), rm.time);
+            }
+        }
+
+        remakeKeys();
         editor->updateKeys(keys);
         editor->updateNotes(notes);
         repaint();
@@ -1175,7 +1275,7 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
         editor->setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
     }
 
-    if (wasResizing || wasMoving || isMovingRatioMark) {
+    if (wasResizing || wasMoving || wasTimeStretching || isMovingRatioMark) {
         saveState();
     }
 
@@ -1184,6 +1284,8 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
     isResizing = false;
     isMoving = false;
     wasMoving = false;
+    isTimeStretching = false;
+    wasTimeStretching = false;
     isMovingRatioMark = false;
     dtime = 0.0f;
     dcents = 0;
@@ -1286,7 +1388,8 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
 void MainPanel::mouseMove(const juce::MouseEvent &event) {
     // It seems that mouseMove isn't triggered if there is mouse drag, so there is no need in
     // this if statement, but I'll leave it just in case.
-    if (isDragging || isMoving || isResizing || isSelecting || isMovingRatioMark || isAuditing)
+    if (isDragging || isMoving || isResizing || isSelecting || isMovingRatioMark || isAuditing ||
+        isTimeStretching)
         return;
 
     if (params->showClockDiagram && !editor->isPlaying()) {

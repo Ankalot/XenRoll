@@ -54,18 +54,19 @@ class HelpPanel : public juce::Component {
                    {"LClick + note", "Select note"},
                    {"Shift + LClick + note", "Add note to the selection"},
                    {"Ctrl + LClick + note", "Select all notes of the same pitch (+ Shift to add)"},
-                   {"LDrag + note", "Drag selected note(s)"},
+                   {"LDrag + note", "Drag selected notes"},
                    {"Shift + LDrag + note", "Drag slowly (fine pitch adjustment)"},
-                   {"LDrag + note's right edge", "Resize note (change duration)"},
+                   {"LDrag + note's right edge", "Resize notes (change duration)"},
+                   {"Alt + LDrag + note's right edge", "Time-stretch selected notes"},
                    {"RClick + note", "Delete note"},
+                   {"Alt + RClick/RDrag", "Audit notes under the cursor"},
                    {"RDrag + empty space", "Rectangle-select notes"},
                    {"MDrag + empty space", "Pan the view"},
-                   {"MClick + note", "Change the velocity of selected note(s)"},
+                   {"MClick + note", "Change the velocity of selected notes"},
                    {"Scroll", "Zoom in/out (time)"},
                    {"Ctrl + Scroll", "Zoom in/out (pitch)"},
                    {"Alt + Scroll", "Bend selected notes"},
-                   {"Alt + Shift + Scroll", "Bend selected notes faster"},
-                   {"Alt + RClick/RDrag", "Audit notes under the cursor"}});
+                   {"Alt + Shift + Scroll", "Bend selected notes faster"}});
 
         drawSubHeader(g, leftColumn, "Top Panel (with time)");
         drawTable(g, leftColumn,
@@ -122,8 +123,8 @@ class HelpPanel : public juce::Component {
         const int mainH = mainHeaderHeight + 4;
         const int subH = sectionHeaderHeight + 2;
 
-        // Left column: Main Panel (16 rows), Top Panel (4 rows), Left Panel (1 row)
-        int left = mainH + subH + 16 * rowHeight + sectionSpacing + subH + 4 * rowHeight +
+        // Left column: Main Panel (17 rows), Top Panel (4 rows), Left Panel (1 row)
+        int left = mainH + subH + 17 * rowHeight + sectionSpacing + subH + 4 * rowHeight +
                    sectionSpacing + subH + 1 * rowHeight;
 
         // Right column: Basic (8), With Cents (4), Moving Notes (4), Hotkeys (4)

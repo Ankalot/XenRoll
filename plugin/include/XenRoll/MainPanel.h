@@ -138,8 +138,10 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool isResizing = false;
     bool isMoving = false;
     bool isSelecting = false;
+    bool isTimeStretching = false;
     bool wasResizing = false;
     bool wasMoving = false;
+    bool wasTimeStretching = false;
     bool isDrawingRatioMark = false;
     bool isMovingRatioMark = false;
     bool prevDragPointIsActual = false;
@@ -151,6 +153,15 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     juce::Rectangle<int> selectionRect;
     juce::Point<int> ratioMarkStartPos;
     juce::Point<int> ratioMarkLastPos;
+
+    ///< Initial state of notes for time-stretch: {time, duration} for each selected note
+    std::vector<std::pair<float, float>> timeStretchInitialState;
+    ///< Initial times of ratio marks that will move due to time-stretch
+    std::vector<float> timeStretchInitialRatioMarkTimes;
+    float timeStretchSelectionLeft = 0.0f;
+    float timeStretchSelectionRight = 0.0f;
+    float timeStretchPivot = 0.0f; ///< Cursor position at mouseDown when time-stretching
+
     AudioPluginAudioProcessorEditor *editor;
     Parameters *params;
     juce::Viewport *viewport;

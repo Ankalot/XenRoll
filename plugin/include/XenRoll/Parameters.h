@@ -55,6 +55,7 @@ class Parameters {
     static constexpr float maxVocalVolume_dB = 0.0f;
     // ==========================
     static constexpr float defaultVelocity = 100.0f / 127;
+    static constexpr float minNoteDuration = 1.0f / 256;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Minimum values ~~~~~~~~~~~~~~~~~~~~~~~~
     static constexpr int min_editorWidth = 1430;
