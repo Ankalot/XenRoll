@@ -43,16 +43,14 @@ struct RatioMark {
      */
     int getError() const { return err; }
 
-    void setLowerKeyTotalCents(int newLowerKeyTotalCents) {
+    /**
+     * @brief Set new lowerKeyTotalCents and higherKeyTotalCents.
+     * @note If you change both keyTotalCents, you must call this function ONCE after the changes.
+     * @param newLowerKeyTotalCents MUST correspond to lowerNoteIndex (if exists)!
+     * @param newHigherKeyTotalCents MUST correspond to higherNoteIndex (if exists)!
+     */
+    void setKeysTotalCents(int newLowerKeyTotalCents, int newHigherKeyTotalCents) {
         lowerKeyTotalCents = newLowerKeyTotalCents;
-        if (lowerKeyTotalCents > higherKeyTotalCents) {
-            std::swap(lowerKeyTotalCents, higherKeyTotalCents);
-            std::swap(lowerNoteIndex, higherNoteIndex);
-        }
-        calculateRatioAndError();
-    }
-
-    void setHigherKeyTotalCents(int newHigherKeyTotalCents) {
         higherKeyTotalCents = newHigherKeyTotalCents;
         if (lowerKeyTotalCents > higherKeyTotalCents) {
             std::swap(lowerKeyTotalCents, higherKeyTotalCents);
@@ -61,13 +59,9 @@ struct RatioMark {
         calculateRatioAndError();
     }
 
-    void setLowerNoteIndex(int newLowerNoteIndex) {
-        lowerNoteIndex = newLowerNoteIndex;
-    }
+    void setLowerNoteIndex(int newLowerNoteIndex) { lowerNoteIndex = newLowerNoteIndex; }
 
-    void setHigherNoteIndex(int newHigherNoteIndex) {
-        higherNoteIndex = newHigherNoteIndex;
-    }
+    void setHigherNoteIndex(int newHigherNoteIndex) { higherNoteIndex = newHigherNoteIndex; }
 
     void calculateRatioAndError();
 

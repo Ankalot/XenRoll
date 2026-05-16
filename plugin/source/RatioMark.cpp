@@ -3,7 +3,8 @@
 
 namespace audio_plugin {
 void RatioMark::calculateRatioAndError() {
-    int dcents = higherKeyTotalCents - lowerKeyTotalCents;
+    // just in case there are bugs, it's better to have an abs here
+    int dcents = std::abs(higherKeyTotalCents - lowerKeyTotalCents);
     float ratio = std::pow(2.0, dcents / 1200.0);
 
     float bestError = 1e6;

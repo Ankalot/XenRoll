@@ -52,7 +52,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void updateNotes(const std::vector<Note> &new_notes);
     void updateGhostNotes(const std::vector<Note> &new_ghostNotes);
     void createNotesFromGhostNotes();
-    void remakeKeys();
+    ///< If remaking keys was caused just by pitch transposition, set dcents!
+    void remakeKeys(int dcents = 0);
 
     /**
      * @brief Add recorded notes to normal notes (when recordnig is over). This
@@ -89,9 +90,10 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     /**
      * @brief Trying to attach ratio marks that lost their keys
-     * @todo Change this later maybe, that's a lazy solution
+     * @param dcents If there was just pitch transposition, set dcents!
+     * @note Should be called after pitchCorrectRatioMarksBasedOnSelNotes()
      */
-    void reattachRatiosMarks();
+    void reattachRatiosMarks(int dcents = 0);
     void updateRatiosMarks();
     void numBarsChanged();
 
@@ -134,7 +136,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     float octave_height_px, bar_width_px;
     float auditionTime; ///< In bars
     bool isAuditing = false;
-    bool isDragging = false;
+    bool isPanning = false;
     bool isResizing = false;
     bool isMoving = false;
     bool isSelecting = false;
@@ -145,23 +147,41 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool isDrawingRatioMark = false;
     bool isMovingRatioMark = false;
     bool wasMovingRatioMark = false;
-    bool prevDragPointIsActual = false;
     bool wasBending = false;
     RatioMark *movingRatioMark;
-    juce::Point<int> prevDragPoint;
-    juce::Point<int> lastDragPos;
-    juce::Point<int> selectStartPos;
-    juce::Rectangle<int> selectionRect;
-    juce::Point<int> ratioMarkStartPos;
-    juce::Point<int> ratioMarkLastPos;
+    juce::Point<int> lastPanPos;
+    juce::Point<int> lastDragPoint;
+    juce::Point<int> selectStartPoint;
+    juce::Point<int> selectLastPoint;
+    juce::Point<int> ratioMarkStartPoint;
+    juce::Point<int> ratioMarkLastPoint;
 
-    ///< Initial state of notes for time-stretch: {time, duration} for each selected note
-    std::vector<std::pair<float, float>> timeStretchInitialState;
-    ///< Initial times of ratio marks that will move due to time-stretch
-    std::vector<float> timeStretchInitialRatioMarkTimes;
-    float timeStretchSelectionLeft = 0.0f;
-    float timeStretchSelectionRight = 0.0f;
-    float timeStretchPivot = 0.0f; ///< Cursor position at mouseDown when time-stretching
+    ///< Initial state of selected notes for moving, resizing and time-stretching: {time, duration}
+    std::vector<std::pair<float, float>> initialStateForDrag;
+    ///< Initial state of selected notes for moving: {totalCents}
+    std::vector<int> initialTotalCentsForDrag;
+    ///< Initial times of ratio marks that move due to time-stretch, or due to moving RatioMark
+    std::vector<float> initialRatioMarkTimesForDrag;
+
+    /**
+     * x-position in bars when started dragging (for moving, resizing, time-stretching,
+     * moving RatioMark)
+     */
+    float dragPivotTime = 0.0f;
+    ///< y-position in octaves when started dragging (for moving)
+    float dragPivotPitch = 0;
+    /**
+     * Index of note that was clicked at the start of resizing or time-stretching 
+     * (so can find and set lastDuration)
+     */
+    int resizeClickNoteInd = 0;
+    ///< Initial border of selected notes when started time-stretching (in bars)
+    float timeStretchSelectionLeft = 0.0f, timeStretchSelectionRight = 0.0f;
+
+    float prevScale = 1.0f; ///< Previous scale when time-stretching
+    float prevDtime = 0.0f; ///< Previous dtime when resizing or moving notes
+    int prevDcents = 0;     ///< Previous dcents when moving notes
+    float prevTime = -1.0f; ///< Previous time of ratio mark when moving it
 
     AudioPluginAudioProcessorEditor *editor;
     Parameters *params;
@@ -240,6 +260,10 @@ class MainPanel : public juce::Component, public juce::KeyListener {
      * @return Adapted font size
      */
     float adaptFont(float inputThickness);
+    /**
+     * Is called when width or height is changed due to: num of bars changed / bar width
+     * changed / octave height changed
+     */
     void updateLayout();
 
     /**
@@ -255,7 +279,6 @@ class MainPanel : public juce::Component, public juce::KeyListener {
      */
     void deleteNote(int i);
     bool thereAreSelectedNotes();
-    int getNumOfSelectedNotes();
 
     /**
      * @brief Get cents value from the last message text
@@ -297,9 +320,6 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     int totalCentsToY(int totalCents);
 
     void restoreState();
-
-    float dtime = 0.0f;
-    int dcents = 0;
 
     static const juce::PathStrokeType outlineStroke;
 
