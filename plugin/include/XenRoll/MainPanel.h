@@ -148,6 +148,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool isMovingRatioMark = false;
     bool wasMovingRatioMark = false;
     bool wasBending = false;
+    bool wasPitchChanging = false; ///< for ±1¢ from keyboard only (up/down arrows & no key snap)
     RatioMark *movingRatioMark;
     juce::Point<int> lastPanPos;
     juce::Point<int> lastDragPoint;
@@ -171,7 +172,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     ///< y-position in octaves when started dragging (for moving)
     float dragPivotPitch = 0;
     /**
-     * Index of note that was clicked at the start of resizing or time-stretching 
+     * Index of note that was clicked at the start of resizing or time-stretching
      * (so can find and set lastDuration)
      */
     int resizeClickNoteInd = 0;

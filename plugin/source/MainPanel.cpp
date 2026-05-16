@@ -2269,6 +2269,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             }
             pitchCorrectRatioMarksBasedOnSelNotes();
             remakeKeys();
+            saveState();
         } else {
             // if some selected note due to raise up by a cent will have octave = num octaves
             //    then abort
@@ -2289,8 +2290,8 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             }
             pitchCorrectRatioMarksBasedOnSelNotes();
             remakeKeys(1);
+            wasPitchChanging = true;
         }
-        saveState();
         editor->updateNotes(notes);
         repaint();
         return true;
@@ -2320,6 +2321,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             }
             pitchCorrectRatioMarksBasedOnSelNotes();
             remakeKeys();
+            saveState();
         } else {
             // if some selected note due to lower down by a cent will have octave = -1
             //    then abort
@@ -2339,8 +2341,8 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             }
             pitchCorrectRatioMarksBasedOnSelNotes();
             remakeKeys(-1);
+            wasPitchChanging = true;
         }
-        saveState();
         editor->updateNotes(notes);
         repaint();
         return true;
@@ -2444,6 +2446,15 @@ void MainPanel::modifierKeysChanged(const juce::ModifierKeys &modifiers) {
 }
 
 bool MainPanel::keyStateChanged(bool isKeyDown) {
+    if (!isKeyDown && wasPitchChanging) {
+        // Check if up/down key was released
+        if (!juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::upKey) &&
+            !juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::downKey)) {
+            wasPitchChanging = false;
+            saveState();
+        }
+    }
+
     if (!isKeyDown) {
         // stop playing a key if it is playing
         bool werePlaying = false;
