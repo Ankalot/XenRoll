@@ -678,6 +678,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         "Export notes", juce::File::getSpecialLocation(juce::File::userHomeDirectory),
         "*.mid;*.midi;*.notes");
 
+    reconnectOSCSender();
+
     setSize(processorRef.params.editorWidth, processorRef.params.editorHeight);
     setResizable(true, true);
     setResizeLimits(processorRef.params.min_editorWidth, processorRef.params.min_editorHeight,
@@ -708,6 +710,23 @@ AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
     processorRef.params.editorWidth = getWidth();
     processorRef.params.editorHeight = getHeight();
     setLookAndFeel(nullptr);
+}
+
+void AudioPluginAudioProcessorEditor::reconnectOSCSender() {
+    oscConnected = oscSender.connect(processorRef.params.oscHost, processorRef.params.oscPort);
+}
+
+void AudioPluginAudioProcessorEditor::sendOSCTransportPosition(float timeInBars) {
+    if (!oscConnected)
+        return;
+    try {
+        auto bpmNumDenom = getBpmNumDenom();
+        float timeInSeconds = std::get<1>(bpmNumDenom) * (60.0f / std::get<0>(bpmNumDenom)) *
+                              (4.0f / std::get<2>(bpmNumDenom)) * timeInBars;
+        oscSender.send("/time", timeInSeconds);
+    } catch (...) {
+        // Ignore OSC send errors
+    }
 }
 
 void AudioPluginAudioProcessorEditor::showMessageBoxAsync(juce::MessageBoxIconType iconType,

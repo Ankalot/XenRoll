@@ -70,10 +70,12 @@ class HelpPanel : public juce::Component {
 
         drawSubHeader(g, leftColumn, "Top Panel (with time)");
         drawTable(g, leftColumn,
-                  {{"Ctrl + LClick", "Turn zone on"},
-                   {"Ctrl + RClick", "Turn zone off"},
+                  {{"Alt + LClick", "Turn zone on"},
+                   {"Alt + RClick", "Turn zone off"},
                    {"Shift + LClick", "Create zone point"},
-                   {"Shift + RClick", "Delete zone point"}});
+                   {"Shift + RClick", "Delete zone point"},
+                   {"Click", "Set playhead time (uses OSC, port " +
+                                 juce::String(Parameters::oscPort) + ")"}});
 
         drawSubHeader(g, leftColumn, "Left Panel (with keys)");
         drawTable(g, leftColumn, {{"LClick", "Play key (hold to sustain)"}});
@@ -123,8 +125,8 @@ class HelpPanel : public juce::Component {
         const int mainH = mainHeaderHeight + 4;
         const int subH = sectionHeaderHeight + 2;
 
-        // Left column: Main Panel (17 rows), Top Panel (4 rows), Left Panel (1 row)
-        int left = mainH + subH + 17 * rowHeight + sectionSpacing + subH + 4 * rowHeight +
+        // Left column: Main Panel (17 rows), Top Panel (5 rows), Left Panel (1 row)
+        int left = mainH + subH + 17 * rowHeight + sectionSpacing + subH + 5 * rowHeight +
                    sectionSpacing + subH + 1 * rowHeight;
 
         // Right column: Basic (8), With Cents (4), Moving Notes (4), Hotkeys (4)

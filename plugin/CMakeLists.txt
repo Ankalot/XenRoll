@@ -136,6 +136,7 @@ target_link_libraries_system(
     juce::juce_audio_utils
     juce::juce_dsp
     juce::juce_audio_formats
+    juce::juce_osc
 )
 target_link_libraries(
     ${PROJECT_NAME} PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags

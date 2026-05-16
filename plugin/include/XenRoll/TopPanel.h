@@ -31,6 +31,8 @@ class TopPanel : public juce::Component {
     }
 
     void mouseDown(const juce::MouseEvent &event) override;
+    void mouseDrag(const juce::MouseEvent &event) override;
+    void mouseUp(const juce::MouseEvent &event) override;
 
     /**
      * @brief Adapt line thickness based on zoom level
@@ -66,6 +68,9 @@ class TopPanel : public juce::Component {
 
     const int playHeadWidth = 40;
     const int playHeadHeight = 30;
+
+    float prevDragPlayHeadTime = -1.0f;
+    bool isMovingPlayHead = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopPanel)
 };

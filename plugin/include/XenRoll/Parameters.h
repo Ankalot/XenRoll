@@ -56,6 +56,9 @@ class Parameters {
     // ==========================
     static constexpr float defaultVelocity = 100.0f / 127;
     static constexpr float minNoteDuration = 1.0f / 256;
+    // ====== OSC Settings ======
+    const juce::String oscHost = "127.0.0.1";
+    static constexpr int oscPort = 8000;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Minimum values ~~~~~~~~~~~~~~~~~~~~~~~~
     static constexpr int min_editorWidth = 1430;

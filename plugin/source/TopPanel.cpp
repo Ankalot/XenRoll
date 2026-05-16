@@ -44,7 +44,7 @@ void TopPanel::mouseDown(const juce::MouseEvent &event) {
     }
 
     // Turn on zone
-    if (event.mods.isLeftButtonDown()) {
+    if (event.mods.isLeftButtonDown() && event.mods.isAltDown()) {
         params->zones.turnZoneOn(time);
         editor->zonesChanged();
         repaint();
@@ -52,12 +52,46 @@ void TopPanel::mouseDown(const juce::MouseEvent &event) {
     }
 
     // Turn off zone
-    if (event.mods.isRightButtonDown()) {
+    if (event.mods.isRightButtonDown() && event.mods.isAltDown()) {
         params->zones.turnZoneOff(time);
         editor->zonesChanged();
         repaint();
         return;
     }
+
+    // Set playhead time via OSC
+    if (event.mods.isLeftButtonDown()) {
+        float jumpTime = time;
+        if (params->timeSnap) {
+            float dt = 1.0f / (params->num_beats * params->num_subdivs);
+            jumpTime = dt * juce::roundToInt(time / dt);
+        }
+        editor->sendOSCTransportPosition(jumpTime);
+        prevDragPlayHeadTime = jumpTime;
+        isMovingPlayHead = true;
+        return;
+    }
+}
+
+void TopPanel::mouseDrag(const juce::MouseEvent &event) {
+    // Set playhead time via OSC
+    if (isMovingPlayHead) {
+        float time = event.position.getX() / bar_width_px;
+        if (params->timeSnap) {
+            float dt = 1.0f / (params->num_beats * params->num_subdivs);
+            time = dt * juce::roundToInt(time / dt);
+        }
+
+        if (time != prevDragPlayHeadTime) {
+            editor->sendOSCTransportPosition(time);
+            prevDragPlayHeadTime = time;
+        }
+    }
+}
+
+void TopPanel::mouseUp(const juce::MouseEvent &event) {
+    isMovingPlayHead = false;
+    prevDragPlayHeadTime = -1.0f;
 }
 
 void TopPanel::paint(juce::Graphics &g) {

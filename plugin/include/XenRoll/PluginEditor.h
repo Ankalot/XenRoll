@@ -26,6 +26,7 @@
 #include "VelocityPanel.h"
 #include "VocalToMelodyMenu.h"
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <juce_osc/juce_osc.h>
 
 namespace audio_plugin {
 class FontLookAndFeel : public juce::LookAndFeel_V4 {
@@ -411,6 +412,9 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     void changedChannelsEconomyModeMPE() { processorRef.changedChannelsEconomyModeMPE(); }
 
+    void sendOSCTransportPosition(float timeInBars);
+    void reconnectOSCSender();
+
     void startAuditing(float newAuditionTime) {
         auditionTime = newAuditionTime;
         isAuditing = true;
@@ -509,6 +513,9 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     bool isAuditing = false;
     float auditionTime = 0.0f;
+
+    juce::OSCSender oscSender;
+    bool oscConnected = false;
 
     // ============= vocal to melody =============
     bool wasVocalToMelody = false;
