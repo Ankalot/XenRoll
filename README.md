@@ -64,7 +64,7 @@ To debug the plugin through VS Code with any DAW, configure the .vscode/launch.j
 
 [video1.webm](https://github.com/user-attachments/assets/4a99f3c0-8248-4c2b-8dc9-abed06732c94)
 
-[video2.webm](https://github.com/user-attachments/assets/31e051ac-3b39-4d79-a27b-7b720a744238)
+[video2.webm](https://github.com/user-attachments/assets/0655faf6-6d38-49a5-b78e-ec6e880dea08)
 
 ## License
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
