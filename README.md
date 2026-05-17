@@ -21,7 +21,8 @@ Go to the Releases tab and download the corresponding archive. Instructions are 
 
 ## How to use it?
 &emsp;&emsp;This plugin is intended for use inside a DAW. Place the synth/sampler after XenRoll in the track's FX chain.  
-&emsp;&emsp;XenRoll has two tuning modes: MPE (selected by default) and MTS-ESP. The tuning mode is the same for all instances of XenRoll in the project; it can be changed in the UI via the combo box at the bottom right. After changing it, you need to ***save and reopen the project*** for the changes to take effect. Many things change depending on the tuning mode, so I ***strongly*** advise you to read at least the first two rows (requirements):
+&emsp;&emsp;To control the playhead position via the top panel (with time) in the plugin (which will also move the playhead in the DAW), you need to enable OSC listening on port 8000 in your DAW's settings. Guide for Reaper[^OSC].  
+&emsp;&emsp;XenRoll has two tuning modes: **MPE (selected by default)** and MTS-ESP. The tuning mode is the same for all instances of XenRoll in the project; it can be changed in the UI via the combo box at the bottom right. After changing it, you need to ***save and reopen the project*** for the changes to take effect. Many things change depending on the tuning mode, so I ***strongly*** advise you to read at least the first two rows (requirements):
 | Property      | MPE                  | MTS-ESP |
 | ------------- |----------------------| ------- |
 | Suitable DAWs | Almost any | Many popular ones: FL Studio, Reaper, Bitwig Studio, Cubase/Nuendo, Logic Pro, Ableton Live, and others  |
@@ -33,6 +34,7 @@ Go to the Releases tab and download the corresponding archive. Instructions are 
 | Max bend that a note can have | Depends on the `MPE pitch bend range` in XenRoll[^3]; it is ±48 semitones by default, so the default maximum bend range for a note is approximately ±48 (47.5–48.5) semitones. If the `MPE pitch bend range` is set to ±96 semitones, the maximum bend range for a note will be approximately ±96 (95.5–96.5) semitones  | ±10 octaves = ±120 semitones (the full XenRoll pitch range) |
 | Single pitch polyphony[^4] | Supported | Not supported (may be added in future versions, but it is unlikely) |
 
+[^OSC]: Go to Options → Preferences... → Control/OSC/web → Add. Set Control surface mode: OSC (Open Sound Control), Mode: Local port, Local listen port: 8000. Apply. Reopen the XenRoll GUI if it is already open.  
 [^1]: The pitch of a MIDI note depends arbitrarily on its number. In addition, during the playback of bent notes, XenRoll changes the frequency of the MIDI note in real time.  
 [^2]: In `MIDI channels economy mode` (can be enabled in XenRoll settings), simultaneously playing non-bent notes that have the same {pitch mod 100¢} will occupy the same MIDI channel. But if the synth/sampler does not support polyphony on each channel individually in MPE mode, there will be errors!  
 [^3]: Don't forget to sync this value with the synth/sampler!  
