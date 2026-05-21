@@ -76,6 +76,48 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     visualSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
     addAndMakeVisible(visualSettingsHeader.get());
 
+    themeTypeLabel = std::make_unique<juce::Label>();
+    themeTypeLabel->setFont(settingFont);
+    themeTypeLabel->setText("Color theme:", juce::dontSendNotification);
+    addAndMakeVisible(themeTypeLabel.get());
+
+    themeTypeCombo = std::make_unique<juce::ComboBox>();
+    auto themeNames = Theme::getThemeNames();
+    auto themeDescriptions = Theme::getThemeDescriptions();
+    for (int i = 0; i < themeNames.size(); ++i) {
+        juce::String itemText = themeNames[i] + " - " + themeDescriptions[i];
+        themeTypeCombo->addItem(itemText, i + 1);
+    }
+    themeTypeCombo->setSelectedId(static_cast<int>(params->themeType));
+    themeTypeLabel->attachToComponent(themeTypeCombo.get(), true);
+    themeTypeCombo->onChange = [this, params, editor]() {
+        params->themeType = static_cast<Theme::ThemeType>(themeTypeCombo->getSelectedId());
+        editor->updateTheme();
+        basicSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
+        visualSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
+        mpeSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
+    };
+    addAndMakeVisible(themeTypeCombo.get());
+
+    noteRectRoundingLabel = std::make_unique<juce::Label>();
+    noteRectRoundingLabel->setText("Note Rectangle Corner Rounding:",
+                                   juce::dontSendNotification);
+    noteRectRoundingLabel->setFont(settingFont);
+    addAndMakeVisible(noteRectRoundingLabel.get());
+
+    noteRectRoundingSlider = std::make_unique<juce::Slider>();
+    noteRectRoundingLabel->attachToComponent(noteRectRoundingSlider.get(), true);
+    noteRectRoundingSlider->setRange(GlobalSettings::min_noteRectRounding,
+                                     GlobalSettings::max_noteRectRounding, 0.01);
+    noteRectRoundingSlider->setValue(GlobalSettings::getInstance().getNoteRectRounding());
+    noteRectRoundingSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, rowHeight);
+    noteRectRoundingSlider->setSliderStyle(juce::Slider::LinearHorizontal);
+    noteRectRoundingSlider->setSkewFactorFromMidPoint(0.5f);
+    noteRectRoundingSlider->onDragEnd = [this]() {
+        GlobalSettings::getInstance().setNoteRectRounding(noteRectRoundingSlider->getValue());
+    };
+    addAndMakeVisible(noteRectRoundingSlider.get());
+
     heightCoefLabel = std::make_unique<juce::Label>();
     heightCoefLabel->setFont(settingFont);
     heightCoefLabel->setText("Note Rectangle Height Coefficient:", juce::dontSendNotification);
@@ -108,29 +150,6 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     };
     constNoteRectHeightCheckbox->setSize(rowHeight, rowHeight);
     addAndMakeVisible(constNoteRectHeightCheckbox.get());
-
-    themeTypeLabel = std::make_unique<juce::Label>();
-    themeTypeLabel->setFont(settingFont);
-    themeTypeLabel->setText("Color theme:", juce::dontSendNotification);
-    addAndMakeVisible(themeTypeLabel.get());
-
-    themeTypeCombo = std::make_unique<juce::ComboBox>();
-    auto themeNames = Theme::getThemeNames();
-    auto themeDescriptions = Theme::getThemeDescriptions();
-    for (int i = 0; i < themeNames.size(); ++i) {
-        juce::String itemText = themeNames[i] + " - " + themeDescriptions[i];
-        themeTypeCombo->addItem(itemText, i + 1);
-    }
-    themeTypeCombo->setSelectedId(static_cast<int>(params->themeType));
-    themeTypeLabel->attachToComponent(themeTypeCombo.get(), true);
-    themeTypeCombo->onChange = [this, params, editor]() {
-        params->themeType = static_cast<Theme::ThemeType>(themeTypeCombo->getSelectedId());
-        editor->updateTheme();
-        basicSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
-        visualSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
-        mpeSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
-    };
-    addAndMakeVisible(themeTypeCombo.get());
 
     // =============== MPE TUNING MODE SETTINGS ===============
     mpeSettingsHeader = std::make_unique<juce::Label>();
@@ -225,6 +244,10 @@ void SettingsPanel::resized() {
 
     auto themeRow = area.removeFromTop(rowHeight);
     themeTypeCombo->setBounds(themeRow.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
+
+    auto roundingRow = area.removeFromTop(rowHeight);
+    noteRectRoundingSlider->setBounds(roundingRow.withTrimmedLeft(labelWidth));
     area.removeFromTop(padding);
 
     auto heightRow = area.removeFromTop(rowHeight);

@@ -27,6 +27,17 @@ class GlobalSettings {
         propsFile->saveIfNeeded();
     } // =========================================
 
+    //  =============== noteRectRounding =========
+    static constexpr double min_noteRectRounding = 0.0;
+    static constexpr double max_noteRectRounding = 1.0;
+    double getNoteRectRounding() const {
+        return propsFile->getDoubleValue("noteRectRounding", 0.66);
+    }
+    void setNoteRectRounding(double noteRectRounding) {
+        propsFile->setValue("noteRectRounding", noteRectRounding);
+        propsFile->saveIfNeeded();
+    } // =========================================
+
   private:
     GlobalSettings() {
         auto settingsFile = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)

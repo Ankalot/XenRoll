@@ -18,6 +18,8 @@ class SettingsPanel : public juce::Component {
         if (isVisible()) {
             playDraggedNotesCheckbox->setToggleState(
                 GlobalSettings::getInstance().getPlayDraggedNotes(), juce::dontSendNotification);
+            noteRectRoundingSlider->setValue(GlobalSettings::getInstance().getNoteRectRounding(),
+                                             juce::dontSendNotification);
         }
     }
 
@@ -42,6 +44,9 @@ class SettingsPanel : public juce::Component {
     // Visual settings
     std::unique_ptr<juce::Label> themeTypeLabel;
     std::unique_ptr<juce::ComboBox> themeTypeCombo;
+
+    std::unique_ptr<juce::Label> noteRectRoundingLabel;
+    std::unique_ptr<juce::Slider> noteRectRoundingSlider;
 
     std::unique_ptr<juce::Label> heightCoefLabel;
     std::unique_ptr<juce::Slider> heightCoefSlider;
