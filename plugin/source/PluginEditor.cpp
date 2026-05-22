@@ -432,7 +432,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     camOnPlayHeadButton = std::make_unique<SVGButton>(
         &processorRef.params.theme, BinaryData::Fix_cam_svg, BinaryData::Fix_cam_svgSize, true,
-        processorRef.params.isCamFixedOnPlayHead, "Fix the camera to the playback head");
+        processorRef.params.isCamFixedOnPlayHead, "Fix the camera to the playhead during playback");
     camOnPlayHeadButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.isCamFixedOnPlayHead = !processorRef.params.isCamFixedOnPlayHead;
         return true;

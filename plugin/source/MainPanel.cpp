@@ -1044,7 +1044,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         bool scrolled = false;
 
         // Horizontal scroll
-        if (!params->isCamFixedOnPlayHead) {
+        if (!params->isCamFixedOnPlayHead || !editor->isPlaying()) {
             if (currDragPoint.getX() <= viewPos.getX()) {
                 viewport->setViewPosition(viewPos.withX(viewPos.x - scrollSpeed));
                 scrolled = true;
@@ -1074,7 +1074,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         auto currentPos = getParentComponent()->getLocalPoint(this, currDragPoint);
         auto panDelta = currentPos - lastPanPos;
 
-        if (params->isCamFixedOnPlayHead) {
+        if (params->isCamFixedOnPlayHead && editor->isPlaying()) {
             panDelta.setX(0);
         }
 
