@@ -78,6 +78,7 @@ set(SOURCE_FILES source/PluginEditor.cpp
     source/ClockDiagramMenu.cpp
     source/ClockDiagramPanel.cpp
     source/NotesSharingMPE.cpp
+    source/NotePathManager.cpp
     ${MTS_ESP_DIR}/libMTSMaster.cpp
     ${PITCH_DETECTOR_DIR}/PitchDetectorMPM.cpp)
 
@@ -120,6 +121,7 @@ set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h
     ${INCLUDE_DIR}/NotesSharingMPE.h
     ${INCLUDE_DIR}/GlobalSettings.h
     ${INCLUDE_DIR}/ChannelsManagerMPE.h
+    ${INCLUDE_DIR}/NotePathManager.h
     ${MTS_ESP_DIR}/libMTSMaster.h
     ${PITCH_DETECTOR_DIR}/PitchDetectorMPM.h)
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
@@ -137,6 +139,7 @@ target_link_libraries_system(
     juce::juce_dsp
     juce::juce_audio_formats
     juce::juce_osc
+    juce::juce_opengl
 )
 target_link_libraries(
     ${PROJECT_NAME} PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags

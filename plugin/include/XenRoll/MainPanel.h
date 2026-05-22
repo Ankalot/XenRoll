@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Note.h"
+#include "NotePathManager.h"
 #include "PitchMemory.h"
 #include "Theme.h"
 #include <algorithm>
@@ -130,6 +131,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
         params->stateHistory.push(State(params->get_num_bars(), notes, params->ratiosMarks));
     }
 
+    void invalidateNotePathsCache() { notePathManager->invalidateCache(); }
+
   private:
     float playHeadTime; ///< In bars
     float init_octave_height_px, init_bar_width_px;
@@ -183,6 +186,9 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     float prevDtime = 0.0f; ///< Previous dtime when resizing or moving notes
     int prevDcents = 0;     ///< Previous dcents when moving notes
     float prevTime = -1.0f; ///< Previous time of ratio mark when moving it
+
+    std::unique_ptr<NotePathManager> notePathManager;
+    float noteRoundCoef; // for paint()
 
     AudioPluginAudioProcessorEditor *editor;
     Parameters *params;

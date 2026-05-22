@@ -31,7 +31,7 @@ class GlobalSettings {
     static constexpr double min_noteRectRounding = 0.0;
     static constexpr double max_noteRectRounding = 1.0;
     double getNoteRectRounding() const {
-        return propsFile->getDoubleValue("noteRectRounding", 0.66);
+        return propsFile->getDoubleValue("noteRectRounding", 0.0);
     }
     void setNoteRectRounding(double noteRectRounding) {
         propsFile->setValue("noteRectRounding", noteRectRounding);

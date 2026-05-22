@@ -100,9 +100,10 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     addAndMakeVisible(themeTypeCombo.get());
 
     noteRectRoundingLabel = std::make_unique<juce::Label>();
-    noteRectRoundingLabel->setText("Note Rectangle Corner Rounding:",
-                                   juce::dontSendNotification);
+    noteRectRoundingLabel->setText("Note Rectangle Corner Rounding:", juce::dontSendNotification);
     noteRectRoundingLabel->setFont(settingFont);
+    noteRectRoundingLabel->setTooltip(
+        "A non-zero value may cause lag when there are many notes on screen simultaneously.");
     addAndMakeVisible(noteRectRoundingLabel.get());
 
     noteRectRoundingSlider = std::make_unique<juce::Slider>();
@@ -113,8 +114,9 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     noteRectRoundingSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, rowHeight);
     noteRectRoundingSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     noteRectRoundingSlider->setSkewFactorFromMidPoint(0.5f);
-    noteRectRoundingSlider->onDragEnd = [this]() {
+    noteRectRoundingSlider->onDragEnd = [this, editor]() {
         GlobalSettings::getInstance().setNoteRectRounding(noteRectRoundingSlider->getValue());
+        editor->invalidateNotePathsCache();
     };
     addAndMakeVisible(noteRectRoundingSlider.get());
 
@@ -130,8 +132,9 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     heightCoefSlider->setValue(params->noteRectHeightCoef);
     heightCoefSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, rowHeight);
     heightCoefSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    heightCoefSlider->onDragEnd = [this, params]() {
+    heightCoefSlider->onDragEnd = [this, params, editor]() {
         params->noteRectHeightCoef = float(heightCoefSlider->getValue());
+        editor->invalidateNotePathsCache();
     };
     addAndMakeVisible(heightCoefSlider.get());
 
@@ -145,8 +148,9 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     constNoteRectHeightLabel->attachToComponent(constNoteRectHeightCheckbox.get(), true);
     constNoteRectHeightCheckbox->setToggleState(params->constNoteRectHeight,
                                                 juce::dontSendNotification);
-    constNoteRectHeightCheckbox->onStateChange = [this, params]() {
+    constNoteRectHeightCheckbox->onStateChange = [this, params, editor]() {
         params->constNoteRectHeight = constNoteRectHeightCheckbox->getToggleState();
+        editor->invalidateNotePathsCache();
     };
     constNoteRectHeightCheckbox->setSize(rowHeight, rowHeight);
     addAndMakeVisible(constNoteRectHeightCheckbox.get());
