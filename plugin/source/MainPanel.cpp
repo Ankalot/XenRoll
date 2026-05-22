@@ -1033,6 +1033,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     // Set time for clock diagram
     if (params->showClockDiagram && !editor->isPlaying()) {
         editor->setTimeClockDiagramPanel(currDragPoint.toFloat().getX() / bar_width_px);
+        if (params->showDebugOverlay) {
+            repaint(); // because transparent clock diagram panel will repaint part of debug overlay
+        }
     }
 
     // Auto-scroll when cursor is outside visible area (not when panning)
@@ -1552,6 +1555,9 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
 void MainPanel::mouseMove(const juce::MouseEvent &event) {
     if (params->showClockDiagram && !editor->isPlaying()) {
         editor->setTimeClockDiagramPanel(event.getPosition().toFloat().getX() / bar_width_px);
+        if (params->showDebugOverlay) {
+            repaint(); // because transparent clock diagram panel will repaint part of debug overlay
+        }
     }
 
     if (params->editRatiosMarks) {
@@ -2601,7 +2607,9 @@ juce::Path MainPanel::getNotePath(const Note &note) {
     if (params->constNoteRectHeight) {
         h = init_octave_height_px * params->noteRectHeightCoef;
     } else {
-        h = octave_height_px * params->noteRectHeightCoef;
+        h = juce::jmin(octave_height_px * params->noteRectHeightCoef,
+                       params->max_note_height_scale * init_octave_height_px *
+                           params->noteRectHeightCoef);
     }
 
     return notePathManager->getPath(note, bar_width_px, octave_height_px, h, noteRoundCoef);
