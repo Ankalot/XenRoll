@@ -92,6 +92,11 @@ void MainPanel::paint(juce::Graphics &g) {
 
     if (viewport == nullptr)
         return;
+
+    // for debug overlay
+    const auto startTime = juce::Time::getMillisecondCounterHiRes();
+    int numDrawnNotes = 0;
+
     juce::Rectangle<int> clip = viewport->getViewArea();
     int clipWidth = clip.getWidth();
     int clipHeight = clip.getHeight();
@@ -164,11 +169,12 @@ void MainPanel::paint(juce::Graphics &g) {
     strokeType.setJointStyle(juce::PathStrokeType::mitered);
 
     // ghost notes
+    g.setColour(params->theme.darkest.interpolatedWith(params->theme.darker, 0.5));
     for (const Note &note : ghostNotes) {
         juce::Path notePath = getNotePath(note);
         // is needed only when params->showPitchesMemoryTraces
         if (notePath.getBounds().intersects(clipFloat)) {
-            g.setColour(params->theme.darkest.interpolatedWith(params->theme.darker, 0.5));
+            numDrawnNotes++;
             g.fillPath(notePath);
         }
     }
@@ -215,6 +221,7 @@ void MainPanel::paint(juce::Graphics &g) {
                 g.setColour(params->theme.darkest);
             }
             g.strokePath(notePath, strokeType);
+            numDrawnNotes++;
         }
 
         if (inActiveZone) {
@@ -475,6 +482,27 @@ void MainPanel::paint(juce::Graphics &g) {
                     adaptedVertWide * 3);
         g.drawArrow(juce::Line<float>(point2, point3), adaptedVertWide, adaptedVertWide * 3,
                     adaptedVertWide * 3);
+    }
+
+    // debug overlay
+    if (params->showDebugOverlay) {
+        const auto endTime = juce::Time::getMillisecondCounterHiRes();
+        const double elapsed = endTime - startTime;
+        const double fps = 1000.0 / elapsed;
+
+        juce::Rectangle<float> overlayRect = clip.translated(-4, 4).toFloat();
+
+        g.setColour(params->theme.activated);
+        g.setFont(Theme::small_);
+
+        // FPS & time
+        juce::String fpsText = juce::String::formatted("%.1f FPS (%.1f ms)", fps, elapsed);
+        g.drawText(fpsText, overlayRect.removeFromTop(Theme::small_), juce::Justification::topRight,
+                   false);
+
+        // Num of drawn notes
+        juce::String notesText = juce::String::formatted("Drawn notes: %d", numDrawnNotes);
+        g.drawText(notesText, overlayRect, juce::Justification::topRight, false);
     }
 }
 
@@ -2392,6 +2420,13 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         pitchCorrectRatioMarksBasedOnSelNotes();
         saveState();
         editor->updateNotes(notes);
+        repaint();
+        return true;
+    }
+
+    // Show/hide debug overlay
+    if (key.getKeyCode() == 96) { // tilda (~)
+        params->showDebugOverlay = !params->showDebugOverlay;
         repaint();
         return true;
     }

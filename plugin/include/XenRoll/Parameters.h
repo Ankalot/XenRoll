@@ -245,6 +245,7 @@ class Parameters {
     GenNewKeysTactics genNewKeysTactics = GenNewKeysTactics::DiverseIntervals;
     bool recordManuallyPlayedNotes = false;
     bool showClockDiagram = false;
+    bool showDebugOverlay = false;
     // ================== Intellectual ==================
     // Partials/dissonance
     std::atomic<bool> findPartialsMode = false;

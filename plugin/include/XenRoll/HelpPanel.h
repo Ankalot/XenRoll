@@ -118,6 +118,9 @@ class HelpPanel : public juce::Component {
               "Toggle ratios marks editing"},
              {"Alt + " + keyToString(Parameters::hotkeys::pitchMemory_withAlt),
               "Toggle harmonicity display"}});
+
+        drawSubHeader(g, rightColumn, "Extra");
+        drawTable(g, rightColumn, {{"`", "Show/hide debug overlay (FPS)"}});
     }
 
     int getRequiredHeight() const {
@@ -129,9 +132,10 @@ class HelpPanel : public juce::Component {
         int left = mainH + subH + 17 * rowHeight + sectionSpacing + subH + 5 * rowHeight +
                    sectionSpacing + subH + 1 * rowHeight;
 
-        // Right column: Basic (8), With Cents (4), Moving Notes (4), Hotkeys (4)
+        // Right column: Basic (8), With Cents (4), Moving Notes (4), Hotkeys (4), Extra (1)
         int right = mainH + subH + 8 * rowHeight + sectionSpacing + subH + 4 * rowHeight +
-                    sectionSpacing + subH + 4 * rowHeight + sectionSpacing + subH + 4 * rowHeight;
+                    sectionSpacing + subH + 4 * rowHeight + sectionSpacing + subH + 4 * rowHeight +
+                    sectionSpacing + subH + rowHeight;
 
         return pad + juce::jmax(left, right);
     }
