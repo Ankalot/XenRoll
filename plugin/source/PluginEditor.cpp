@@ -1636,7 +1636,7 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
     bool mainPanelNeedsRepaint = false;
     float newPlayHeadTime = processorRef.getPlayHeadTime();
     leftPanel.get()->updateCurrPlayingKeys(mainPanel->getNotes(), isPlaying, newPlayHeadTime,
-                                           allManuallyPlayedKeys, isAuditing, auditionTime);
+                                           allManuallyPlayedKeys, isAuditioning, auditionTime);
     float prevPlayHeadTime = playHeadTime;
     if (newPlayHeadTime != playHeadTime) {
         mainPanelNeedsRepaint = true;

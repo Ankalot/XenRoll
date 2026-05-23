@@ -160,16 +160,16 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
         channelsManagerMPE->setEconomyMode(params.channelsEconomyModeMPE);
     }
 
-    void startAuditing(double newAuditionTime) {
+    void startAuditioning(double newAuditionTime) {
         auditionTime = newAuditionTime;
-        stopAuditing = false;
+        stopAuditioning = false;
         auditionChanged = true;
-        isAuditing = true;
+        isAuditioning = true;
     }
 
-    void endAuditing() {
-        isAuditing = false;
-        stopAuditing = true;
+    void endAuditioning() {
+        isAuditioning = false;
+        stopAuditioning = true;
     }
 
     void setAuditionTime(double newAuditionTime) {
@@ -306,8 +306,8 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
 
     std::atomic<double> playHeadTime = 0.0; ///< in bars
 
-    std::atomic<bool> isAuditing = false;
-    std::atomic<bool> stopAuditing = false;
+    std::atomic<bool> isAuditioning = false;
+    std::atomic<bool> stopAuditioning = false;
     std::atomic<bool> auditionChanged = false;
     std::atomic<double> auditionTime = 0.0;
     // ============================================================================================
@@ -318,7 +318,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     ///< Manually played note's totalCents -> midi note number (0-127)
     std::map<int, int> manPlNoteToMidiNoteMTS;
     ///< Audition note's {index, totalCents} -> midi note number (0-127)
-    std::map<std::pair<int, int>, int> auditNoteToMidiNoteMTS;
+    std::map<std::pair<int, int>, int> auditionNoteToMidiNoteMTS;
     /**
      * Is used to indicate that this frequency is not being used. Freq in Hz.
      * And if it is still used for a veeery short period of time (by mistake?), then there will be
@@ -380,7 +380,7 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
 
     ///< {note's index, note's totalCents} -> {midi channel (2-16), midi note number}
     std::map<std::pair<int, int>, std::pair<int, int>> noteToChAndMidiNoteMPE,
-        auditNoteToChAndMidiNoteMPE;
+        auditionNoteToChAndMidiNoteMPE;
     ///< Manually played note's totalCents -> {midi channel (2-16), midi note number}
     std::map<int, std::pair<int, int>> manPlNoteToChAndMidiNoteMPE;
     std::unique_ptr<ChannelsManagerMPE> channelsManagerMPE;

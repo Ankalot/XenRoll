@@ -63,7 +63,7 @@ class LeftPanel : public juce::Component {
 
     ///< Repaints panel if needed
     void updateCurrPlayingKeys(const std::vector<Note> &notes, bool isPlaying, float playHeadTime,
-                               const std::map<int, float> allManuallyPlayedKeys, bool isAuditing,
+                               const std::map<int, float> allManuallyPlayedKeys, bool isAuditioning,
                                float auditionTime);
 
     void mouseDown(const juce::MouseEvent &event) override;

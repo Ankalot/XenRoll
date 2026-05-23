@@ -180,7 +180,7 @@ void MainPanel::paint(juce::Graphics &g) {
     }
 
     // Audition line
-    if (isAuditing) {
+    if (isAuditioning) {
         g.setColour(params->theme.activated.darker(0.3f));
         for (const Note &note : notes) {
             if ((note.time <= auditionTime) && (auditionTime < note.time + note.duration)) {
@@ -974,10 +974,10 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         }
 
         if (event.mods.isAltDown()) {
-            // Is auditing notes under cursor
-            isAuditing = true;
+            // Is auditioning notes under cursor
+            isAuditioning = true;
             auditionTime = point.getX() / bar_width_px;
-            editor->startAuditing(auditionTime);
+            editor->startAuditioning(auditionTime);
             repaint();
             setMouseCursor(juce::MouseCursor::CrosshairCursor);
             return;
@@ -1367,8 +1367,8 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         }
     }
 
-    // Is auditing notes under cursor
-    if (isAuditing) {
+    // Is auditioning notes under cursor
+    if (isAuditioning) {
         float newAuditionTime = currDragPoint.getX() / bar_width_px;
         if (auditionTime != newAuditionTime) {
             auditionTime = newAuditionTime;
@@ -1471,9 +1471,9 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
         needToUnselectAllNotesExcept = -1;
     }
 
-    if (isAuditing) {
-        editor->endAuditing();
-        isAuditing = false;
+    if (isAuditioning) {
+        editor->endAuditioning();
+        isAuditioning = false;
     }
 
     if (isSelecting) {

@@ -59,7 +59,7 @@ class HelpPanel : public juce::Component {
                    {"LDrag + note's right edge", "Resize notes (change duration)"},
                    {"Alt + LDrag + note's right edge", "Time-stretch selected notes"},
                    {"RClick + note", "Delete note"},
-                   {"Alt + RClick/RDrag", "Audit notes under the cursor"},
+                   {"Alt + RClick/RDrag", "Audition notes under the cursor"},
                    {"RDrag + empty space", "Rectangle-select notes"},
                    {"MDrag + empty space", "Pan the view"},
                    {"MClick + note", "Change the velocity of selected notes"},

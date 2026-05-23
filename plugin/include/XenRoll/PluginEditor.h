@@ -416,15 +416,15 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     void sendOSCTransportPosition(float timeInBars);
     void reconnectOSCSender();
 
-    void startAuditing(float newAuditionTime) {
+    void startAuditioning(float newAuditionTime) {
         auditionTime = newAuditionTime;
-        isAuditing = true;
-        processorRef.startAuditing((double)newAuditionTime);
+        isAuditioning = true;
+        processorRef.startAuditioning((double)newAuditionTime);
     }
 
-    void endAuditing() {
-        isAuditing = false;
-        processorRef.endAuditing();
+    void endAuditioning() {
+        isAuditioning = false;
+        processorRef.endAuditioning();
     }
 
     void setAuditionTime(float newAuditionTime) {
@@ -515,7 +515,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     std::map<int, float> leftManuallyPlayedKeys, keyboardManuallyPlayedKeys, dragManuallyPlayedKeys,
         allManuallyPlayedKeys;
 
-    bool isAuditing = false;
+    bool isAuditioning = false;
     float auditionTime = 0.0f;
 
     juce::OSCSender oscSender;

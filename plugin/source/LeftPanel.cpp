@@ -20,7 +20,7 @@ void LeftPanel::paint(juce::Graphics &g) {
     g.setColour(params->theme.brighter);
     for (int totalCents : currPlayingKeysTotalCents) {
         float yPos = (params->num_octaves - float(totalCents) / 1200) * octave_height_px;
-        g.fillRoundedRectangle(juce::Rectangle<float>(0.0f, yPos - rectHeight/2,
+        g.fillRoundedRectangle(juce::Rectangle<float>(0.0f, yPos - rectHeight / 2,
                                                       float(leftPanel_width_px), rectHeight),
                                4.0f);
     }
@@ -94,7 +94,7 @@ void LeftPanel::paint(juce::Graphics &g) {
 void LeftPanel::updateCurrPlayingKeys(const std::vector<Note> &notes, bool isPlaying,
                                       float playHeadTime,
                                       const std::map<int, float> allManuallyPlayedKeys,
-                                      bool isAuditing, float auditionTime) {
+                                      bool isAuditioning, float auditionTime) {
     std::set<int> newCurrPlayingKeysTotalCents;
     std::set<int> newCurrPlayingBentKeysTotalCents;
 
@@ -112,7 +112,7 @@ void LeftPanel::updateCurrPlayingKeys(const std::vector<Note> &notes, bool isPla
         }
     }
 
-    if (isAuditing) {
+    if (isAuditioning) {
         for (const Note &note : notes) {
             if ((note.time <= auditionTime) && (auditionTime < note.time + note.duration)) {
                 int totalCents = note.octave * 1200 + note.cents;
