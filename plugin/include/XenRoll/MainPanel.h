@@ -151,6 +151,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool isMovingRatioMark = false;
     bool wasMovingRatioMark = false;
     bool wasBending = false;
+    ///< for small timestep change from keyboard only (left/right arrows & no time snap)
+    bool wasTimeChanging = false;
     bool wasPitchChanging = false; ///< for ±1¢ from keyboard only (up/down arrows & no key snap)
     RatioMark *movingRatioMark;
     juce::Point<int> lastPanPos;

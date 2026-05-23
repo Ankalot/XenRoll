@@ -2222,7 +2222,13 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         if (!thereAreSelectedNotes()) {
             return false;
         }
-        float dtime = 1.0f / (params->num_beats * params->num_subdivs);
+        float dtime;
+        if (params->timeSnap) {
+            dtime = 1.0f / (params->num_beats * params->num_subdivs);
+        } else {
+            dtime = 1.0f / (params->max_num_beats * params->max_num_subdivs);
+        }
+
         if (key.getModifiers().isShiftDown()) {
             dtime = 1.0f;
         }
@@ -2242,7 +2248,11 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             }
             remakeKeys(); // because notes can enter/leave time active/disabled zones
             timeCorrectRatioMarksBasedOnSelNotes(dtime);
-            saveState();
+            if (params->timeSnap) {
+                saveState();
+            } else {
+                wasTimeChanging = true;
+            }
             editor->updateNotes(notes);
             repaint();
         }
@@ -2254,9 +2264,11 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             return false;
         }
         // NEGATIVE!
-        float dtime = -1.0f / (params->num_beats * params->num_subdivs);
-        if (key.getModifiers().isShiftDown()) {
-            dtime = -1.0f;
+        float dtime;
+        if (params->timeSnap) {
+            dtime = -1.0f / (params->num_beats * params->num_subdivs);
+        } else {
+            dtime = -1.0f / (params->max_num_beats * params->max_num_subdivs);
         }
         // dtime is limited: no selected note should have
         //                   time < 0
@@ -2273,7 +2285,11 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             }
             remakeKeys(); // because notes can enter/leave time active/disabled zones
             timeCorrectRatioMarksBasedOnSelNotes(dtime);
-            saveState();
+            if (params->timeSnap) {
+                saveState();
+            } else {
+                wasTimeChanging = true;
+            }
             editor->updateNotes(notes);
             repaint();
         }
@@ -2496,6 +2512,15 @@ bool MainPanel::keyStateChanged(bool isKeyDown) {
         if (!juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::upKey) &&
             !juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::downKey)) {
             wasPitchChanging = false;
+            saveState();
+        }
+    }
+
+    if (!isKeyDown && wasTimeChanging) {
+        // Check if left/right key was released
+        if (!juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::leftKey) &&
+            !juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::rightKey)) {
+            wasTimeChanging = false;
             saveState();
         }
     }
