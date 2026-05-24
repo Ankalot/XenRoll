@@ -1,0 +1,233 @@
+#include "XenRoll/editor/panels/LeftPanel.h"
+#include "XenRoll/editor/PluginEditor.h"
+
+namespace audio_plugin {
+LeftPanel::LeftPanel(int leftPanel_width_px, AudioPluginAudioProcessorEditor *editor,
+                     Parameters *params)
+    : leftPanel_width_px(leftPanel_width_px), editor(editor), params(params) {
+    octave_height_px = params->octave_height_px;
+    init_octave_height_px = params->init_octave_height_px;
+
+    this->setSize(leftPanel_width_px, juce::roundToInt(params->num_octaves * octave_height_px));
+    setWantsKeyboardFocus(false);
+}
+
+void LeftPanel::paint(juce::Graphics &g) {
+    g.fillAll(params->theme.bright);
+
+    // rectangles for original keys that are played
+    float rectHeight = adaptKeyHeight(20.0f);
+    g.setColour(params->theme.brighter);
+    for (int totalCents : currPlayingKeysTotalCents) {
+        float yPos = (params->num_octaves - float(totalCents) / 1200) * octave_height_px;
+        g.fillRoundedRectangle(juce::Rectangle<float>(0.0f, yPos - rectHeight / 2,
+                                                      float(leftPanel_width_px), rectHeight),
+                               4.0f);
+    }
+
+    // dashed lines for bent keys (notes) that are played
+    float lineThickness = adaptKeyHeight(5.0f);
+    float dashLengths[] = {lineThickness * 2, lineThickness};
+    g.setColour(params->theme.brighter);
+    for (int totalCents : currPlayingBentKeysTotalCents) {
+        float yPos = (params->num_octaves - float(totalCents) / 1200) * octave_height_px;
+        g.drawDashedLine(juce::Line<float>(0.0f, yPos, float(leftPanel_width_px), yPos),
+                         dashLengths, 2, lineThickness);
+    }
+
+    // octaves
+    g.setColour(params->theme.darkest);
+    for (int i = 0; i <= params->num_octaves; ++i) {
+        float yPos = i * octave_height_px;
+        g.drawLine(0, yPos, 40, yPos, adaptSize(Theme::wide));
+        g.drawLine((float)leftPanel_width_px - 20, yPos, (float)leftPanel_width_px, yPos,
+                   adaptSize(Theme::wide));
+    }
+
+    // keys
+    g.setFont(adaptFont(Theme::medium));
+    juce::String keyText = juce::String::fromUTF8("⤬⤬⤬");
+    for (int i = 0; i < params->num_octaves; ++i) {
+        int j = 0;
+        for (const int &key : keys) {
+            float yPos = (i + 1.0f - float(key) / 1200) * octave_height_px;
+            g.setColour(params->theme.darkest);
+            g.drawLine(leftPanel_width_px - 20.0f, yPos, float(leftPanel_width_px), yPos,
+                       adaptSize(Theme::narrow));
+            if (params->showKeysHarmonicity) {
+                const int totalCents = key + 1200 * (params->num_octaves - i - 1);
+                if (keysHarmonicity.contains(totalCents)) {
+                    const float keyHarm = keysHarmonicity[totalCents];
+                    if (keyHarm > 0) {
+                        g.setColour(Theme::midHarmony.interpolatedWith(Theme::maxHarmony, keyHarm));
+                    } else {
+                        g.setColour(
+                            Theme::midHarmony.interpolatedWith(Theme::minHarmony, -keyHarm));
+                    }
+                }
+            }
+            if (!params->hideCents) {
+                keyText = juce::String(key);
+            }
+            g.drawText(keyText,
+                       juce::Rectangle<int>(leftPanel_width_px - 145 + 42 * ((j + 1) % 2),
+                                            static_cast<int>(yPos) - 9, 80, 20),
+                       juce::Justification::right, false);
+            j++;
+        }
+    }
+
+    // octaves labels
+    g.setFont(adaptFont(Theme::big));
+    for (int i = 0; i < params->num_octaves; ++i) {
+        float yPos = i * octave_height_px;
+        juce::Graphics::ScopedSaveState state(g);
+        g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, 15.0f,
+                                                       yPos + octave_height_px / 2));
+        g.drawText("OCTAVE " + juce::String(params->num_octaves - i - 1),
+                   juce::Rectangle<int>(-100, static_cast<int>(yPos), 230,
+                                        static_cast<int>(octave_height_px)),
+                   juce::Justification::centred, false);
+    }
+}
+
+void LeftPanel::updateCurrPlayingKeys(const std::vector<Note> &notes, bool isPlaying,
+                                      float playHeadTime,
+                                      const std::map<int, float> allManuallyPlayedKeys,
+                                      bool isAuditioning, float auditionTime) {
+    std::set<int> newCurrPlayingKeysTotalCents;
+    std::set<int> newCurrPlayingBentKeysTotalCents;
+
+    if (isPlaying) {
+        for (const Note &note : notes) {
+            if ((note.time <= playHeadTime) && (playHeadTime < note.time + note.duration)) {
+                int totalCents = note.octave * 1200 + note.cents;
+                newCurrPlayingKeysTotalCents.insert(totalCents);
+                if (note.bend != 0) {
+                    totalCents +=
+                        juce::roundToInt(note.bend * (playHeadTime - note.time) / note.duration);
+                    newCurrPlayingBentKeysTotalCents.insert(totalCents);
+                }
+            }
+        }
+    }
+
+    if (isAuditioning) {
+        for (const Note &note : notes) {
+            if ((note.time <= auditionTime) && (auditionTime < note.time + note.duration)) {
+                int totalCents = note.octave * 1200 + note.cents;
+                newCurrPlayingKeysTotalCents.insert(totalCents);
+                if (note.bend != 0) {
+                    totalCents +=
+                        juce::roundToInt(note.bend * (auditionTime - note.time) / note.duration);
+                    newCurrPlayingBentKeysTotalCents.insert(totalCents);
+                }
+            }
+        }
+    }
+
+    for (const auto &[totalCents, _] : allManuallyPlayedKeys) {
+        newCurrPlayingKeysTotalCents.insert(totalCents);
+    }
+
+    bool needRepaint = false;
+    if (currPlayingKeysTotalCents != newCurrPlayingKeysTotalCents) {
+        currPlayingKeysTotalCents = newCurrPlayingKeysTotalCents;
+        needRepaint = true;
+    }
+    if (currPlayingBentKeysTotalCents != newCurrPlayingBentKeysTotalCents) {
+        currPlayingBentKeysTotalCents = newCurrPlayingBentKeysTotalCents;
+        needRepaint = true;
+    }
+    if (needRepaint) {
+        repaint();
+    }
+}
+
+void LeftPanel::mouseDown(const juce::MouseEvent &event) {
+    if (event.mods.isLeftButtonDown()) {
+        if (keys.empty()) {
+            return;
+        }
+        juce::Point<int> point = event.getPosition();
+        int octave = params->num_octaves - 1 - static_cast<int>(point.getY() / octave_height_px);
+        int cents =
+            static_cast<int>(
+                round((1.0f - (fmodf(point.getY(), octave_height_px) / octave_height_px)) * 1200)) %
+            1200;
+        if (cents == 0) {
+            octave += 1;
+            if (octave == params->num_octaves) {
+                return;
+            }
+        }
+        std::tie(octave, cents) = centsToKeysCents(octave, cents);
+        manuallyPlayedKeyTotalCents = octave * 1200 + cents;
+        editor->setManuallyPlayedKeys({{manuallyPlayedKeyTotalCents, params->defaultVelocity}},
+                                      "left");
+    }
+    editor->bringBackKeyboardFocus();
+}
+
+void LeftPanel::mouseUp(const juce::MouseEvent &event) {
+    if (event.mods.isLeftButtonDown()) {
+        editor->setManuallyPlayedKeys({}, "left");
+    }
+}
+
+void LeftPanel::mouseDrag(const juce::MouseEvent &event) {
+    if (event.mods.isLeftButtonDown()) {
+        if (keys.empty()) {
+            return;
+        }
+        juce::Point<int> point = event.getPosition();
+        int octave = params->num_octaves - 1 - static_cast<int>(point.getY() / octave_height_px);
+        int cents =
+            static_cast<int>(
+                round((1.0f - (fmodf(point.getY(), octave_height_px) / octave_height_px)) * 1200)) %
+            1200;
+        if (cents == 0) {
+            octave += 1;
+            if (octave == params->num_octaves) {
+                return;
+            }
+        }
+        std::tie(octave, cents) = centsToKeysCents(octave, cents);
+        int totalCents = octave * 1200 + cents;
+        if (manuallyPlayedKeyTotalCents != totalCents) {
+            manuallyPlayedKeyTotalCents = totalCents;
+            editor->setManuallyPlayedKeys({{manuallyPlayedKeyTotalCents, params->defaultVelocity}},
+                                          "left");
+        }
+    }
+}
+
+void LeftPanel::mouseMove(const juce::MouseEvent &event) {
+    juce::ignoreUnused(event);
+    if (keys.empty()) {
+        setMouseCursor(juce::MouseCursor::NormalCursor);
+    } else {
+        setMouseCursor(juce::MouseCursor::PointingHandCursor);
+    }
+}
+
+std::tuple<int, int> LeftPanel::centsToKeysCents(int octave, int cents) {
+    int nearest = 0;
+    int minDist = 10000;
+    for (const int &key : keys) {
+        if (abs(key - cents) < minDist) {
+            minDist = abs(key - cents);
+            nearest = key;
+        }
+    }
+    if ((octave != 0) && (abs(1200 + cents - *keys.rbegin()) < minDist)) {
+        octave--;
+        nearest = *keys.rbegin();
+    }
+    if ((octave != params->num_octaves + 1) && (abs(1200 + *keys.begin() - cents) < minDist)) {
+        octave++;
+        nearest = *keys.begin();
+    }
+    return {octave, nearest};
+}
+} // namespace audio_plugin

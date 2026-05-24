@@ -23,31 +23,31 @@ include(cmake/cpm.cmake)
 
 # This commands downloads AND configures JUCE. It sets up some variables, like JUCE_SOURCE_DIR.
 cpmaddpackage(
-  NAME
-  JUCE
-  GIT_TAG
-  8.0.6
-  VERSION
-  8.0.6
-  GITHUB_REPOSITORY
-  juce-framework/JUCE
-  SOURCE_DIR
-  ${LIB_DIR}/juce
+    NAME
+    JUCE
+    GIT_TAG
+    8.0.6
+    VERSION
+    8.0.6
+    GITHUB_REPOSITORY
+    juce-framework/JUCE
+    SOURCE_DIR
+    ${LIB_DIR}/juce
 )
 
 # Adds googletest.
 cpmaddpackage(
-  NAME
-  GOOGLETEST
-  GITHUB_REPOSITORY
-  google/googletest
-  VERSION
-  1.16.0
-  SOURCE_DIR
-  ${LIB_DIR}/googletest
-  OPTIONS
-  "INSTALL_GTEST OFF"
-  "gtest_force_shared_crt ON"
+    NAME
+    GOOGLETEST
+    GITHUB_REPOSITORY
+    google/googletest
+    VERSION
+    1.16.0
+    SOURCE_DIR
+    ${LIB_DIR}/googletest
+    OPTIONS
+    "INSTALL_GTEST OFF"
+    "gtest_force_shared_crt ON"
 )
 
 # Add compiler warning utilities
@@ -58,7 +58,7 @@ include(cmake/Util.cmake)
 add_subdirectory(plugin)
 
 # This command allows running tests from the "build" folder (the one where CMake generates the project to).
-#enable_testing()
+# enable_testing()
 
 # Adds all the targets configured in the "test" folder.
-#add_subdirectory(test)
+# add_subdirectory(test)

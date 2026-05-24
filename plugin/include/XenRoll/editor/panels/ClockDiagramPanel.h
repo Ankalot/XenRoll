@@ -1,0 +1,41 @@
+#pragma once
+
+#include "XenRoll/data/Note.h"
+#include "XenRoll/data/Parameters.h"
+#include <juce_gui_basics/juce_gui_basics.h>
+
+namespace audio_plugin {
+class AudioPluginAudioProcessorEditor;
+
+class ClockDiagramPanel : public juce::Component {
+  public:
+    ClockDiagramPanel(Parameters *params, AudioPluginAudioProcessorEditor *editor,
+                      const std::vector<Note> &notes);
+
+    void setTime(float newTime) {
+        time = newTime;
+        refresh();
+    }
+
+    void refresh();
+
+    void paint(juce::Graphics &g) override;
+
+  private:
+    Parameters *params;
+    AudioPluginAudioProcessorEditor *editor;
+    const std::vector<Note> &notes;
+    float time = 0.0f;
+
+    std::vector<std::set<int>> chordsAndNotes;
+    std::set<int> allCents;
+
+    const int padding = 36;
+    const int radius = 100;
+    const int labelIndent = 18;
+    const float opacity = 0.8f;
+    const int tickLength = 10;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ClockDiagramPanel)
+};
+} // namespace audio_plugin

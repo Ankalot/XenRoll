@@ -1,0 +1,73 @@
+#pragma once
+
+#include "XenRoll/data/Parameters.h"
+#include "XenRoll/editor/common/IntegerInput.h"
+#include "XenRoll/editor/common/SVGButton.h"
+#include "XenRoll/editor/models/DissonanceMeter.h"
+#include "XenRoll/editor/panels/DissonancePlot.h"
+#include "XenRoll/editor/panels/PartialsPlot.h"
+#include <juce_gui_basics/juce_gui_basics.h>
+
+namespace audio_plugin {
+class DissonancePanel : public juce::Component {
+  public:
+    /**
+     * @brief Construct a DissonancePanel
+     * @param params Pointer to parameters
+     * @param dissonanceMeter Shared pointer to DissonanceMeter for calculations
+     */
+    DissonancePanel(Parameters *params, std::shared_ptr<DissonanceMeter> dissonanceMeter);
+    ~DissonancePanel() override;
+
+    void resized() override;
+    void paint(juce::Graphics &g) override;
+
+  private:
+    Parameters *params;
+    std::shared_ptr<DissonanceMeter> dissonanceMeter;
+    std::unique_ptr<PartialsPlot> partialsPlot;
+    std::unique_ptr<DissonancePlot> dissonancePlot;
+
+    std::unique_ptr<juce::Label> plotPartialsOctaveLabel, plotPartialsCentsLabel,
+        plotDissonanceOctaveLabel, plotDissonanceCentsLabel, strategyLabel, fftSizeLabel,
+        dBThresholdLabel, compactnessLabel, roughnessLabel, dissonancePowLabel;
+    std::unique_ptr<IntegerInput> plotPartialsOctaveInput, plotPartialsCentsInput,
+        plotDissonanceOctaveInput, plotDissonanceCentsInput;
+    std::unique_ptr<juce::Slider> plotPartialsTotalCentsSlider, plotDissonanceTotalCentsSlider,
+        dBThresholdSlider, roughCompactFracSlider, dissonancePowSlider;
+    std::unique_ptr<juce::ComboBox> strategyComboBox, fftSizeComboBox;
+    std::unique_ptr<SVGButton> switchFindPartialsModeButton, plotPartialsInterpButton,
+        refreshButton, trashButton, removePartialsButton, importPartialsButton,
+        exportPartialsButton;
+
+    std::unique_ptr<juce::FileChooser> partialsFileChooser;
+
+    const int padding = 15;
+    const int lowComponentHeight = 28;
+    const int octaveInputWidth = 25;
+    const int centsInputWidth = 60;
+    const int strategyComboBoxWidth = 340;
+    const int fftSizeComboBoxWidth = 90;
+    const int sliderTextBoxWidth = 50;
+    const int roughCompactFracSliderWidth = 100;
+
+    bool ignoreUpdatePartials = false;
+    bool ignoreUpdateDissonance = false;
+
+    /**
+     * @brief Update total cents for partials plot
+     * @param newTotalCents New total cents value
+     * @param ind Index of component to ignore during update (to avoid cyclic updates)
+     */
+    void updatePartialsPlotTotalCents(int newTotalCents, int ind);
+
+    /**
+     * @brief Update total cents for dissonance plot
+     * @param newTotalCents New total cents value
+     * @param ind Index of component to ignore during update (to avoid cyclic updates)
+     */
+    void updateDissonancePlotTotalCents(int newTotalCents, int ind);
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DissonancePanel)
+};
+} // namespace audio_plugin

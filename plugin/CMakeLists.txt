@@ -7,11 +7,8 @@ project(XenRoll VERSION 0.4.2)
 # include folder is a good practice. It helps avoid name clashes later on.
 set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/XenRoll")
 
-set(MTS_ESP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/MTS-ESP")
-include_directories(${MTS_ESP_DIR})
-
-set(PITCH_DETECTOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/pitch-detection")
-include_directories(${PITCH_DETECTOR_DIR})
+set(EXTERNAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external")
+include_directories(${EXTERNAL_DIR})
 
 # When building I am hanging on creating moduleinfo.json (Windows...) so i disabled it
 # set(JUCE_VST3_CREATE_MANIFEST_FILE OFF)
@@ -55,75 +52,125 @@ if(WIN32 AND MSVC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 # Sets the source files of the plugin project.
-set(SOURCE_FILES source/PluginEditor.cpp
-    source/PluginProcessor.cpp
-    source/MainPanel.cpp
-    source/LeftPanel.cpp
-    source/TopPanel.cpp
-    source/SettingsPanel.cpp
-    source/InstancesMenu.cpp
-    source/MoreToolsMenu.cpp
-    source/Theme.cpp
-    source/PlatformUtils.cpp
-    source/PluginInstanceManager.cpp
-    source/DissonancePanel.cpp
-    source/DissonanceMeter.cpp
-    source/PartialsFinder.cpp
-    source/PitchMemory.cpp
-    source/PitchMemorySettingsPanel.cpp
-    source/GenNewKeysMenu.cpp
-    source/EditRatiosMarksMenu.cpp
-    source/RatioMark.cpp
-    source/VocalToMelodyMenu.cpp
-    source/ClockDiagramMenu.cpp
-    source/ClockDiagramPanel.cpp
-    source/NotesSharingMPE.cpp
-    source/NotePathManager.cpp
-    ${MTS_ESP_DIR}/libMTSMaster.cpp
-    ${PITCH_DETECTOR_DIR}/PitchDetectorMPM.cpp)
+set(SOURCE_FILES
+
+    # common
+    source/common/PlatformUtils.cpp
+
+    # data
+    source/data/RatioMark.cpp
+    source/data/Theme.cpp
+
+    # editor
+    source/editor/PluginEditor.cpp
+
+    # editor/menus
+    source/editor/menus/ClockDiagramMenu.cpp
+    source/editor/menus/EditRatiosMarksMenu.cpp
+    source/editor/menus/GenNewKeysMenu.cpp
+    source/editor/menus/InstancesMenu.cpp
+    source/editor/menus/MoreToolsMenu.cpp
+    source/editor/menus/VocalToMelodyMenu.cpp
+
+    # editor/models
+    source/editor/models/DissonanceMeter.cpp
+    source/editor/models/PitchMemory.cpp
+
+    # editor/panels
+    source/editor/panels/ClockDiagramPanel.cpp
+    source/editor/panels/DissonancePanel.cpp
+    source/editor/panels/LeftPanel.cpp
+    source/editor/panels/MainPanel.cpp
+    source/editor/panels/NotePathManager.cpp
+    source/editor/panels/PitchMemorySettingsPanel.cpp
+    source/editor/panels/SettingsPanel.cpp
+    source/editor/panels/TopPanel.cpp
+
+    # processor
+    source/processor/PluginProcessor.cpp
+
+    # processor/audio/dsp
+    source/processor/audio/dsp/PartialsFinder.cpp
+    source/processor/audio/dsp/PitchDetectorMPM.cpp
+
+    # processor/managers
+    source/processor/managers/NotesSharingMPE.cpp
+    source/processor/managers/PluginInstanceManager.cpp
+
+    # external
+    ${EXTERNAL_DIR}/MTS-ESP/libMTSMaster.cpp
+)
 
 # Optional; includes header files in the project file tree in Visual Studio
-set(HEADER_FILES ${INCLUDE_DIR}/PluginEditor.h
-    ${INCLUDE_DIR}/PluginProcessor.h
-    ${INCLUDE_DIR}/IntegerInput.h
-    ${INCLUDE_DIR}/Note.h
-    ${INCLUDE_DIR}/RatioMark.h
-    ${INCLUDE_DIR}/CircularStack.h
-    ${INCLUDE_DIR}/RelevanceQueue.h
-    ${INCLUDE_DIR}/TopPanel.h
-    ${INCLUDE_DIR}/LeftPanel.h
-    ${INCLUDE_DIR}/MainPanel.h
-    ${INCLUDE_DIR}/PopupMessage.h
-    ${INCLUDE_DIR}/HelpPanel.h
-    ${INCLUDE_DIR}/Zones.h
-    ${INCLUDE_DIR}/VelocityPanel.h
-    ${INCLUDE_DIR}/SettingsPanel.h
-    ${INCLUDE_DIR}/SVGButton.h
-    ${INCLUDE_DIR}/InstancesMenu.h
-    ${INCLUDE_DIR}/MoreToolsMenu.h
-    ${INCLUDE_DIR}/Theme.h
-    ${INCLUDE_DIR}/PlatformUtils.h
-    ${INCLUDE_DIR}/PluginInstanceManager.h
-    ${INCLUDE_DIR}/DissonancePanel.h
-    ${INCLUDE_DIR}/PartialsPlot.h
-    ${INCLUDE_DIR}/DissonancePlot.h
-    ${INCLUDE_DIR}/DissonanceMeter.h
-    ${INCLUDE_DIR}/PartialsFinder.h
-    ${INCLUDE_DIR}/AccumulatingBuffer.h
-    ${INCLUDE_DIR}/PitchMemorySettingsPanel.h
-    ${INCLUDE_DIR}/PitchMemory.h
-    ${INCLUDE_DIR}/GenNewKeysMenu.h
-    ${INCLUDE_DIR}/EditRatiosMarksMenu.h
-    ${INCLUDE_DIR}/DragAndDropPopup.h
-    ${INCLUDE_DIR}/VocalToMelodyMenu.h
-    ${INCLUDE_DIR}/ClockDiagramMenu.h
-    ${INCLUDE_DIR}/ClockDiagramPanel.h
-    ${INCLUDE_DIR}/NotesSharingMPE.h
-    ${INCLUDE_DIR}/GlobalSettings.h
-    ${INCLUDE_DIR}/ChannelsManagerMPE.h
-    ${INCLUDE_DIR}/NotePathManager.h
-    ${MTS_ESP_DIR}/libMTSMaster.h
-    ${PITCH_DETECTOR_DIR}/PitchDetectorMPM.h)
+set(HEADER_FILES
+
+    # common
+    ${INCLUDE_DIR}/common/CircularStack.h
+    ${INCLUDE_DIR}/common/PlatformUtils.h
+    ${INCLUDE_DIR}/common/RelevanceQueue.h
+
+    # data
+    ${INCLUDE_DIR}/data/GlobalSettings.h
+    ${INCLUDE_DIR}/data/Note.h
+    ${INCLUDE_DIR}/data/Parameters.h
+    ${INCLUDE_DIR}/data/PartialsTypes.h
+    ${INCLUDE_DIR}/data/RatioMark.h
+    ${INCLUDE_DIR}/data/Theme.h
+    ${INCLUDE_DIR}/data/Zones.h
+
+    # editor
+    ${INCLUDE_DIR}/editor/DragAndDropPopup.h
+    ${INCLUDE_DIR}/editor/PluginEditor.h
+
+    # editor/common
+    ${INCLUDE_DIR}/editor/common/IntegerInput.h
+    ${INCLUDE_DIR}/editor/common/PopupMessage.h
+    ${INCLUDE_DIR}/editor/common/SVGButton.h
+
+    # editor/menus
+    ${INCLUDE_DIR}/editor/menus/ClockDiagramMenu.h
+    ${INCLUDE_DIR}/editor/menus/EditRatiosMarksMenu.h
+    ${INCLUDE_DIR}/editor/menus/GenNewKeysMenu.h
+    ${INCLUDE_DIR}/editor/menus/InstancesMenu.h
+    ${INCLUDE_DIR}/editor/menus/MoreToolsMenu.h
+    ${INCLUDE_DIR}/editor/menus/VocalToMelodyMenu.h
+
+    # editor/models
+    ${INCLUDE_DIR}/editor/models/DissonanceMeter.h
+    ${INCLUDE_DIR}/editor/models/PitchMemory.h
+
+    # editor/panels
+    ${INCLUDE_DIR}/editor/panels/ClockDiagramPanel.h
+    ${INCLUDE_DIR}/editor/panels/DissonancePanel.h
+    ${INCLUDE_DIR}/editor/panels/DissonancePlot.h
+    ${INCLUDE_DIR}/editor/panels/HelpPanel.h
+    ${INCLUDE_DIR}/editor/panels/LeftPanel.h
+    ${INCLUDE_DIR}/editor/panels/MainPanel.h
+    ${INCLUDE_DIR}/editor/panels/NotePathManager.h
+    ${INCLUDE_DIR}/editor/panels/PartialsPlot.h
+    ${INCLUDE_DIR}/editor/panels/PitchMemorySettingsPanel.h
+    ${INCLUDE_DIR}/editor/panels/SettingsPanel.h
+    ${INCLUDE_DIR}/editor/panels/TopPanel.h
+    ${INCLUDE_DIR}/editor/panels/VelocityPanel.h
+
+    # processor
+    ${INCLUDE_DIR}/processor/PluginProcessor.h
+
+    # processor/audio
+    ${INCLUDE_DIR}/processor/audio/AccumulatingBuffer.h
+
+    # processor/audio/dsp
+    ${INCLUDE_DIR}/processor/audio/dsp/PartialsFinder.h
+    ${INCLUDE_DIR}/processor/audio/dsp/PitchDetectorMPM.h
+
+    # processor/managers
+    ${INCLUDE_DIR}/processor/managers/ChannelsManagerMPE.h
+    ${INCLUDE_DIR}/processor/managers/NotesSharingMPE.h
+    ${INCLUDE_DIR}/processor/managers/PluginInstanceManager.h
+
+    # external
+    ${EXTERNAL_DIR}/MTS-ESP/libMTSMaster.h
+)
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
 
 # Sets the include directories of the plugin project.
