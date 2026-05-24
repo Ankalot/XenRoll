@@ -14,6 +14,7 @@
 #include <atomic>
 #include <set>
 #include <thread>
+#include <vector>
 
 namespace audio_plugin {
 namespace bip = boost::interprocess;
