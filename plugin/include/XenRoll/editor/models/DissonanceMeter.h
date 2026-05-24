@@ -31,6 +31,7 @@
 #pragma once
 
 #include "XenRoll/data/PartialsTypes.h"
+#include <cmath>
 #include <map>
 #include <shared_mutex>
 #include <string>
@@ -54,7 +55,7 @@ struct Ratio {
     /**
      * @brief Ratio to cents
      */
-    float cents() const { return 1200 * log2(to_float()); }
+    float cents() const { return 1200 * std::log2(to_float()); }
 
     /**
      * @brief Ratio to float
