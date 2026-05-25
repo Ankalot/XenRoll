@@ -66,7 +66,8 @@ class HelpPanel : public juce::Component {
                    {"Scroll", "Zoom in/out (time)"},
                    {"Ctrl + Scroll", "Zoom in/out (pitch)"},
                    {"Alt + Scroll", "Bend selected notes"},
-                   {"Alt + Shift + Scroll", "Bend selected notes faster"}});
+                   {"Alt + Shift + Scroll", "Bend selected notes faster"},
+                   {"Alt + Ctrl + Scroll", "Snap-bend selected notes to nearest keys"}});
 
         drawSubHeader(g, leftColumn, "Top Panel (with time)");
         drawTable(g, leftColumn,
@@ -128,8 +129,8 @@ class HelpPanel : public juce::Component {
         const int mainH = mainHeaderHeight + 4;
         const int subH = sectionHeaderHeight + 2;
 
-        // Left column: Main Panel (17 rows), Top Panel (5 rows), Left Panel (1 row)
-        int left = mainH + subH + 17 * rowHeight + sectionSpacing + subH + 5 * rowHeight +
+        // Left column: Main Panel (18 rows), Top Panel (5 rows), Left Panel (1 row)
+        int left = mainH + subH + 18 * rowHeight + sectionSpacing + subH + 5 * rowHeight +
                    sectionSpacing + subH + 1 * rowHeight;
 
         // Right column: Basic (8), With Cents (4), Moving Notes (4), Hotkeys (4), Extra (1)

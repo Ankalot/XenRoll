@@ -148,6 +148,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool isDrawingRatioMark = false;
     bool isMovingRatioMark = false;
     bool wasMovingRatioMark = false;
+    ///< for bending not up to keys! no "bend key snap"
     bool wasBending = false;
     ///< for small timestep change from keyboard only (left/right arrows & no time snap)
     bool wasTimeChanging = false;

@@ -616,17 +616,52 @@ void MainPanel::numBarsChanged() {
     }
 }
 
+int python_mod(int a, int b) {
+    int result = a % b;
+    return result >= 0 ? result : result + std::abs(b);
+}
+
 void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
                                const juce::MouseWheelDetails &wheel) {
     if (event.mods.isAltDown()) {
-        wasBending = true;
-        int multiplier = 1;
-        if (event.mods.isShiftDown()) {
-            multiplier = 10;
-        }
-        for (Note &note : notes) {
-            if (note.isSelected) {
-                note.bend += multiplier * (wheel.deltaY > 0 ? 1 : -1);
+        if (event.mods.isCtrlDown()) {
+            if (wheel.deltaY > 0) {
+                for (Note &note : notes) {
+                    if (note.isSelected) {
+                        int noteEndKey = python_mod(note.cents + note.bend, 1200);
+                        auto it = keys.upper_bound(noteEndKey);
+                        if (it != keys.end()) {
+                            note.bend += (*it - noteEndKey);
+                        } else {
+                            note.bend += 1200 + *keys.begin() - noteEndKey;
+                        }
+                    }
+                }
+            } else {
+                for (Note &note : notes) {
+                    if (note.isSelected) {
+                        int noteEndKey = python_mod(note.cents + note.bend, 1200);
+                        auto it = keys.lower_bound(noteEndKey);
+                        if (it != keys.begin()) {
+                            --it;
+                            note.bend -= (noteEndKey - *it);
+                        } else {
+                            note.bend -= 1200 + noteEndKey - *keys.rbegin();
+                        }
+                    }
+                }
+            }
+            saveState();
+        } else {
+            wasBending = true;
+            int multiplier = 1;
+            if (event.mods.isShiftDown()) {
+                multiplier = 10;
+            }
+            for (Note &note : notes) {
+                if (note.isSelected) {
+                    note.bend += multiplier * (wheel.deltaY > 0 ? 1 : -1);
+                }
             }
         }
         editor->updateNotes(notes);
@@ -1962,11 +1997,6 @@ void MainPanel::updateRatiosMarks() {
         ratioMark.calculateRatioAndError();
     }
     repaint();
-}
-
-int python_mod(int a, int b) {
-    int result = a % b;
-    return result >= 0 ? result : result + std::abs(b);
 }
 
 void MainPanel::restoreState() {
