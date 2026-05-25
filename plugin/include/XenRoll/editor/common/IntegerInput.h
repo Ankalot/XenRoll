@@ -21,7 +21,7 @@ class IntegerInput : public juce::Component {
 
         lastValidValue = val;
         addAndMakeVisible(editor);
-        editor.setInputRestrictions((int)ceil(log10(maxVal)), "0123456789");
+        editor.setInputRestrictions(static_cast<int>(ceil(log10(maxVal))), "0123456789");
         setValue(val);
 
         // Validate when focus is lost

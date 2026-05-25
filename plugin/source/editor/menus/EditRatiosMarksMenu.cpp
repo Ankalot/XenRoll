@@ -24,7 +24,7 @@ EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters *params,
     maxDenSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, rowHeight);
     maxDenSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     maxDenSlider->onValueChange = [this, params, editor]() {
-        params->maxDenRatiosMarks = int(maxDenSlider->getValue());
+        params->maxDenRatiosMarks = static_cast<int>(maxDenSlider->getValue());
         editor->editRatiosMarksMenuChanged();
     };
     addAndMakeVisible(maxDenSlider.get());
@@ -44,7 +44,7 @@ EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters *params,
     goodEnoughErrorSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, rowHeight);
     goodEnoughErrorSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     goodEnoughErrorSlider->onValueChange = [this, params, editor]() {
-        params->goodEnoughErrorRatiosMarks = int(goodEnoughErrorSlider->getValue());
+        params->goodEnoughErrorRatiosMarks = static_cast<int>(goodEnoughErrorSlider->getValue());
         editor->editRatiosMarksMenuChanged();
     };
     addAndMakeVisible(goodEnoughErrorSlider.get());

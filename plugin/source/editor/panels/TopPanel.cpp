@@ -111,19 +111,20 @@ void TopPanel::paint(juce::Graphics &g) {
     auto zp = std::vector<float>(params->zones.getZonesPoints().begin(),
                                  params->zones.getZonesPoints().end());
     zp.insert(zp.begin(), 0.0f);
-    zp.push_back(float(params->get_num_bars()));
+    zp.push_back(static_cast<float>(params->get_num_bars()));
     auto zpOnOff = params->zones.getZonesOnOff();
     g.setColour(params->theme.dark);
     // Without this, I see a super thin light strip on my screen between two adjacent off zones.
     const float delta = 0.5f;
     for (int i = 0; i < zpOnOff.size(); ++i) {
         if (!zpOnOff[i]) {
-            float leftPoint_px = juce::jmax(float(clipX), zp[i] * bar_width_px) - delta;
+            float leftPoint_px =
+                juce::jmax(static_cast<float>(clipX), zp[i] * bar_width_px) - delta;
             float rightPoint_px =
-                juce::jmin(float(clipX + clipWidth), zp[i + 1] * bar_width_px + delta);
+                juce::jmin(static_cast<float>(clipX + clipWidth), zp[i + 1] * bar_width_px + delta);
             if ((leftPoint_px < clipX + clipWidth) && (rightPoint_px > clipX)) {
                 g.fillRect(leftPoint_px, 0.0f, rightPoint_px - leftPoint_px,
-                           float(topPanel_height_px));
+                           static_cast<float>(topPanel_height_px));
             }
         }
     }
@@ -136,8 +137,8 @@ void TopPanel::paint(juce::Graphics &g) {
         float zp_px = zp[i] * bar_width_px;
         if ((zp_px >= clipX) && (zp_px <= clipX + clipWidth)) {
             trianglePath.startNewSubPath(zp_px, topPanel_height_px - zonePoint_collision_width_px);
-            trianglePath.lineTo(zp_px - zpw / 2, float(topPanel_height_px));
-            trianglePath.lineTo(zp_px + zpw / 2, float(topPanel_height_px));
+            trianglePath.lineTo(zp_px - zpw / 2, static_cast<float>(topPanel_height_px));
+            trianglePath.lineTo(zp_px + zpw / 2, static_cast<float>(topPanel_height_px));
             trianglePath.lineTo(zp_px, topPanel_height_px - zonePoint_collision_width_px);
             trianglePath.closeSubPath();
             g.fillPath(trianglePath);
@@ -160,7 +161,8 @@ void TopPanel::paint(juce::Graphics &g) {
         std::min(static_cast<int>((clipX + clipWidth) / bar_width_px) + 1, params->get_num_bars());
     for (int i = bar_i_start; i <= bar_i_end; ++i) {
         float xPos = i * bar_width_px;
-        g.drawLine(xPos, 0.0f, xPos, float(topPanel_height_px), adaptSize(Theme::wide));
+        g.drawLine(xPos, 0.0f, xPos, static_cast<float>(topPanel_height_px),
+                   adaptSize(Theme::wide));
     }
 
     // Bar number
@@ -179,12 +181,13 @@ void TopPanel::paint(juce::Graphics &g) {
         (playHeadTime * bar_width_px <= clipX + clipWidth + playHeadWidth / 2)) {
 
         juce::Path playHeadPath;
-        playHeadPath.startNewSubPath(playHeadTime * bar_width_px, float(topPanel_height_px));
+        playHeadPath.startNewSubPath(playHeadTime * bar_width_px,
+                                     static_cast<float>(topPanel_height_px));
         playHeadPath.lineTo(playHeadTime * bar_width_px - playHeadWidth / 2,
-                            float(topPanel_height_px - playHeadHeight));
+                            static_cast<float>(topPanel_height_px - playHeadHeight));
         playHeadPath.lineTo(playHeadTime * bar_width_px + playHeadWidth / 2,
-                            float(topPanel_height_px - playHeadHeight));
-        playHeadPath.lineTo(playHeadTime * bar_width_px, float(topPanel_height_px));
+                            static_cast<float>(topPanel_height_px - playHeadHeight));
+        playHeadPath.lineTo(playHeadTime * bar_width_px, static_cast<float>(topPanel_height_px));
         playHeadPath.closeSubPath();
         // g.setColour(params->theme.brighter.withAlpha(1.0f));
         g.setColour(params->theme.activated.withAlpha(1.0f));

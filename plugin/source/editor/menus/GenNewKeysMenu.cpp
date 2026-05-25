@@ -23,7 +23,7 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEdit
     numNewKeysSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, rowHeight);
     numNewKeysSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     numNewKeysSlider->onDragEnd = [this, params, editor]() {
-        params->numNewGenKeys = int(numNewKeysSlider->getValue());
+        params->numNewGenKeys = static_cast<int>(numNewKeysSlider->getValue());
         if (params->generateNewKeys) {
             editor->remakeKeys();
         }
@@ -64,7 +64,7 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEdit
     minDistExistNewKeysSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, rowHeight);
     minDistExistNewKeysSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     minDistExistNewKeysSlider->onDragEnd = [this, params, editor]() {
-        params->minDistExistNewKeys = int(minDistExistNewKeysSlider->getValue());
+        params->minDistExistNewKeys = static_cast<int>(minDistExistNewKeysSlider->getValue());
         if (params->generateNewKeys) {
             editor->remakeKeys();
         }
@@ -85,7 +85,7 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEdit
     minDistBetweenNewKeysSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, rowHeight);
     minDistBetweenNewKeysSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     minDistBetweenNewKeysSlider->onDragEnd = [this, params, editor]() {
-        params->minDistBetweenNewKeys = int(minDistBetweenNewKeysSlider->getValue());
+        params->minDistBetweenNewKeys = static_cast<int>(minDistBetweenNewKeysSlider->getValue());
         if (params->generateNewKeys) {
             editor->remakeKeys();
         }

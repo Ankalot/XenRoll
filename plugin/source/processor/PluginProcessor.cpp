@@ -839,7 +839,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                             int totalCents = note.octave * 1200 + note.cents;
                             const auto &itNote = noteToChAndMidiNoteMPE.find({i, totalCents});
                             if (itNote != noteToChAndMidiNoteMPE.end()) {
-                                int noteOffSample = int(
+                                int noteOffSample = static_cast<int>(
                                     floor(numSamples * (note.time + note.duration - playHeadTime) /
                                           barsInBlock));
                                 const auto &chAndMidiNote = itNote->second;
@@ -892,7 +892,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                 channelsManagerMPE->allocateChannelMPE(bendMPE, note.bend != 0);
                             if (ch != -1) {
                                 pitchesOverflow = false;
-                                int noteOnSample = int(
+                                int noteOnSample = static_cast<int>(
                                     ceil(numSamples * (note.time - playHeadTime) / barsInBlock));
                                 juce::MidiMessage pitchBend =
                                     juce::MidiMessage::pitchWheel(ch, bendMPE);
@@ -1061,7 +1061,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                 juce::MidiMessage::noteOff(params.channelIndex + 1, noteInd);
                             midiMessages.addEvent(
                                 noteOff,
-                                int(floor(numSamples * (note.time + note.duration - playHeadTime) /
+                                static_cast<int>(
+                                    floor(numSamples * (note.time + note.duration - playHeadTime) /
                                           barsInBlock)));
                             currPlayedNotesTotalCents.erase(note.octave * 1200 + note.cents);
                         }
@@ -1108,7 +1109,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                 params.channelIndex + 1, noteInd, note.velocity);
                             midiMessages.addEvent(
                                 noteOn,
-                                int(ceil(numSamples * (note.time - playHeadTime) / barsInBlock)));
+                                static_cast<int>(
+                                    ceil(numSamples * (note.time - playHeadTime) / barsInBlock)));
                             currPlayedNotesTotalCents.insert(note.octave * 1200 + note.cents);
                             currPlayedNotesIndexes.insert(noteInd);
                             if (note.bend != 0) {
@@ -1455,7 +1457,7 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
                 zonesOnOff.push_back(static_cast<bool>(child.getProperty("v", true)));
             }
         }
-        params.zones = Zones(float(numBars), zonesPoints, zonesOnOff);
+        params.zones = Zones(static_cast<float>(numBars), zonesPoints, zonesOnOff);
     }
 
     // Partials / Intellectual
@@ -1646,7 +1648,7 @@ void AudioPluginAudioProcessor::legacySetStateInformation(const void *data, int 
     for (int i = 0; i < zonesOnOffNum; ++i) {
         zonesOnOff[i] = stream.readBool();
     }
-    params.zones = Zones(float(num_bars), zonesPoints, zonesOnOff);
+    params.zones = Zones(static_cast<float>(num_bars), zonesPoints, zonesOnOff);
 
     // Read intellectual
     params.findPartialsFFTSize.store(stream.readInt());
@@ -1847,7 +1849,7 @@ std::vector<Note> AudioPluginAudioProcessor::getOtherInstancesNotes() {
     return {};
 }
 
-float AudioPluginAudioProcessor::getPlayHeadTime() { return float(playHeadTime); }
+float AudioPluginAudioProcessor::getPlayHeadTime() { return static_cast<float>(playHeadTime); }
 
 double AudioPluginAudioProcessor::getNoteFreq(const Note &note) {
     float dBend = 0.0f;
@@ -1887,7 +1889,7 @@ void AudioPluginAudioProcessor::prepareNotes() {
     // some cleaning
     notesIndexes.clear();
     notesIndexes.resize(notes.size());
-    int numUsedFreqs = int(currPlayedNotesIndexes.size());
+    int numUsedFreqs = static_cast<int>(currPlayedNotesIndexes.size());
     for (int i = 0; i < 128; ++i) {
         if (!currPlayedNotesIndexes.contains(i)) {
             freqs[i] = noFreq;
@@ -1949,7 +1951,7 @@ std::tuple<float, int, int> AudioPluginAudioProcessor::getBpmNumDenom() {
             auto timeSig =
                 posInfo->getTimeSignature().orFallback(juce::AudioPlayHead::TimeSignature{4, 4});
             auto bpm = posInfo->getBpm().orFallback(120.0);
-            return std::make_tuple(float(bpm), timeSig.numerator, timeSig.denominator);
+            return std::make_tuple(static_cast<float>(bpm), timeSig.numerator, timeSig.denominator);
         }
     }
     return std::make_tuple(120.0f, 4, 4);

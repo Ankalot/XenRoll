@@ -78,7 +78,7 @@ class CustomLookAndFeel : public juce::LookAndFeel_V4 {
                  findColour(juce::TooltipWindow::textColourId));
 
         juce::TextLayout tl;
-        tl.createLayoutWithBalancedLineLengths(s, (float)maxToolTipWidth);
+        tl.createLayoutWithBalancedLineLengths(s, static_cast<float>(maxToolTipWidth));
         return tl;
     }
 
@@ -86,8 +86,8 @@ class CustomLookAndFeel : public juce::LookAndFeel_V4 {
                                           juce::Rectangle<int> parentArea) override {
         auto tl = layoutTooltipText(tipText);
 
-        auto w = (int)(tl.getWidth() + 14.0f);
-        auto h = (int)(tl.getHeight() + 6.0f);
+        auto w = static_cast<int>(tl.getWidth() + 14.0f);
+        auto h = static_cast<int>(tl.getHeight() + 6.0f);
 
         return juce::Rectangle<int>(screenPos.x > parentArea.getCentreX() ? screenPos.x - (w + 12)
                                                                           : screenPos.x + 24,
@@ -419,7 +419,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     void startAuditioning(float newAuditionTime) {
         auditionTime = newAuditionTime;
         isAuditioning = true;
-        processorRef.startAuditioning((double)newAuditionTime);
+        processorRef.startAuditioning(static_cast<double>(newAuditionTime));
     }
 
     void endAuditioning() {
@@ -429,7 +429,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     void setAuditionTime(float newAuditionTime) {
         auditionTime = newAuditionTime;
-        processorRef.setAuditionTime((double)newAuditionTime);
+        processorRef.setAuditionTime(static_cast<double>(newAuditionTime));
     }
 
     void invalidateNotePathsCache() { mainPanel->invalidateNotePathsCache(); }

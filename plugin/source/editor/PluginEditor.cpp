@@ -1100,7 +1100,7 @@ std::optional<std::vector<int>> parseSclFile(const juce::File &file) {
                     DBG("Invalid cents value: " + valueStr);
                     return std::nullopt;
                 }
-                scale.push_back(int(round(cents)));
+                scale.push_back(juce::roundToInt(cents));
             } else if (valueStr.containsChar('/')) {
                 // Ratio
                 auto numeratorStr = valueStr.upToFirstOccurrenceOf("/", false, false);
@@ -1116,7 +1116,7 @@ std::optional<std::vector<int>> parseSclFile(const juce::File &file) {
 
                 double ratio = static_cast<double>(numerator) / denominator;
                 double cents = 1200.0 * log2(ratio);
-                scale.push_back(int(round(cents)));
+                scale.push_back(juce::roundToInt(cents));
             } else {
                 // Integer (treated as ratio)
                 int value = valueStr.getIntValue();
@@ -1125,7 +1125,7 @@ std::optional<std::vector<int>> parseSclFile(const juce::File &file) {
                     return std::nullopt;
                 }
                 double cents = 1200.0 * log2(static_cast<double>(value));
-                scale.push_back(int(round(cents)));
+                scale.push_back(juce::roundToInt(cents));
             }
 
             pitchLinesRead++;
@@ -1231,7 +1231,7 @@ void AudioPluginAudioProcessorEditor::parseMidiSclFiles(const juce::File &midiFi
                 const int midiNote = msg.getNoteNumber();
                 int octave, cents;
                 if (hasScl) {
-                    int n = int(sclScale.size()) - 1;
+                    int n = static_cast<int>(sclScale.size() - 1);
                     int totalCents = sclScale[n] * (midiNote / n) + sclScale[midiNote % n];
                     octave = totalCents / 1200;
                     if (octave >= processorRef.params.num_octaves) {
@@ -1331,7 +1331,7 @@ void AudioPluginAudioProcessorEditor::exportMidiSclFiles() {
         const Note &note = notes[i];
         int totalCents = note.octave * 1200 + note.cents;
         auto it = std::find(keysFromNotes.begin(), keysFromNotes.end(), totalCents);
-        keysIndexes[i] = int(std::distance(keysFromNotes.begin(), it));
+        keysIndexes[i] = static_cast<int>(std::distance(keysFromNotes.begin(), it));
     }
 
     exportFileChooser.get()->launchAsync(

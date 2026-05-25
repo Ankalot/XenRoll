@@ -70,7 +70,8 @@ void ClockDiagramPanel::paint(juce::Graphics &g) {
 
     // Circle
     g.setColour(params->theme.darkest);
-    g.drawEllipse((float)padding, (float)padding, 2.0f * radius, 2.0f * radius, Theme::wide);
+    g.drawEllipse(static_cast<float>(padding), static_cast<float>(padding), 2.0f * radius,
+                  2.0f * radius, Theme::wide);
 
     // Lines
     const auto pathStrokeType = juce::PathStrokeType(Theme::wider, juce::PathStrokeType::curved);

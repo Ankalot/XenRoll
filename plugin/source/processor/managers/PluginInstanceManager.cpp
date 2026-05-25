@@ -244,19 +244,19 @@ void PluginInstanceManager::runServer() {
         for (int i = 0; i < 16; ++i) {
             bip::scoped_lock<bip::named_mutex> lock(*chFqMutex[i]);
             if (channelsFreqs[i]->serverAction == -1) {
-                MTS_SetMultiChannel(false, char(i));
+                MTS_SetMultiChannel(false, static_cast<char>(i));
                 channelsFreqs[i]->needToUpdate.store(false, std::memory_order_release);
                 channelsFreqs[i]->serverAction = 0;
                 anyUpdates = true;
                 continue;
             }
             if (channelsFreqs[i]->serverAction == 1) {
-                MTS_SetMultiChannel(true, char(i));
+                MTS_SetMultiChannel(true, static_cast<char>(i));
                 channelsFreqs[i]->serverAction = 0;
                 anyUpdates = true;
             }
             if (channelsFreqs[i]->needToUpdate.load(std::memory_order_acquire)) {
-                MTS_SetMultiChannelNoteTunings(channelsFreqs[i]->freqs, char(i));
+                MTS_SetMultiChannelNoteTunings(channelsFreqs[i]->freqs, static_cast<char>(i));
                 channelsFreqs[i]->needToUpdate.store(false, std::memory_order_release);
                 anyUpdates = true;
             }

@@ -333,7 +333,7 @@ juce::Path NotePathManager::getPath(const Note &note, float barWidthPx, float oc
 
     // Translate canonical path
     const float x1 = note.time * barWidthPx;
-    const float y1 = (numOctaves - note.octave - float(note.cents) / 1200) * octaveHeightPx;
+    const float y1 = (numOctaves - note.octave - note.cents / 1200.0f) * octaveHeightPx;
     juce::Path result = canonical;
     result.applyTransform(juce::AffineTransform::translation(x1, y1));
 

@@ -229,7 +229,7 @@ class Parameters {
      */
     void set_num_bars(int new_num_bars) {
         num_bars = new_num_bars;
-        zones.setBorderPoint(float(num_bars));
+        zones.setBorderPoint(static_cast<float>(num_bars));
     }
     int get_num_bars() { return num_bars; }
 
@@ -273,7 +273,9 @@ class Parameters {
     ///< Syncs local tuningType with global. For setStateInformation in PluginProcessor ONLY!
     void applyGlobalTuningType() { tuningType = globalTuningType.load(); }
 
-    Parameters() : zones(true, float(num_bars)), theme(themeType) { tuningType = globalTuningType; }
+    Parameters() : zones(true, static_cast<float>(num_bars)), theme(themeType) {
+        tuningType = globalTuningType;
+    }
 
   private:
     // ~~~~~~~~~~~~~~~~~~~~~~~ Not saved params ~~~~~~~~~~~~~~~~~~~~~~~

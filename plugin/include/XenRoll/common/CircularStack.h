@@ -31,7 +31,7 @@ template <typename T> class CircularStack {
             data.pop_front();
         }
         data.push_back(value);
-        currentIndex = (int)data.size() - 1;
+        currentIndex = static_cast<int>(data.size() - 1);
     }
 
     void undo() {
@@ -47,7 +47,7 @@ template <typename T> class CircularStack {
     }
 
     bool canUndo() const { return currentIndex > 0; }
-    bool canRedo() const { return currentIndex < (int)data.size() - 1; }
+    bool canRedo() const { return currentIndex < static_cast<int>(data.size() - 1); }
 
     T &getCurrent() { return data[currentIndex]; }
     const T &getCurrent() const { return data[currentIndex]; }

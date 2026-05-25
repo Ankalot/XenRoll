@@ -115,7 +115,8 @@ void MainPanel::paint(juce::Graphics &g) {
     const float adaptedHorWide = adaptHor(Theme::wide);
     for (int i = octave_i_start; i <= octave_i_end; ++i) {
         float yPos = i * octave_height_px;
-        g.drawLine(float(clipX), yPos, float(clipX + clipWidth), yPos, adaptedHorWide);
+        g.drawLine(static_cast<float>(clipX), yPos, static_cast<float>(clipX + clipWidth), yPos,
+                   adaptedHorWide);
     }
     // bars
     int bar_i_start = static_cast<int>(clipX / bar_width_px);
@@ -131,11 +132,11 @@ void MainPanel::paint(juce::Graphics &g) {
     const float adaptedVertNarrower = adaptVert(Theme::narrower);
     for (int i = bar_i_start; i < bar_i_end; ++i) {
         for (int j = 0; j < params->num_beats; ++j) {
-            float xPos = (i + float(j) / params->num_beats) * bar_width_px;
+            float xPos = (i + static_cast<float>(j) / params->num_beats) * bar_width_px;
             g.drawLine(xPos, 0.0f, xPos, octave_height_px * params->num_octaves, adaptedVertNarrow);
             for (int k = 1; k < params->num_subdivs; ++k) {
-                float xPosSub =
-                    xPos + float(k) / (params->num_subdivs * params->num_beats) * bar_width_px;
+                float xPosSub = xPos + static_cast<float>(k) /
+                                           (params->num_subdivs * params->num_beats) * bar_width_px;
                 g.drawLine(xPosSub, 0.0f, xPosSub, octave_height_px * params->num_octaves,
                            adaptedVertNarrower);
             }
@@ -145,7 +146,7 @@ void MainPanel::paint(juce::Graphics &g) {
     const float adaptedHorNarrow = adaptHor(Theme::narrow);
     for (const int &key : keys) {
         for (int j = octave_i_start; j < octave_i_end; ++j) {
-            float yPos = (j + 1.0f - float(key) / 1200) * octave_height_px;
+            float yPos = (j + 1.0f - key / 1200.0f) * octave_height_px;
             auto line = juce::Line<float>(0.0f, yPos, params->get_num_bars() * bar_width_px, yPos);
             if (params->generateNewKeys && keyIsGenNew[key]) {
                 g.drawDashedLine(line, dashLengths, numDashLengths, adaptedHorNarrow);
@@ -160,8 +161,9 @@ void MainPanel::paint(juce::Graphics &g) {
         (playHeadTime * bar_width_px <= clipX + clipWidth)) {
         // g.setColour(params->theme.brighter);
         g.setColour(params->theme.activated);
-        g.drawLine(playHeadTime * bar_width_px, float(clipY), playHeadTime * bar_width_px,
-                   float(clipY + clipHeight), Theme::narrower);
+        g.drawLine(playHeadTime * bar_width_px, static_cast<float>(clipY),
+                   playHeadTime * bar_width_px, static_cast<float>(clipY + clipHeight),
+                   Theme::narrower);
     }
 
     auto clipFloat = clip.toFloat();
@@ -188,8 +190,9 @@ void MainPanel::paint(juce::Graphics &g) {
                 break;
             }
         }
-        g.drawLine(auditionTime * bar_width_px, float(clipY), auditionTime * bar_width_px,
-                   float(clipY + clipHeight), Theme::narrower);
+        g.drawLine(auditionTime * bar_width_px, static_cast<float>(clipY),
+                   auditionTime * bar_width_px, static_cast<float>(clipY + clipHeight),
+                   Theme::narrower);
     }
 
     // notes
@@ -319,7 +322,7 @@ void MainPanel::paint(juce::Graphics &g) {
         g.fillRect(selectionRect);
 
         g.setColour(params->theme.brightest);
-        g.drawRect(selectionRect, int(Theme::narrow));
+        g.drawRect(selectionRect, static_cast<int>(Theme::narrow));
     }
 
     // pitch curve
@@ -384,11 +387,10 @@ void MainPanel::paint(juce::Graphics &g) {
     for (const auto ratioMark : params->ratiosMarks) {
         float ratioMarkXPos = ratioMark.time * bar_width_px;
 
-        float lowerKeyY = (params->num_octaves - float(ratioMark.getLowerKeyTotalCents()) / 1200) *
-                          octave_height_px;
+        float lowerKeyY =
+            (params->num_octaves - ratioMark.getLowerKeyTotalCents() / 1200.0f) * octave_height_px;
         float higherKeyY =
-            (params->num_octaves - float(ratioMark.getHigherKeyTotalCents()) / 1200) *
-            octave_height_px;
+            (params->num_octaves - ratioMark.getHigherKeyTotalCents() / 1200.0f) * octave_height_px;
 
         int lowerNoteInd = ratioMark.getLowerNoteIndex();
         if (lowerNoteInd != -1) {
@@ -688,11 +690,9 @@ bool MainPanel::pointOnRatioMark(const RatioMark &ratioMark, const juce::Point<i
     if ((ratioMarkXPos - ratioMarkHalfWidth < point.getX()) &&
         (point.getX() < ratioMarkXPos + ratioMarkHalfWidth)) {
         float ratioMarkHighYPos =
-            (params->num_octaves - float(ratioMark.getHigherKeyTotalCents()) / 1200) *
-            octave_height_px;
+            (params->num_octaves - ratioMark.getHigherKeyTotalCents() / 1200.0f) * octave_height_px;
         float ratioMarkLowYPos =
-            (params->num_octaves - float(ratioMark.getLowerKeyTotalCents()) / 1200) *
-            octave_height_px;
+            (params->num_octaves - ratioMark.getLowerKeyTotalCents() / 1200.0f) * octave_height_px;
         float ratioMarkHeight = ratioMarkLowYPos - ratioMarkHighYPos;
         if (ratioMarkHeight < ratioMarkMinHeight) {
             ratioMarkLowYPos += (ratioMarkMinHeight - ratioMarkHeight) / 2.0f;
@@ -706,9 +706,9 @@ bool MainPanel::pointOnRatioMark(const RatioMark &ratioMark, const juce::Point<i
 bool MainPanel::lineIntersectsRatioMark(const RatioMark &ratioMark, const juce::Line<int> &line) {
     float ratioMarkXPos = ratioMark.time * bar_width_px;
     float ratioMarkHighYPos =
-        (params->num_octaves - float(ratioMark.getHigherKeyTotalCents()) / 1200) * octave_height_px;
+        (params->num_octaves - ratioMark.getHigherKeyTotalCents() / 1200.0f) * octave_height_px;
     float ratioMarkLowYPos =
-        (params->num_octaves - float(ratioMark.getLowerKeyTotalCents()) / 1200) * octave_height_px;
+        (params->num_octaves - ratioMark.getLowerKeyTotalCents() / 1200.0f) * octave_height_px;
     float ratioMarkHeight = ratioMarkLowYPos - ratioMarkHighYPos;
     if (ratioMarkHeight < ratioMarkMinHeight) {
         ratioMarkLowYPos += (ratioMarkMinHeight - ratioMarkHeight) / 2.0f;
@@ -730,7 +730,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
 
     if (event.mods.isMiddleButtonDown()) {
         if (!params->editRatiosMarks) {
-            for (int i = int(notes.size()) - 1; i >= 0; --i) {
+            for (int i = static_cast<int>(notes.size() - 1); i >= 0; --i) {
                 juce::Path notePath = getNotePath(notes[i]);
                 if (notePath.contains(point.toFloat())) {
                     // Show velocity panel
@@ -772,7 +772,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             return;
         }
 
-        for (int i = int(notes.size()) - 1; i >= 0; --i) {
+        for (int i = static_cast<int>(notes.size() - 1); i >= 0; --i) {
             juce::Path notePath = getNotePath(notes[i]);
             if (notePath.contains(point.toFloat())) {
                 float noteX2 = (notes[i].time + notes[i].duration) * bar_width_px;
@@ -990,7 +990,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         selectLastPoint = point;
         juce::Point<float> pointFloat = point.toFloat();
         // we start iterating with the newest notes
-        int numNotes = (int)notes.size();
+        int numNotes = static_cast<int>(notes.size());
         for (int i = numNotes - 1; i >= 0; --i) {
             juce::Path notePath = getNotePath(notes[i]);
             if (notePath.contains(pointFloat)) {
@@ -1197,7 +1197,8 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                     float initialRMTime = initialRatioMarkTimesForDrag[rmi];
                     rm.time = timeStretchSelectionLeft +
                               (initialRMTime - timeStretchSelectionLeft) * scale;
-                    rm.time = juce::jlimit(0.0f, (float)params->get_num_bars(), rm.time);
+                    rm.time =
+                        juce::jlimit(0.0f, static_cast<float>(params->get_num_bars()), rm.time);
                 }
             }
 
@@ -1220,7 +1221,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         float dtime = cursorTime - dragPivotTime;
 
         // Time should be in range [0, num bars]
-        float time = juce::jlimit(0.0f, (float)params->get_num_bars(),
+        float time = juce::jlimit(0.0f, static_cast<float>(params->get_num_bars()),
                                   initialRatioMarkTimesForDrag[0] + dtime);
 
         // If timeSnap: time should be divisble by dt
@@ -1760,7 +1761,7 @@ void MainPanel::generateNewKeys() {
 
         // Get rid of new possible keys that are too close to existing ones
         for (auto it = keys.begin(); it != keys.end(); ++it) {
-            int ind = int(ceil((*it - params->minDistExistNewKeys + 1) / 10.0));
+            int ind = static_cast<int>(ceil((*it - params->minDistExistNewKeys + 1) / 10.0));
             int endInd = (*it + params->minDistExistNewKeys - 1) / 10;
             while (ind <= endInd) {
                 if (ind < 0) {
@@ -1788,7 +1789,8 @@ void MainPanel::generateNewKeys() {
             }
             int newGenKey = 10 * bestInd;
             // Get rid of new possible keys that are too close to this one
-            int ind = int(ceil((newGenKey - params->minDistBetweenNewKeys + 1) / 10.0));
+            int ind =
+                static_cast<int>(ceil((newGenKey - params->minDistBetweenNewKeys + 1) / 10.0));
             int endInd = (newGenKey + params->minDistBetweenNewKeys - 1) / 10;
             while (ind <= endInd) {
                 if (ind < 0) {
@@ -2009,8 +2011,8 @@ void MainPanel::timeCorrectRatioMarksBasedOnSelNotes(float dtime) {
         const int hni = ratioMark.getHigherNoteIndex();
         if (((lni == -1) || (notes[lni].isSelected)) && ((hni == -1) || (notes[hni].isSelected)) &&
             ((lni != -1) || (hni != -1))) {
-            ratioMark.time =
-                juce::jlimit(0.0f, (float)params->get_num_bars(), ratioMark.time + dtime);
+            ratioMark.time = juce::jlimit(0.0f, static_cast<float>(params->get_num_bars()),
+                                          ratioMark.time + dtime);
         }
     }
 }
@@ -2034,7 +2036,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
 
     // delete selected notes
     if (key == juce::KeyPress::deleteKey) {
-        int numNotes = int(notes.size());
+        int numNotes = static_cast<int>(notes.size());
         for (int i = 0; i < numNotes; ++i) {
             if (notes[i].isSelected) {
                 deleteNote(i);
@@ -2483,7 +2485,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     auto keyChar = juce::CharacterFunctions::toLowerCase(key.getTextCharacter());
     int keyInd = keysPlaySet.indexOfChar(keyChar);
     if (keyInd != -1) {
-        int numKeys = int(keys.size());
+        int numKeys = static_cast<int>(keys.size());
         if ((numKeys != 0) && !wasKeyDown.contains(keyChar)) {
             int octave = params->start_octave + keyInd / numKeys;
             int cents = *(std::next(keys.begin(), keyInd % numKeys));
@@ -2572,8 +2574,9 @@ int MainPanel::getCentsFromMessage() {
             int slashPos = text.indexOfChar(juce::juce_wchar('/'));
             int num = text.substring(0, slashPos).getIntValue();
             int den = text.substring(slashPos + 1).getIntValue();
-            return ((den != 0) && (num >= den)) ? juce::roundToInt(1200 * log2(float(num) / den))
-                                                : -1;
+            return ((den != 0) && (num >= den))
+                       ? juce::roundToInt(1200 * log2(static_cast<float>(num) / den))
+                       : -1;
         }
     }
 
@@ -2593,8 +2596,8 @@ void MainPanel::updateLayout() {
     int newHeight = juce::roundToInt(params->num_octaves * octave_height_px);
 
     // Adjust points on main panel
-    float horScale = (float)newWidth / currWidth;
-    float vertScale = (float)newHeight / currHeight;
+    float horScale = static_cast<float>(newWidth) / currWidth;
+    float vertScale = static_cast<float>(newHeight) / currHeight;
 
     lastDragPoint.setX(juce::roundToInt(lastDragPoint.getX() * horScale));
     lastDragPoint.setY(juce::roundToInt(lastDragPoint.getY() * vertScale));
@@ -2668,7 +2671,7 @@ std::tuple<int, int> MainPanel::centsToKeysCents(int octave, int cents) {
 int MainPanel::getKeyIndex(int cents) {
     auto it = keys.find(cents);
     if (it != keys.end()) {
-        return int(std::distance(keys.begin(), it));
+        return static_cast<int>(std::distance(keys.begin(), it));
     }
     return -1;
 }

@@ -35,7 +35,7 @@ class VelocityPanel : public juce::Component {
      * @brief Get the current velocity value
      * @return Velocity value (0-1)
      */
-    float getVelocity() { return float(velocitySlider->getValue()); }
+    float getVelocity() { return static_cast<float>(velocitySlider->getValue()); }
 
     void paint(juce::Graphics &g) override {
         g.setColour(theme->bright);

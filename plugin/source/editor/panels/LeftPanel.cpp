@@ -19,9 +19,10 @@ void LeftPanel::paint(juce::Graphics &g) {
     float rectHeight = adaptKeyHeight(20.0f);
     g.setColour(params->theme.brighter);
     for (int totalCents : currPlayingKeysTotalCents) {
-        float yPos = (params->num_octaves - float(totalCents) / 1200) * octave_height_px;
+        float yPos = (params->num_octaves - totalCents / 1200.0f) * octave_height_px;
         g.fillRoundedRectangle(juce::Rectangle<float>(0.0f, yPos - rectHeight / 2,
-                                                      float(leftPanel_width_px), rectHeight),
+                                                      static_cast<float>(leftPanel_width_px),
+                                                      rectHeight),
                                4.0f);
     }
 
@@ -30,9 +31,9 @@ void LeftPanel::paint(juce::Graphics &g) {
     float dashLengths[] = {lineThickness * 2, lineThickness};
     g.setColour(params->theme.brighter);
     for (int totalCents : currPlayingBentKeysTotalCents) {
-        float yPos = (params->num_octaves - float(totalCents) / 1200) * octave_height_px;
-        g.drawDashedLine(juce::Line<float>(0.0f, yPos, float(leftPanel_width_px), yPos),
-                         dashLengths, 2, lineThickness);
+        float yPos = (params->num_octaves - totalCents / 1200.0f) * octave_height_px;
+        g.drawDashedLine(juce::Line<float>(0.0f, yPos, leftPanel_width_px, yPos), dashLengths, 2.0f,
+                         lineThickness);
     }
 
     // octaves
@@ -40,8 +41,8 @@ void LeftPanel::paint(juce::Graphics &g) {
     for (int i = 0; i <= params->num_octaves; ++i) {
         float yPos = i * octave_height_px;
         g.drawLine(0, yPos, 40, yPos, adaptSize(Theme::wide));
-        g.drawLine((float)leftPanel_width_px - 20, yPos, (float)leftPanel_width_px, yPos,
-                   adaptSize(Theme::wide));
+        g.drawLine(static_cast<float>(leftPanel_width_px - 20), yPos,
+                   static_cast<float>(leftPanel_width_px), yPos, adaptSize(Theme::wide));
     }
 
     // keys
@@ -50,10 +51,10 @@ void LeftPanel::paint(juce::Graphics &g) {
     for (int i = 0; i < params->num_octaves; ++i) {
         int j = 0;
         for (const int &key : keys) {
-            float yPos = (i + 1.0f - float(key) / 1200) * octave_height_px;
+            float yPos = (i + 1.0f - key / 1200.0f) * octave_height_px;
             g.setColour(params->theme.darkest);
-            g.drawLine(leftPanel_width_px - 20.0f, yPos, float(leftPanel_width_px), yPos,
-                       adaptSize(Theme::narrow));
+            g.drawLine(leftPanel_width_px - 20.0f, yPos, static_cast<float>(leftPanel_width_px),
+                       yPos, adaptSize(Theme::narrow));
             if (params->showKeysHarmonicity) {
                 const int totalCents = key + 1200 * (params->num_octaves - i - 1);
                 if (keysHarmonicity.contains(totalCents)) {

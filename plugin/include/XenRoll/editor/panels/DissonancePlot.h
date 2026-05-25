@@ -128,7 +128,8 @@ class DissonancePlot : public juce::Component {
         // Axis labels
         g.setFont(Theme::medium);
         g.drawText("Interval (cents)", 0, getHeight() - juce::roundToInt(Theme::medium) - 5,
-                   getWidth(), juce::roundToInt(Theme::medium), juce::Justification::centred, false);
+                   getWidth(), juce::roundToInt(Theme::medium), juce::Justification::centred,
+                   false);
     }
 
     // is triggered only when loading = false
@@ -159,7 +160,7 @@ class DissonancePlot : public juce::Component {
      * @param cents Cents value (0-1200)
      * @return X position in pixels
      */
-    float centsToX(int cents) const { return float(cents) / 1200 * plotArea.getWidth(); }
+    float centsToX(int cents) const { return cents / 1200.0f * plotArea.getWidth(); }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DissonancePlot)
 };

@@ -69,7 +69,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
     plotPartialsTotalCentsSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     plotPartialsTotalCentsSlider->onValueChange = [this, params]() {
         if (!ignoreUpdatePartials)
-            updatePartialsPlotTotalCents(int(plotPartialsTotalCentsSlider->getValue()), 3);
+            updatePartialsPlotTotalCents(static_cast<int>(plotPartialsTotalCentsSlider->getValue()),
+                                         3);
     };
     addAndMakeVisible(plotPartialsTotalCentsSlider.get());
 
@@ -238,13 +239,13 @@ DissonancePanel::DissonancePanel(Parameters *params,
                 }
 
                 outputStream.writeText("{\n", false, false, nullptr);
-                int numTones = int(allPartials.size());
+                int numTones = static_cast<int>(allPartials.size());
                 int toneInd = 0;
                 for (const auto &[totalCents, partials] : allPartials) {
                     outputStream.writeText("    {" + juce::String(totalCents) + ", {\n", false,
                                            false, nullptr);
 
-                    int numPartials = int(partials.size());
+                    int numPartials = static_cast<int>(partials.size());
                     int partialInd = 0;
                     for (const auto &[freq, amp] : partials) {
                         outputStream.writeText("        {" + juce::String(freq, 3) + ", " +
@@ -308,7 +309,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
     plotDissonanceTotalCentsSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     plotDissonanceTotalCentsSlider->onValueChange = [this, params]() {
         if (!ignoreUpdateDissonance)
-            updateDissonancePlotTotalCents(int(plotDissonanceTotalCentsSlider->getValue()), 3);
+            updateDissonancePlotTotalCents(
+                static_cast<int>(plotDissonanceTotalCentsSlider->getValue()), 3);
     };
     addAndMakeVisible(plotDissonanceTotalCentsSlider.get());
 
@@ -324,7 +326,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
     roughCompactFracSlider->setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
     roughCompactFracSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     roughCompactFracSlider->onValueChange = [this, params]() {
-        params->roughCompactFrac = float(roughCompactFracSlider->getValue());
+        params->roughCompactFrac = static_cast<float>(roughCompactFracSlider->getValue());
         this->dissonanceMeter->setAlpha(params->roughCompactFrac);
         dissonancePlot->updateDissonanceCurve();
     };
@@ -347,7 +349,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
                                          lowComponentHeight);
     dissonancePowSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     dissonancePowSlider->onValueChange = [this, params]() {
-        params->dissonancePow = float(dissonancePowSlider->getValue());
+        params->dissonancePow = static_cast<float>(dissonancePowSlider->getValue());
         this->dissonanceMeter->setBeta(params->dissonancePow);
         dissonancePlot->updateDissonanceCurve();
     };
@@ -404,7 +406,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
                                        lowComponentHeight);
     dBThresholdSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     dBThresholdSlider->onValueChange = [this, params]() {
-        params->findPartialsdBThreshold.store(float(dBThresholdSlider->getValue()));
+        params->findPartialsdBThreshold.store(static_cast<float>(dBThresholdSlider->getValue()));
     };
     addAndMakeVisible(dBThresholdSlider.get());
 
@@ -452,7 +454,7 @@ DissonancePanel::~DissonancePanel() = default;
 void DissonancePanel::updateDissonancePlotTotalCents(int newTotalCents, int ind) {
     ignoreUpdateDissonance = true;
     if ((ind == 1) || (ind == 2)) {
-        plotDissonanceTotalCentsSlider->setValue(double(newTotalCents));
+        plotDissonanceTotalCentsSlider->setValue(static_cast<double>(newTotalCents));
     } else if (ind == 3) {
         plotDissonanceOctaveInput->setValue(newTotalCents / 1200);
         plotDissonanceCentsInput->setValue(newTotalCents % 1200);
@@ -466,7 +468,7 @@ void DissonancePanel::updateDissonancePlotTotalCents(int newTotalCents, int ind)
 void DissonancePanel::updatePartialsPlotTotalCents(int newTotalCents, int ind) {
     ignoreUpdatePartials = true;
     if ((ind == 1) || (ind == 2)) {
-        plotPartialsTotalCentsSlider->setValue(double(newTotalCents));
+        plotPartialsTotalCentsSlider->setValue(static_cast<double>(newTotalCents));
     } else if (ind == 3) {
         plotPartialsOctaveInput->setValue(newTotalCents / 1200);
         plotPartialsCentsInput->setValue(newTotalCents % 1200);
@@ -503,13 +505,13 @@ void DissonancePanel::resized() {
     plotPartialsInterpButton->setBounds(topLeftFirstRow.removeFromLeft(lowComponentHeight));
     topLeftFirstRow.removeFromLeft(padding);
 
-    plotPartialsOctaveLabel->setBounds(topLeftFirstRow.removeFromLeft(
-        int(getTextWidth(plotPartialsOctaveLabel->getText(), plotPartialsOctaveLabel->getFont()))));
+    plotPartialsOctaveLabel->setBounds(topLeftFirstRow.removeFromLeft(static_cast<int>(
+        getTextWidth(plotPartialsOctaveLabel->getText(), plotPartialsOctaveLabel->getFont()))));
     plotPartialsOctaveInput->setBounds(topLeftFirstRow.removeFromLeft(octaveInputWidth));
     topLeftFirstRow.removeFromLeft(padding);
 
-    plotPartialsCentsLabel->setBounds(topLeftFirstRow.removeFromLeft(
-        int(getTextWidth(plotPartialsCentsLabel->getText(), plotPartialsCentsLabel->getFont()))));
+    plotPartialsCentsLabel->setBounds(topLeftFirstRow.removeFromLeft(static_cast<int>(
+        getTextWidth(plotPartialsCentsLabel->getText(), plotPartialsCentsLabel->getFont()))));
     plotPartialsCentsInput->setBounds(topLeftFirstRow.removeFromLeft(centsInputWidth));
     topLeftFirstRow.removeFromLeft(padding);
 
@@ -542,12 +544,12 @@ void DissonancePanel::resized() {
     auto topRightFirstRow = topRightBounds.removeFromTop(lowComponentHeight);
     topRightBounds.removeFromTop(padding);
 
-    plotDissonanceOctaveLabel->setBounds(topRightFirstRow.removeFromLeft(int(
+    plotDissonanceOctaveLabel->setBounds(topRightFirstRow.removeFromLeft(static_cast<int>(
         getTextWidth(plotDissonanceOctaveLabel->getText(), plotDissonanceOctaveLabel->getFont()))));
     plotDissonanceOctaveInput->setBounds(topRightFirstRow.removeFromLeft(octaveInputWidth));
     topRightFirstRow.removeFromLeft(padding);
 
-    plotDissonanceCentsLabel->setBounds(topRightFirstRow.removeFromLeft(int(
+    plotDissonanceCentsLabel->setBounds(topRightFirstRow.removeFromLeft(static_cast<int>(
         getTextWidth(plotDissonanceCentsLabel->getText(), plotDissonanceCentsLabel->getFont()))));
     plotDissonanceCentsInput->setBounds(topRightFirstRow.removeFromLeft(centsInputWidth));
     topRightFirstRow.removeFromLeft(padding);
@@ -555,14 +557,14 @@ void DissonancePanel::resized() {
     plotDissonanceTotalCentsSlider->setBounds(topRightFirstRow);
 
     compactnessLabel->setBounds(topRightBounds.removeFromLeft(
-        int(getTextWidth(compactnessLabel->getText(), compactnessLabel->getFont()))));
+        static_cast<int>(getTextWidth(compactnessLabel->getText(), compactnessLabel->getFont()))));
     roughCompactFracSlider->setBounds(topRightBounds.removeFromLeft(roughCompactFracSliderWidth));
     roughnessLabel->setBounds(topRightBounds.removeFromLeft(
-        int(getTextWidth(roughnessLabel->getText(), roughnessLabel->getFont()))));
+        static_cast<int>(getTextWidth(roughnessLabel->getText(), roughnessLabel->getFont()))));
     topRightFirstRow.removeFromLeft(padding);
 
-    dissonancePowLabel->setBounds(topRightBounds.removeFromLeft(
-        int(getTextWidth(dissonancePowLabel->getText(), dissonancePowLabel->getFont()))));
+    dissonancePowLabel->setBounds(topRightBounds.removeFromLeft(static_cast<int>(
+        getTextWidth(dissonancePowLabel->getText(), dissonancePowLabel->getFont()))));
     dissonancePowSlider->setBounds(topRightBounds);
 
     // Bottom
@@ -576,17 +578,17 @@ void DissonancePanel::resized() {
     bottomBounds.removeFromLeft(padding);
 
     strategyLabel->setBounds(bottomBounds.removeFromLeft(
-        int(getTextWidth(strategyLabel->getText(), strategyLabel->getFont()))));
+        static_cast<int>(getTextWidth(strategyLabel->getText(), strategyLabel->getFont()))));
     strategyComboBox->setBounds(bottomBounds.removeFromLeft(strategyComboBoxWidth));
     bottomBounds.removeFromLeft(padding);
 
     fftSizeLabel->setBounds(bottomBounds.removeFromLeft(
-        int(getTextWidth(fftSizeLabel->getText(), fftSizeLabel->getFont()))));
+        static_cast<int>(getTextWidth(fftSizeLabel->getText(), fftSizeLabel->getFont()))));
     fftSizeComboBox->setBounds(bottomBounds.removeFromLeft(fftSizeComboBoxWidth));
     bottomBounds.removeFromLeft(padding);
 
     dBThresholdLabel->setBounds(bottomBounds.removeFromLeft(
-        int(getTextWidth(dBThresholdLabel->getText(), dBThresholdLabel->getFont()))));
+        static_cast<int>(getTextWidth(dBThresholdLabel->getText(), dBThresholdLabel->getFont()))));
     dBThresholdSlider->setBounds(bottomBounds);
 }
 
@@ -598,12 +600,13 @@ void DissonancePanel::paint(juce::Graphics &g) {
     float lineThickness = Theme::wider;
 
     g.setColour(params->theme.darkest);
-    g.drawLine(width / 2.0f, float(padding), width / 2.0f,
-               float(height - 2 * padding - lowComponentHeight), lineThickness);
-    g.drawLine(float(padding), height - lineThickness / 2, float(width - padding),
-               height - lineThickness / 2, lineThickness);
-    g.drawLine(float(padding), float(height - 2 * padding - lowComponentHeight),
-               float(width - padding), float(height - 2 * padding - lowComponentHeight),
-               lineThickness);
+    g.drawLine(width / 2.0f, static_cast<float>(padding), width / 2.0f,
+               static_cast<float>(height - 2 * padding - lowComponentHeight), lineThickness);
+    g.drawLine(static_cast<float>(padding), height - lineThickness / 2,
+               static_cast<float>(width - padding), height - lineThickness / 2, lineThickness);
+    g.drawLine(static_cast<float>(padding),
+               static_cast<float>(height - 2 * padding - lowComponentHeight),
+               static_cast<float>(width - padding),
+               static_cast<float>(height - 2 * padding - lowComponentHeight), lineThickness);
 }
 } // namespace audio_plugin

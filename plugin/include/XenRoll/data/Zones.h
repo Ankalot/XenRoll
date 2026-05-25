@@ -175,8 +175,8 @@ class Zones {
         } else {
             it = zonesPoints.upper_bound(point);
         }
-        size_t pos = std::distance(zonesPoints.begin(), it);
-        return int(pos);
+        int pos = static_cast<int>(std::distance(zonesPoints.begin(), it));
+        return pos;
     }
 };
 } // namespace audio_plugin

@@ -234,8 +234,8 @@ partialsVec PartialsFinder::findPartials(juce::AudioBuffer<float> buffer) {
 
     /*
     int bufferSize = buffer.getNumSamples();
-    int windowSize = juce::jmin(bufferSize, (int)std::pow(2, 15));
-    int fftSize = (int)std::pow(2, std::ceil(std::log2(bufferSize)));
+    int windowSize = juce::jmin(bufferSize, static_cast<int>(std::pow(2, 15)));
+    int fftSize = static_cast<int>(std::pow(2, std::ceil(std::log2(bufferSize))));
     fft = std::make_unique<juce::dsp::FFT>(std::log2(fftSize));
 
     std::vector<float> windowed(windowSize);

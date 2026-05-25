@@ -133,7 +133,7 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     heightCoefSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, rowHeight);
     heightCoefSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     heightCoefSlider->onDragEnd = [this, params, editor]() {
-        params->noteRectHeightCoef = float(heightCoefSlider->getValue());
+        params->noteRectHeightCoef = static_cast<float>(heightCoefSlider->getValue());
         editor->invalidateNotePathsCache();
     };
     addAndMakeVisible(heightCoefSlider.get());
