@@ -27,7 +27,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
         std::string("Plot partials for all pitches. If some pitch has no partials calculated, ") +
             "it will use the transposed partials of the closest recorded pitch");
     addAndMakeVisible(plotPartialsInterpButton.get());
-    plotPartialsInterpButton->onClick = [this, params](const juce::MouseEvent &me) {
+    plotPartialsInterpButton->onClick = [this, params](const juce::MouseEvent &) {
         params->plotPartialsInterp = !params->plotPartialsInterp;
         partialsPlot->setInterpMode(params->plotPartialsInterp);
         return true;
@@ -77,7 +77,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
         &params->theme, BinaryData::Broom_svg, BinaryData::Broom_svgSize, false, false,
         std::string("Remove partials of tone with specified octave and cents"));
     addAndMakeVisible(removePartialsButton.get());
-    removePartialsButton->onClick = [this, params](const juce::MouseEvent &me) {
+    removePartialsButton->onClick = [this, params](const juce::MouseEvent &) {
         bool removed = params->remove_partials(params->plotPartialsTotalCents);
         if (removed) {
             partialsVec partials = {};
@@ -97,7 +97,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
                                               BinaryData::Trash_svgSize, false, false,
                                               std::string("Delete partials from all tones"));
     addAndMakeVisible(trashButton.get());
-    trashButton->onClick = [this, params](const juce::MouseEvent &me) {
+    trashButton->onClick = [this, params](const juce::MouseEvent &) {
         juce::NativeMessageBox::showOkCancelBox(
             juce::AlertWindow::WarningIcon, "Delete All Partials?",
             "This will permanently remove all partials data from every tone.", this,
@@ -121,7 +121,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
                     "and 1.0 amplitude (linear)\n"
                     "totalCents = octave*1200 + cents; 4oct 900¢ = A4 note.\n"));
     addAndMakeVisible(importPartialsButton.get());
-    importPartialsButton->onClick = [this, params](const juce::MouseEvent &me) {
+    importPartialsButton->onClick = [this, params](const juce::MouseEvent &) {
         partialsFileChooser.get()->launchAsync(
             juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
             [this](const juce::FileChooser &fc) {
@@ -222,7 +222,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
         false, std::string("Export partials to a .txt file"));
     addAndMakeVisible(exportPartialsButton.get());
     params->get_tonesPartials();
-    exportPartialsButton->onClick = [this, params](const juce::MouseEvent &me) {
+    exportPartialsButton->onClick = [this, params](const juce::MouseEvent &) {
         partialsFileChooser.get()->launchAsync(
             juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
             [allPartials = params->get_tonesPartials()](const juce::FileChooser &fc) {
@@ -238,13 +238,13 @@ DissonancePanel::DissonancePanel(Parameters *params,
                 }
 
                 outputStream.writeText("{\n", false, false, nullptr);
-                int numTones = allPartials.size();
+                int numTones = int(allPartials.size());
                 int toneInd = 0;
                 for (const auto &[totalCents, partials] : allPartials) {
                     outputStream.writeText("    {" + juce::String(totalCents) + ", {\n", false,
                                            false, nullptr);
 
-                    int numPartials = partials.size();
+                    int numPartials = int(partials.size());
                     int partialInd = 0;
                     for (const auto &[freq, amp] : partials) {
                         outputStream.writeText("        {" + juce::String(freq, 3) + ", " +
@@ -324,7 +324,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
     roughCompactFracSlider->setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
     roughCompactFracSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     roughCompactFracSlider->onValueChange = [this, params]() {
-        params->roughCompactFrac = roughCompactFracSlider->getValue();
+        params->roughCompactFrac = float(roughCompactFracSlider->getValue());
         this->dissonanceMeter->setAlpha(params->roughCompactFrac);
         dissonancePlot->updateDissonanceCurve();
     };
@@ -347,7 +347,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
                                          lowComponentHeight);
     dissonancePowSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     dissonancePowSlider->onValueChange = [this, params]() {
-        params->dissonancePow = dissonancePowSlider->getValue();
+        params->dissonancePow = float(dissonancePowSlider->getValue());
         this->dissonanceMeter->setBeta(params->dissonancePow);
         dissonancePlot->updateDissonanceCurve();
     };
@@ -358,7 +358,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
                                                 BinaryData::Refresh_svgSize, false, false,
                                                 std::string("Refresh plots"));
     addAndMakeVisible(refreshButton.get());
-    refreshButton->onClick = [this, params](const juce::MouseEvent &me) {
+    refreshButton->onClick = [this, params](const juce::MouseEvent &) {
         partialsVec partials = {};
         int partialsTotalCents = 5700;
         if (!params->get_tonesPartials().empty()) {
@@ -386,7 +386,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
             "For example, if there are no partials or very few of them, then start by reducing dB "
             "threadshold.\n");
     addAndMakeVisible(switchFindPartialsModeButton.get());
-    switchFindPartialsModeButton->onClick = [this, params](const juce::MouseEvent &me) {
+    switchFindPartialsModeButton->onClick = [this, params](const juce::MouseEvent &) {
         params->findPartialsMode.store(!params->findPartialsMode.load());
         return true;
     };
@@ -404,7 +404,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
                                        lowComponentHeight);
     dBThresholdSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     dBThresholdSlider->onValueChange = [this, params]() {
-        params->findPartialsdBThreshold.store(dBThresholdSlider->getValue());
+        params->findPartialsdBThreshold.store(float(dBThresholdSlider->getValue()));
     };
     addAndMakeVisible(dBThresholdSlider.get());
 
@@ -599,10 +599,11 @@ void DissonancePanel::paint(juce::Graphics &g) {
 
     g.setColour(params->theme.darkest);
     g.drawLine(width / 2.0f, float(padding), width / 2.0f,
-               height - 2 * padding - lowComponentHeight, lineThickness);
+               float(height - 2 * padding - lowComponentHeight), lineThickness);
     g.drawLine(float(padding), height - lineThickness / 2, float(width - padding),
                height - lineThickness / 2, lineThickness);
-    g.drawLine(float(padding), height - 2 * padding - lowComponentHeight, float(width - padding),
-               height - 2 * padding - lowComponentHeight, lineThickness);
+    g.drawLine(float(padding), float(height - 2 * padding - lowComponentHeight),
+               float(width - padding), float(height - 2 * padding - lowComponentHeight),
+               lineThickness);
 }
 } // namespace audio_plugin

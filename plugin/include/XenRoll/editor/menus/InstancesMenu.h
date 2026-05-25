@@ -30,7 +30,7 @@ class InstancesMenu : public juce::Component {
     }
 
     void resized() override {
-        auto bounds = getLocalBounds().reduced(Theme::wider);
+        auto bounds = getLocalBounds().reduced(juce::roundToInt(Theme::wider));
         titleLabel->setBounds(bounds.removeFromTop(titleHeight));
         viewport.setBounds(bounds.withTrimmedRight(viewportMargin)
                                .withTrimmedBottom(viewportMargin)

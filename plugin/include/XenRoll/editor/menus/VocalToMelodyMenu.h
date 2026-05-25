@@ -21,10 +21,11 @@ class VocalToMelodyMenu : public juce::Component {
         g.setColour(params->theme.darkest);
         g.drawRect(getLocalBounds().toFloat(), Theme::wider);
         // Draw separators
-        g.drawLine(0, vertPadding + rowHeight + buttonHeight + 2 * rowSkip, width,
-                   vertPadding + rowHeight + buttonHeight + 2 * rowSkip, Theme::wider);
-        g.drawLine(0, vertPadding + 8 * rowHeight + buttonHeight + 8 * rowSkip, width,
-                   vertPadding + 8 * rowHeight + buttonHeight + 8 * rowSkip, Theme::wider);
+        g.drawLine(0.0f, float(vertPadding + rowHeight + buttonHeight + 2 * rowSkip), float(width),
+                   float(vertPadding + rowHeight + buttonHeight + 2 * rowSkip), Theme::wider);
+        g.drawLine(0.0f, float(vertPadding + 8 * rowHeight + buttonHeight + 8 * rowSkip),
+                   float(width), float(vertPadding + 8 * rowHeight + buttonHeight + 8 * rowSkip),
+                   Theme::wider);
     }
 
     void visibilityChanged() override {

@@ -36,7 +36,7 @@ class DissonancePlot : public juce::Component {
         }
     }
 
-    void resized() override { plotArea = getLocalBounds().reduced(margin, margin); }
+    void resized() override { plotArea = getLocalBounds().reduced(margin, margin).toFloat(); }
 
     /**
      * @brief Update the total cents value from parameters
@@ -85,7 +85,7 @@ class DissonancePlot : public juce::Component {
     std::atomic<int> totalCents = 0;
     std::array<float, 401> dissonanceCurve{0.0f}; ///< i-th index = i*3 cents
     std::mutex mtx;
-    juce::Rectangle<int> plotArea;
+    juce::Rectangle<float> plotArea;
     const int margin = 50;
 
     std::atomic<bool> loading{false};
@@ -95,7 +95,7 @@ class DissonancePlot : public juce::Component {
     void drawAxes(juce::Graphics &g) {
         g.setColour(params->theme.darkest);
 
-        g.drawRect(plotArea, 1);
+        g.drawRect(plotArea, 1.0f);
 
         // Draw cents ticks
         g.setFont(Theme::small_);
@@ -104,7 +104,8 @@ class DissonancePlot : public juce::Component {
             g.drawLine(xPos, plotArea.getY(), xPos, plotArea.getBottom(), 1.0f);
 
             // Label
-            g.drawText(juce::String(cents), xPos - 20, plotArea.getBottom() + 2, 40, 15,
+            g.drawText(juce::String(cents), juce::roundToInt(xPos) - 20,
+                       juce::roundToInt(plotArea.getBottom()) + 2, 40, 15,
                        juce::Justification::centred, false);
         }
 
@@ -112,22 +113,22 @@ class DissonancePlot : public juce::Component {
         float roughTicks[] = {-1.0f, -0.8f, -0.6f, -0.4f, -0.2f, 0.0f,
                               0.2f,  0.4f,  0.6f,  0.8f,  1.0f};
         for (auto rough : roughTicks) {
-            float yPos = plotArea.getBottom() - (rough + 1.0f) / 2 * plotArea.getHeight();
+            float yPos = plotArea.getBottom() - (rough + 1.0f) / 2.0f * plotArea.getHeight();
             g.drawLine(plotArea.getX(), yPos, plotArea.getRight(), yPos, 0.5f);
 
-            g.drawText(juce::String(rough, 2), 0, yPos - 8, 50, 15, juce::Justification::right,
-                       false);
+            g.drawText(juce::String(rough, 2), 0, juce::roundToInt(yPos) - 8, 50, 15,
+                       juce::Justification::right, false);
         }
 
         // Plot label
         g.setFont(Theme::big);
-        g.drawText("Dissonance", 0, 15, getWidth(), Theme::big, juce::Justification::centred,
-                   false);
+        g.drawText("Dissonance", 0, 15, getWidth(), juce::roundToInt(Theme::big),
+                   juce::Justification::centred, false);
 
         // Axis labels
         g.setFont(Theme::medium);
-        g.drawText("Interval (cents)", 0, getHeight() - Theme::medium - 5, getWidth(),
-                   Theme::medium, juce::Justification::centred, false);
+        g.drawText("Interval (cents)", 0, getHeight() - juce::roundToInt(Theme::medium) - 5,
+                   getWidth(), juce::roundToInt(Theme::medium), juce::Justification::centred, false);
     }
 
     // is triggered only when loading = false

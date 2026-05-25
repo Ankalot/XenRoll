@@ -18,7 +18,7 @@ class PartialsPlot : public juce::Component {
         drawPartials(g);
     }
 
-    void resized() override { plotArea = getLocalBounds().reduced(margin, margin); }
+    void resized() override { plotArea = getLocalBounds().reduced(margin, margin).toFloat(); }
 
     void setInterpMode(bool newInterpolate) {
         interpolate = newInterpolate;
@@ -51,7 +51,7 @@ class PartialsPlot : public juce::Component {
     int totalCentsRef = -1; ///< -1 value is for no ref
     bool interpolate;       ///< interpolate or not partials when tone not found
     float maxAmp = 1.0f;
-    juce::Rectangle<int> plotArea;
+    juce::Rectangle<float> plotArea;
     const int margin = 50;
     float minFreq = 20.0f;
     float maxFreq = 20000.0f;
@@ -88,7 +88,7 @@ class PartialsPlot : public juce::Component {
             if (interpolate) {
                 // Used tranposed partials
                 int dCents = totalCents - totalCentsRef;
-                float scaleFactor = std::pow(2, dCents / 1200.0);
+                float scaleFactor = std::pow(2.0f, dCents / 1200.0f);
                 for (auto &[freq, amp] : partials) {
                     freq *= scaleFactor;
                 }
@@ -125,7 +125,7 @@ class PartialsPlot : public juce::Component {
     void drawAxes(juce::Graphics &g) {
         g.setColour(params->theme.darkest);
 
-        g.drawRect(plotArea, 1);
+        g.drawRect(plotArea, 1.0f);
 
         const int numFreqTicks = 10;
         std::vector<float> freqTicks(numFreqTicks);
@@ -153,7 +153,8 @@ class PartialsPlot : public juce::Component {
                 label = juce::String(freq);
             }
 
-            g.drawText(label, xPos - 20, plotArea.getBottom() + 2, 40, 15,
+            g.drawText(label, juce::roundToInt(xPos) - 20,
+                       juce::roundToInt(plotArea.getBottom()) + 2, 40, 15,
                        juce::Justification::centred, false);
         }
 
@@ -165,15 +166,16 @@ class PartialsPlot : public juce::Component {
             float yPos = plotArea.getBottom() - amp / maxAmp * plotArea.getHeight();
             g.drawLine(plotArea.getX(), yPos, plotArea.getRight(), yPos, 0.5f);
 
-            g.drawText(juce::String(amp, 2), 0, yPos - 8, 50, 15, juce::Justification::right,
-                       false);
+            g.drawText(juce::String(amp, 2), 0, juce::roundToInt(yPos) - 8, 50, 15,
+                       juce::Justification::right, false);
         }
 
         // Axis labels
         g.setFont(Theme::medium);
 
-        g.drawText("Frequency (Hz)", 0, getHeight() - Theme::medium - 5, getWidth(), Theme::medium,
-                   juce::Justification::centred, false);
+        g.drawText("Frequency (Hz)", 0, getHeight() - juce::roundToInt(Theme::medium) - 5,
+                   getWidth(), juce::roundToInt(Theme::medium), juce::Justification::centred,
+                   false);
     }
 
     void drawPartials(juce::Graphics &g) {
@@ -189,7 +191,8 @@ class PartialsPlot : public juce::Component {
         }
         plotLabel += " | Num: " + juce::String(partials.size());
 
-        g.drawText(plotLabel, 0, 15, getWidth(), Theme::big, juce::Justification::centred, false);
+        g.drawText(plotLabel, 0, 15, getWidth(), juce::roundToInt(Theme::big),
+                   juce::Justification::centred, false);
 
         // Partials
         for (const auto &[freq, amp] : partials) {

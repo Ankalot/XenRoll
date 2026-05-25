@@ -7,9 +7,9 @@ namespace audio_plugin {
 void RatioMark::calculateRatioAndError() {
     // just in case there are bugs, it's better to have an abs here
     int dcents = std::abs(higherKeyTotalCents - lowerKeyTotalCents);
-    float ratio = std::pow(2.0, dcents / 1200.0);
+    float ratio = std::pow(2.0f, dcents / 1200.0f);
 
-    float bestError = 1e6;
+    float bestError = 1e6f;
     int bestNum = 1;
     int bestDen = 1;
 
@@ -20,7 +20,7 @@ void RatioMark::calculateRatioAndError() {
 
         if (n >= 1) {
             float actualRatio = static_cast<float>(n) / d;
-            float error = std::log2(actualRatio / ratio) * 1200.0;
+            float error = std::log2(actualRatio / ratio) * 1200.0f;
 
             if (std::abs(error) < std::abs(bestError)) {
                 bestError = error;
