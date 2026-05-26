@@ -621,38 +621,112 @@ int python_mod(int a, int b) {
     return result >= 0 ? result : result + std::abs(b);
 }
 
+int MainPanel::getMaxCentsUpForSelNotes() const {
+    int maxCentsUp = std::numeric_limits<int>::max();
+    for (const Note &note : notes) {
+        if (note.isSelected) {
+            // taking into account note bend!
+            int totalCentsMax = juce::jmax(note.octave * 1200 + note.cents,
+                                           note.octave * 1200 + note.cents + note.bend);
+            maxCentsUp = juce::jmin(maxCentsUp, params->num_octaves * 1200 - 1 - totalCentsMax);
+        }
+    }
+    return maxCentsUp;
+}
+
+int MainPanel::getMaxCentsDownForSelNotes() const {
+    int maxCentsDown = std::numeric_limits<int>::min();
+    for (const Note &note : notes) {
+        if (note.isSelected) {
+            // taking into account note bend!
+            int totalCentsMin = juce::jmin(note.octave * 1200 + note.cents,
+                                           note.octave * 1200 + note.cents + note.bend);
+            maxCentsDown = juce::jmax(maxCentsDown, -totalCentsMin);
+        }
+    }
+    return maxCentsDown;
+}
+
+std::pair<int, int> MainPanel::keyUp(int octave, int cents) const {
+    jassert(!keys.empty());
+    auto it = keys.upper_bound(cents);
+    if (it != keys.end()) {
+        return std::make_pair(octave, *it);
+    } else {
+        return std::make_pair(octave + 1, *keys.begin());
+    }
+}
+
+std::pair<int, int> MainPanel::keyDown(int octave, int cents) const {
+    jassert(!keys.empty());
+    auto it = keys.lower_bound(cents);
+    if (it != keys.begin()) {
+        --it;
+        return std::make_pair(octave, *it);
+    } else {
+        return std::make_pair(octave - 1, *keys.rbegin());
+    }
+}
+
 void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
                                const juce::MouseWheelDetails &wheel) {
     if (event.mods.isAltDown()) {
+        bool bended = false;
         if (event.mods.isCtrlDown()) {
+            // Bending mode: snap to keys
             if (keys.size() == 0)
                 return;
+            int fictOct, fictCents;
             if (wheel.deltaY > 0) {
+                // No selected note should pop out on top of the panel
                 for (Note &note : notes) {
                     if (note.isSelected) {
-                        int noteEndKey = python_mod(note.cents + note.bend, 1200);
-                        auto it = keys.upper_bound(noteEndKey);
-                        if (it != keys.end()) {
-                            note.bend += (*it - noteEndKey);
-                        } else {
-                            note.bend += 1200 + *keys.begin() - noteEndKey;
+                        const int noteEndKey = python_mod(note.cents + note.bend, 1200);
+                        std::tie(fictOct, fictCents) = keyUp(0, noteEndKey);
+                        const int newNoteBend =
+                            note.bend + (fictOct * 1200 + fictCents) - (noteEndKey);
+                        const int totalCentsMax =
+                            juce::jmax(note.octave * 1200 + note.cents,
+                                       note.octave * 1200 + note.cents + newNoteBend);
+                        if (totalCentsMax >= (params->num_octaves * 1200)) {
+                            return;
                         }
+                    }
+                }
+                // Apply changes
+                for (Note &note : notes) {
+                    if (note.isSelected) {
+                        const int noteEndKey = python_mod(note.cents + note.bend, 1200);
+                        std::tie(fictOct, fictCents) = keyUp(0, noteEndKey);
+                        note.bend += (fictOct * 1200 + fictCents) - (noteEndKey);
                     }
                 }
             } else {
+                // No selected note should pop out on bot of the panel
                 for (Note &note : notes) {
                     if (note.isSelected) {
-                        int noteEndKey = python_mod(note.cents + note.bend, 1200);
-                        auto it = keys.lower_bound(noteEndKey);
-                        if (it != keys.begin()) {
-                            --it;
-                            note.bend -= (noteEndKey - *it);
-                        } else {
-                            note.bend -= 1200 + noteEndKey - *keys.rbegin();
+                        const int noteEndKey = python_mod(note.cents + note.bend, 1200);
+                        std::tie(fictOct, fictCents) = keyDown(0, noteEndKey);
+                        const int newNoteBend =
+                            note.bend + (fictOct * 1200 + fictCents) - (noteEndKey);
+                        const int totalCentsMin =
+                            juce::jmin(note.octave * 1200 + note.cents,
+                                       note.octave * 1200 + note.cents + newNoteBend);
+                        if (totalCentsMin < 0) {
+                            return;
                         }
                     }
                 }
+                // Apply changes
+                for (Note &note : notes) {
+                    if (note.isSelected) {
+                        const int noteEndKey = python_mod(note.cents + note.bend, 1200);
+                        std::tie(fictOct, fictCents) = keyDown(0, noteEndKey);
+                        note.bend += (fictOct * 1200 + fictCents) - (noteEndKey);
+                    }
+                }
             }
+            bended = true;
             saveState();
         } else {
             wasBending = true;
@@ -660,14 +734,28 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
             if (event.mods.isShiftDown()) {
                 multiplier = 10;
             }
-            for (Note &note : notes) {
-                if (note.isSelected) {
-                    note.bend += multiplier * (wheel.deltaY > 0 ? 1 : -1);
+            int dbend = multiplier * (wheel.deltaY > 0 ? 1 : -1);
+            // dbend is limited: no selected note should pop out of the panel
+            if (dbend > 0) {
+                dbend = juce::jmin(dbend, getMaxCentsUpForSelNotes());
+            } else {
+                dbend = juce::jmax(dbend, getMaxCentsDownForSelNotes());
+            }
+            if (dbend != 0) {
+                // Apply changes
+                for (Note &note : notes) {
+                    if (note.isSelected) {
+                        note.bend += dbend;
+                    }
                 }
+                bended = true;
+                wasBending = true;
             }
         }
-        editor->updateNotes(notes);
-        repaint();
+        if (bended) {
+            editor->updateNotes(notes);
+            repaint();
+        }
         return;
     }
 
@@ -1043,7 +1131,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
 
 template <typename T> int sgn(T val) { return (T(0) < val) - (val < T(0)); }
 
-std::pair<int, int> MainPanel::findNearestKey(int cents, int octave) {
+std::pair<int, int> MainPanel::findNearestKey(int octave, int cents) {
     int minDist = 10000;
     int nearestCents;
     int nearestOctave = octave;
@@ -1060,7 +1148,7 @@ std::pair<int, int> MainPanel::findNearestKey(int cents, int octave) {
         nearestOctave -= 1;
         nearestCents = *keys.rbegin();
     }
-    return std::make_pair(nearestCents, nearestOctave);
+    return std::make_pair(nearestOctave, nearestCents);
 }
 
 void MainPanel::mouseDrag(const juce::MouseEvent &event) {
@@ -1297,8 +1385,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
 
         // Horizontal movement shouldn't make any selected note's time < 0 or
         //      (time + duration) > num bars
-        // Vertical movement shouldn't make any selected note's totalCents < 0 or
-        //      totalCents > num_octaves*1200 - 1
+        // Vertical movement shouldn't make any selected note go beyond borders
         size_t idx = 0;
         for (int i = 0; i < notes.size(); ++i) {
             if (notes[i].isSelected) {
@@ -1307,8 +1394,11 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                 int initialTotalCents = initialTotalCentsForDrag[idx];
                 dtime = juce::jmax(dtime, -initialTime);
                 dtime = juce::jmin(dtime, params->get_num_bars() - initialTime - duration);
-                dcents = juce::jmax(dcents, -initialTotalCents);
-                dcents = juce::jmin(dcents, params->num_octaves * 1200 - 1 - initialTotalCents);
+                dcents = juce::jmax(
+                    dcents, -juce::jmin(initialTotalCents, initialTotalCents + notes[i].bend));
+                dcents = juce::jmin(
+                    dcents, params->num_octaves * 1200 - 1 -
+                                juce::jmax(initialTotalCents, initialTotalCents + notes[i].bend));
                 idx++;
             }
         }
@@ -1320,7 +1410,6 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
             for (int i = 0; i < notes.size(); ++i) {
                 if (notes[i].isSelected) {
                     float newTime = initialStateForDrag[idx].first + dtime;
-                    ;
                     notes[i].time = newTime;
                     idx++;
                 }
@@ -1338,17 +1427,22 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                     int newTotalCents = initialTotalCents + dcents;
                     int newOctave = newTotalCents / 1200;
                     int newCents = newTotalCents - newOctave * 1200;
-                    std::tie(newCents, newOctave) = findNearestKey(newCents, newOctave);
+                    std::tie(newOctave, newCents) = findNearestKey(newOctave, newCents);
                     newTotalCents = newOctave * 1200 + newCents;
                     dcents = newTotalCents - initialTotalCents;
-                    if ((dcents != prevDcents) && (newOctave < params->num_octaves) &&
-                        (newOctave >= 0)) {
-                        auto it = std::find_if(notes.begin(), notes.end(),
-                                               [](const auto &note) { return note.isSelected; });
-                        it->octave = newOctave;
-                        it->cents = newCents;
 
-                        changedPitch = true;
+                    auto it = std::find_if(notes.begin(), notes.end(),
+                                           [](const Note &note) { return note.isSelected; });
+                    if (it != notes.end()) {
+                        int newTotalCentsWithBend = newTotalCents + it->bend;
+                        if ((dcents != prevDcents) &&
+                            (newTotalCentsWithBend < params->num_octaves * 1200) &&
+                            (newTotalCentsWithBend >= 0)) {
+                            it->octave = newOctave;
+                            it->cents = newCents;
+
+                            changedPitch = true;
+                        }
                     }
                 }
             } else {
@@ -1533,11 +1627,11 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
             int startKeyOctave, startKeyCents, lastKeyOctave, lastKeyCents;
 
             std::tie(startKeyOctave, startKeyCents) = pointToOctaveCents(ratioMarkStartPoint);
-            std::tie(startKeyCents, startKeyOctave) = findNearestKey(startKeyCents, startKeyOctave);
+            std::tie(startKeyOctave, startKeyCents) = findNearestKey(startKeyOctave, startKeyCents);
             int startKeyTotalCents = startKeyOctave * 1200 + startKeyCents;
 
             std::tie(lastKeyOctave, lastKeyCents) = pointToOctaveCents(ratioMarkLastPoint);
-            std::tie(lastKeyCents, lastKeyOctave) = findNearestKey(lastKeyCents, lastKeyOctave);
+            std::tie(lastKeyOctave, lastKeyCents) = findNearestKey(lastKeyOctave, lastKeyCents);
             int lastKeyTotalCents = lastKeyOctave * 1200 + lastKeyCents;
 
             if (startKeyTotalCents != lastKeyTotalCents) {
@@ -2175,9 +2269,20 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         int cents = getCentsFromMessage();
         if (cents != -1) {
             cents = cents % 1200;
-            for (int i = 0; i < notes.size(); ++i) {
-                if (notes[i].isSelected) {
-                    notes[i].cents = cents;
+            for (Note &note : notes) {
+                if (note.isSelected) {
+                    note.cents = cents;
+                    if (note.bend != 0) {
+                        // Change note bend if needed (so note doesn't pop out of panel)
+                        const int downSpaceCents = note.octave * 1200 + note.cents + note.bend;
+                        if (downSpaceCents < 0) {
+                            note.bend -= downSpaceCents;
+                        }
+                        const int upSpaceCents = params->num_octaves * 1200 - 1 - downSpaceCents;
+                        if (upSpaceCents < 0) {
+                            note.bend += upSpaceCents;
+                        }
+                    }
                 }
             }
             pitchCorrectRatioMarksBasedOnSelNotes();
@@ -2189,18 +2294,21 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         return true;
     }
 
-    // increase the pitch of selected notes by cents
-    if (key == juce::KeyPress(juce::KeyPress::returnKey, juce::ModifierKeys::shiftModifier, 0)) {
+    // Raising/lowering selected notes by cents from input (Shift/Ctrl+Return)
+    if ((key == juce::KeyPress(juce::KeyPress::returnKey, juce::ModifierKeys::shiftModifier, 0)) ||
+        (key == juce::KeyPress(juce::KeyPress::returnKey, juce::ModifierKeys::ctrlModifier, 0))) {
         int dcents = getCentsFromMessage();
         if (dcents != -1) {
-            // dcents is limited: no selected note should have
-            //                    totalCents >= params->num_octaves * 1200
-            for (const Note &note : notes) {
-                if (note.isSelected) {
-                    int totalCents = note.octave * 1200 + note.cents;
-                    dcents = juce::jmin(dcents, params->num_octaves * 1200 - 1 - totalCents);
-                }
-            }
+            const int direction = key.getModifiers().isShiftDown() ? 1 : -1;
+            dcents = direction * dcents;
+
+            const int limit =
+                (direction > 0) ? getMaxCentsUpForSelNotes() : getMaxCentsDownForSelNotes();
+
+            // dcents is limited: all notes should be inside panel
+            dcents = (direction > 0) ? juce::jmin(dcents, limit) : juce::jmax(dcents, limit);
+
+            // Apply changes
             if (dcents != 0) {
                 for (Note &note : notes) {
                     if (note.isSelected) {
@@ -2219,141 +2327,109 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         return true;
     }
 
-    // decrease the pitch of selected notes by cents
-    if (key == juce::KeyPress(juce::KeyPress::returnKey, juce::ModifierKeys::ctrlModifier, 0)) {
-        int dcents = getCentsFromMessage();
-        if (dcents != -1) {
-            dcents = -dcents; // NEGATIVE!
-            // dcents is limited: no selected note should have
-            //                    totalCents < 0
+    // Moving notes horizontally (Left/Right keys, with optional Shift for large step)
+    if ((key.getKeyCode() == juce::KeyPress::rightKey) ||
+        (key.getKeyCode() == juce::KeyPress::leftKey)) {
+        if (!thereAreSelectedNotes()) {
+            return false;
+        }
+
+        const int direction = (key.getKeyCode() == juce::KeyPress::rightKey) ? 1 : -1;
+        const bool isShift = key.getModifiers().isShiftDown();
+
+        float dtime;
+        if (isShift) {
+            dtime = direction * 1.0f;
+        } else if (params->timeSnap) {
+            dtime = direction * (1.0f / (params->num_beats * params->num_subdivs));
+        } else {
+            dtime = direction * (1.0f / (params->max_num_beats * params->max_num_subdivs));
+        }
+
+        // dtime should be limited: don't go beyond the borders
+        if (direction > 0) {
+            const int numBars = params->get_num_bars();
             for (const Note &note : notes) {
                 if (note.isSelected) {
-                    int totalCents = note.octave * 1200 + note.cents;
-                    dcents = juce::jmax(dcents, -totalCents);
+                    dtime = juce::jmin(dtime, numBars - note.time - note.duration);
                 }
             }
-            if (dcents != 0) {
+        } else {
+            for (const Note &note : notes) {
+                if (note.isSelected) {
+                    dtime = juce::jmax(dtime, -note.time);
+                }
+            }
+        }
+
+        if (dtime * direction > 1e-5f) {
+            // Apply changes
+            for (Note &note : notes) {
+                if (note.isSelected) {
+                    note.time += dtime;
+                }
+            }
+            remakeKeys(); // because notes can enter/leave time active/disabled zones
+            timeCorrectRatioMarksBasedOnSelNotes(dtime);
+            if (params->timeSnap) {
+                saveState();
+            } else {
+                wasTimeChanging = true;
+            }
+            editor->updateNotes(notes);
+            repaint();
+        }
+        return true;
+    }
+
+    // Raising/lowering selected notes by a cent (or by a key in key snap mode) (Up/Down)
+    if ((key == juce::KeyPress::upKey) || (key == juce::KeyPress::downKey)) {
+        if (!thereAreSelectedNotes()) {
+            return false;
+        }
+
+        const bool isUp = (key.getKeyCode() == juce::KeyPress::upKey);
+        const int direction = isUp ? 1 : -1;
+
+        if (params->keySnap) {
+            // Key snap
+            if (keys.size() == 0)
+                return true;
+
+            int newOctave, newCents;
+            if (isUp) {
+                // Check if all selected notes will be inside panel
+                for (const Note &note : notes) {
+                    if (note.isSelected) {
+                        std::tie(newOctave, newCents) = keyUp(note.octave, note.cents);
+                        const int newTotalCents = newOctave * 1200 + newCents;
+                        if (juce::jmax(newTotalCents, newTotalCents + note.bend) >=
+                            params->num_octaves * 1200) {
+                            return true;
+                        }
+                    }
+                }
+                // Apply changes
                 for (Note &note : notes) {
                     if (note.isSelected) {
-                        int newTotalCents = note.octave * 1200 + note.cents + dcents;
-                        note.octave = newTotalCents / 1200;
-                        note.cents = newTotalCents - note.octave * 1200;
+                        std::tie(note.octave, note.cents) = keyUp(note.octave, note.cents);
                     }
                 }
-                pitchCorrectRatioMarksBasedOnSelNotes();
-                remakeKeys(dcents);
-                saveState();
-                editor->updateNotes(notes);
-                repaint();
-            }
-        }
-        return true;
-    }
-
-    // moving notes horizontally
-    if ((key == juce::KeyPress::rightKey) ||
-        (key == juce::KeyPress(juce::KeyPress::rightKey, juce::ModifierKeys::shiftModifier, 0))) {
-        if (!thereAreSelectedNotes()) {
-            return false;
-        }
-        float dtime;
-        if (params->timeSnap) {
-            dtime = 1.0f / (params->num_beats * params->num_subdivs);
-        } else {
-            dtime = 1.0f / (params->max_num_beats * params->max_num_subdivs);
-        }
-
-        if (key.getModifiers().isShiftDown()) {
-            dtime = 1.0f;
-        }
-        // dtime is limited: no selected note should have
-        //                   time + duration > num bars
-        int numBars = params->get_num_bars();
-        for (const Note &note : notes) {
-            if (note.isSelected) {
-                dtime = juce::jmin(dtime, numBars - note.time - note.duration);
-            }
-        }
-        if (dtime > 1e-5f) {
-            for (Note &note : notes) {
-                if (note.isSelected) {
-                    note.time += dtime;
-                }
-            }
-            remakeKeys(); // because notes can enter/leave time active/disabled zones
-            timeCorrectRatioMarksBasedOnSelNotes(dtime);
-            if (params->timeSnap) {
-                saveState();
             } else {
-                wasTimeChanging = true;
-            }
-            editor->updateNotes(notes);
-            repaint();
-        }
-        return true;
-    }
-    if ((key == juce::KeyPress::leftKey) ||
-        (key == juce::KeyPress(juce::KeyPress::leftKey, juce::ModifierKeys::shiftModifier, 0))) {
-        if (!thereAreSelectedNotes()) {
-            return false;
-        }
-        // NEGATIVE!
-        float dtime;
-        if (params->timeSnap) {
-            dtime = -1.0f / (params->num_beats * params->num_subdivs);
-        } else {
-            dtime = -1.0f / (params->max_num_beats * params->max_num_subdivs);
-        }
-        // dtime is limited: no selected note should have
-        //                   time < 0
-        for (const Note &note : notes) {
-            if (note.isSelected) {
-                dtime = juce::jmax(dtime, -note.time);
-            }
-        }
-        if (dtime < -1e-5f) {
-            for (Note &note : notes) {
-                if (note.isSelected) {
-                    note.time += dtime;
+                // Check if all selected notes will be inside panel
+                for (const Note &note : notes) {
+                    if (note.isSelected) {
+                        std::tie(newOctave, newCents) = keyDown(note.octave, note.cents);
+                        const int newTotalCents = newOctave * 1200 + newCents;
+                        if (juce::jmin(newTotalCents, newTotalCents + note.bend) < 0) {
+                            return true;
+                        }
+                    }
                 }
-            }
-            remakeKeys(); // because notes can enter/leave time active/disabled zones
-            timeCorrectRatioMarksBasedOnSelNotes(dtime);
-            if (params->timeSnap) {
-                saveState();
-            } else {
-                wasTimeChanging = true;
-            }
-            editor->updateNotes(notes);
-            repaint();
-        }
-        return true;
-    }
-
-    // raising or lowering selected notes by a cent (or by a key in key snap mode)
-    if (key == juce::KeyPress::upKey) {
-        if (!thereAreSelectedNotes()) {
-            return false;
-        }
-        if (params->keySnap) {
-            if (keys.size() == 0)
-                return true;
-            // if some selected note due to raise up by a key will have octave = num octaves
-            //    then abort
-            for (const Note &note : notes) {
-                if ((note.isSelected) && (note.octave == params->num_octaves - 1) &&
-                    (note.cents == *keys.rbegin())) {
-                    return true;
-                }
-            }
-            for (Note &note : notes) {
-                if (note.isSelected) {
-                    int keyInd = getKeyIndex(note.cents) + 1;
-                    if (keyInd == keys.size()) {
-                        note.octave++;
-                        note.cents = *keys.begin();
-                    } else {
-                        note.cents = *(std::next(keys.begin(), keyInd));
+                // Apply changes
+                for (Note &note : notes) {
+                    if (note.isSelected) {
+                        std::tie(note.octave, note.cents) = keyDown(note.octave, note.cents);
                     }
                 }
             }
@@ -2361,78 +2437,37 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             remakeKeys();
             saveState();
         } else {
-            // if some selected note due to raise up by a cent will have octave = num octaves
-            //    then abort
-            for (const Note &note : notes) {
-                if ((note.isSelected) && (note.octave == params->num_octaves - 1) &&
-                    (note.cents == 1199)) {
-                    return true;
-                }
-            }
-            for (Note &note : notes) {
-                if (note.isSelected) {
-                    note.cents++;
-                    if (note.cents == 1200) {
-                        note.octave++;
-                        note.cents = 0;
-                    }
-                }
-            }
-            pitchCorrectRatioMarksBasedOnSelNotes();
-            remakeKeys(1);
-            wasPitchChanging = true;
-        }
-        editor->updateNotes(notes);
-        repaint();
-        return true;
-    }
-    if (key == juce::KeyPress::downKey) {
-        if (!thereAreSelectedNotes()) {
-            return false;
-        }
-        if (params->keySnap) {
-            if (keys.size() == 0)
+            // Not key snap (+1 or -1 cent)
+            // Check if all notes will be inside panel
+            const int limit = isUp ? getMaxCentsUpForSelNotes() : getMaxCentsDownForSelNotes();
+            if ((isUp && limit < direction) || (!isUp && limit > direction)) {
                 return true;
-            // if some selected note due to lower down by a key will have octave = -1
-            //    then abort
-            for (const Note &note : notes) {
-                if ((note.isSelected) && (note.octave == 0) && (note.cents == *keys.begin())) {
-                    return true;
-                }
             }
-            for (Note &note : notes) {
-                if (note.isSelected) {
-                    int keyInd = getKeyIndex(note.cents) - 1;
-                    if (keyInd == -1) {
-                        note.octave--;
-                        note.cents = *keys.rbegin();
-                    } else {
-                        note.cents = *(std::next(keys.begin(), keyInd));
+            // Apply changes
+            if (isUp) {
+                for (Note &note : notes) {
+                    if (note.isSelected) {
+                        note.cents += 1;
+                        if (note.cents == 1200) {
+                            note.octave++;
+                            note.cents = 0;
+                        }
+                    }
+                }
+            } else {
+                for (Note &note : notes) {
+                    if (note.isSelected) {
+                        note.cents -= 1;
+                        if (note.cents == -1) {
+                            note.octave--;
+                            note.cents = 1199;
+                        }
                     }
                 }
             }
+
             pitchCorrectRatioMarksBasedOnSelNotes();
-            remakeKeys();
-            saveState();
-        } else {
-            // if some selected note due to lower down by a cent will have octave = -1
-            //    then abort
-            for (const Note &note : notes) {
-                if ((note.isSelected) && (note.octave == 0) && (note.cents == 0)) {
-                    return true;
-                }
-            }
-            for (Note &note : notes) {
-                if (note.isSelected) {
-                    note.cents--;
-                    if (note.cents == -1) {
-                        note.octave--;
-                        note.cents = 1199;
-                    }
-                }
-            }
-            pitchCorrectRatioMarksBasedOnSelNotes();
-            remakeKeys(-1);
+            remakeKeys(direction);
             wasPitchChanging = true;
         }
         editor->updateNotes(notes);
@@ -2440,43 +2475,25 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         return true;
     }
 
-    // raising or lowering selected notes by an octave
-    if (key == juce::KeyPress(juce::KeyPress::upKey, juce::ModifierKeys::shiftModifier, 0)) {
-        // if some selected note due to raise up by an octave will have octave = num octaves
-        //    then abort
-        for (const Note &note : notes) {
-            if (note.isSelected) {
-                if (note.octave == params->num_octaves - 1) {
-                    return true;
-                }
-            }
+    // Raising/lowering selected notes by an octave (Shift+Up/Down)
+    if ((key == juce::KeyPress(juce::KeyPress::upKey, juce::ModifierKeys::shiftModifier, 0)) ||
+        (key == juce::KeyPress(juce::KeyPress::downKey, juce::ModifierKeys::shiftModifier, 0))) {
+        const int direction = (key.getKeyCode() == juce::KeyPress::upKey) ? 1 : -1;
+
+        // Check if all notes will be inside panel
+        const int limit =
+            (direction > 0) ? getMaxCentsUpForSelNotes() : getMaxCentsDownForSelNotes();
+        if ((direction > 0 && limit < 1200) || (direction < 0 && limit > -1200)) {
+            return true;
         }
+
+        // Apply changes
         for (Note &note : notes) {
             if (note.isSelected) {
-                note.octave++;
+                note.octave += direction;
             }
         }
-        pitchCorrectRatioMarksBasedOnSelNotes();
-        saveState();
-        editor->updateNotes(notes);
-        repaint();
-        return true;
-    }
-    if (key == juce::KeyPress(juce::KeyPress::downKey, juce::ModifierKeys::shiftModifier, 0)) {
-        // if some selected note due to lower down by an octave will have octave = -1
-        //    then abort
-        for (const Note &note : notes) {
-            if (note.isSelected) {
-                if (note.octave == 0) {
-                    return true;
-                }
-            }
-        }
-        for (Note &note : notes) {
-            if (note.isSelected) {
-                note.octave--;
-            }
-        }
+
         pitchCorrectRatioMarksBasedOnSelNotes();
         saveState();
         editor->updateNotes(notes);

@@ -104,11 +104,11 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     /**
      * @brief Find nearest key to a given pitch
-     * @param cents Cents within octave
      * @param octave Octave number
+     * @param cents Cents within octave
      * @return Pair of (octave, cents) of nearest key
      */
-    std::pair<int, int> findNearestKey(int cents, int octave);
+    std::pair<int, int> findNearestKey(int octave, int cents);
 
     /**
      * @brief Find nearest key within maximum cents change
@@ -247,6 +247,14 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     // ==========================================================================
 
     std::vector<Note> ghostNotes;
+
+    int getMaxCentsUpForSelNotes() const;   ///< returns 0+ cents
+    int getMaxCentsDownForSelNotes() const; ///< returns 0- cents; max by abs
+
+    ///< Find new {octave, cents} after raising by a key; keys MUST BE NOT EMPTY!
+    std::pair<int, int> keyUp(int octave, int cents) const;
+    ///< Find new {ocateve, cents} after lowering by a key; keys MUST BE NOTE EMPTY!
+    std::pair<int, int> keyDown(int octave, int cents) const;
 
     std::pair<int, int> pointToOctaveCents(juce::Point<int> point);
 
