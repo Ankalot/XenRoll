@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+#include <juce_audio_basics/juce_audio_basics.h> // for juce::Decibels
 #include <juce_data_structures/juce_data_structures.h>
 
 namespace audio_plugin {
@@ -12,17 +14,24 @@ class GlobalSettings {
     }
 
     //  ============ playDraggedNotes ============
-    bool getPlayDraggedNotes() const { return propsFile->getBoolValue("playDraggedNotes", true); }
+    static constexpr bool playDraggedNotes_default = true;
+    bool getPlayDraggedNotes() const { return playDraggedNotes_.load(std::memory_order_relaxed); }
     void setPlayDraggedNotes(bool playDraggedNotes) {
+        playDraggedNotes_.store(playDraggedNotes, std::memory_order_relaxed);
         propsFile->setValue("playDraggedNotes", playDraggedNotes);
         propsFile->saveIfNeeded();
     } // =========================================
 
     //  =============== micGain_dB ===============
-    static constexpr float min_micGain_dB = -24.0;
-    static constexpr float max_micGain_dB = 24.0;
-    double getMicGain_dB() const { return propsFile->getDoubleValue("micGain_dB", 0.0); }
+    static constexpr double min_micGain_dB = -24.0;
+    static constexpr double max_micGain_dB = 24.0;
+    static constexpr double micGain_dB_default = 0.0;
+    double getMicGain_dB() const { return micGain_dB_.load(std::memory_order_relaxed); }
+    ///< Returns pre-calculated linear gain (good for audio thread)
+    float getMicGainLinear() const { return micGainLinear_.load(std::memory_order_relaxed); }
     void setMicGain_dB(double micGain_dB) {
+        micGain_dB_.store(micGain_dB, std::memory_order_relaxed);
+        micGainLinear_.store(juce::Decibels::decibelsToGain(micGain_dB), std::memory_order_relaxed);
         propsFile->setValue("micGain_dB", micGain_dB);
         propsFile->saveIfNeeded();
     } // =========================================
@@ -30,10 +39,10 @@ class GlobalSettings {
     //  =============== noteRectRounding =========
     static constexpr double min_noteRectRounding = 0.0;
     static constexpr double max_noteRectRounding = 1.0;
-    double getNoteRectRounding() const {
-        return propsFile->getDoubleValue("noteRectRounding", 0.0);
-    }
+    static constexpr double noteRectRounding_default = 0.0;
+    double getNoteRectRounding() const { return noteRectRounding_.load(std::memory_order_relaxed); }
     void setNoteRectRounding(double noteRectRounding) {
+        noteRectRounding_.store(noteRectRounding, std::memory_order_relaxed);
         propsFile->setValue("noteRectRounding", noteRectRounding);
         propsFile->saveIfNeeded();
     } // =========================================
@@ -53,6 +62,8 @@ class GlobalSettings {
         options.storageFormat = juce::PropertiesFile::storeAsXML;
 
         propsFile = std::make_unique<juce::PropertiesFile>(settingsFile, options);
+
+        reloadCache();
     }
 
     // The destructor that prevents jassert when unloading the DLL
@@ -63,7 +74,28 @@ class GlobalSettings {
         propsFile.release();
     }
 
+    void reloadCache() {
+        playDraggedNotes_.store(
+            propsFile->getBoolValue("playDraggedNotes", playDraggedNotes_default),
+            std::memory_order_relaxed);
+
+        double db = propsFile->getDoubleValue("micGain_dB", micGain_dB_default);
+        micGain_dB_.store(db, std::memory_order_relaxed);
+        micGainLinear_.store(juce::Decibels::decibelsToGain(db), std::memory_order_relaxed);
+
+        noteRectRounding_.store(
+            propsFile->getDoubleValue("noteRectRounding", noteRectRounding_default),
+            std::memory_order_relaxed);
+    }
+
     std::unique_ptr<juce::PropertiesFile> propsFile;
+
+    //  ============ Cached values (atomic, lock-free) ============
+    std::atomic<bool> playDraggedNotes_;
+    std::atomic<double> micGain_dB_;
+    std::atomic<float> micGainLinear_;
+    std::atomic<double> noteRectRounding_;
+    // ===========================================================
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GlobalSettings)
 };

@@ -105,7 +105,13 @@ void MainPanel::paint(juce::Graphics &g) {
     g.setColour(params->theme.dark);
     g.fillRect(clip.toFloat());
 
-    noteRoundCoef = static_cast<float>(GlobalSettings::getInstance().getNoteRectRounding());
+    const float newNoteRoundCoef =
+        static_cast<float>(GlobalSettings::getInstance().getNoteRectRounding());
+    if (newNoteRoundCoef != noteRoundCoef) {
+        // It could be that other instance changed this property. We need to clear note path cache.
+        notePathManager->invalidateCache();
+        noteRoundCoef = newNoteRoundCoef;
+    }
 
     g.setColour(params->theme.darkest);
     // octaves

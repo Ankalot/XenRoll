@@ -326,8 +326,7 @@ void AudioPluginAudioProcessor::processVocalInput(const juce::AudioBuffer<float>
     }
 
     // Apply mic gain
-    float gainLinear =
-        juce::Decibels::decibelsToGain(GlobalSettings::getInstance().getMicGain_dB());
+    float gainLinear = GlobalSettings::getInstance().getMicGainLinear();
     const float *channelData = buffer.getReadPointer(0);
 
     // Calculate current volume for visualization
