@@ -1617,10 +1617,10 @@ void MainPanel::mouseMove(const juce::MouseEvent &event) {
     bool isOverNote = false;
     bool isOverNoteResize = false;
 
-    for (const auto &note : notes) {
-        juce::Path notePath = getNotePath(note);
+    for (int i = static_cast<int>(notes.size() - 1); i >= 0; --i) {
+        const juce::Path notePath = getNotePath(notes[i]);
         if (notePath.contains(point)) {
-            float noteX2 = (note.time + note.duration) * bar_width_px;
+            float noteX2 = (notes[i].time + notes[i].duration) * bar_width_px;
             if (noteX2 - point.getX() < note_right_corner_width)
                 isOverNoteResize = true;
             else

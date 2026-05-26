@@ -207,7 +207,9 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     std::map<int, float> keyboardManuallyPlayedKeys, dragManuallyPlayedKeys;
     std::map<juce::juce_wchar, int> wasKeyDown; ///< char and totalCents
 
-    // new should be added at the end (with push_back) (don't remember why lol)
+    // New should be added at the end (with push_back).
+    //     This is needed to maintain consistency over time. If several notes occupy the
+    //     same place under the cursor, the action will be applied to the later added note.
     std::vector<Note> notes;
     std::set<int> keys;
     ///< Keys from ALL notes and ghost notes (is needed when params->autoCorrectRatiosMarks)
