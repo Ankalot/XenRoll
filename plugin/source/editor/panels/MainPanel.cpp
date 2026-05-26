@@ -625,6 +625,8 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
                                const juce::MouseWheelDetails &wheel) {
     if (event.mods.isAltDown()) {
         if (event.mods.isCtrlDown()) {
+            if (keys.size() == 0)
+                return;
             if (wheel.deltaY > 0) {
                 for (Note &note : notes) {
                     if (note.isSelected) {
@@ -1331,7 +1333,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         if (dcents != prevDcents) {
             // Apply vertical movement
             if (params->keySnap) {
-                if (initialTotalCentsForDrag.size() == 1) {
+                if ((initialTotalCentsForDrag.size() == 1) && (keys.size() != 0)) {
                     int initialTotalCents = initialTotalCentsForDrag[0];
                     int newTotalCents = initialTotalCents + dcents;
                     int newOctave = newTotalCents / 1200;
@@ -2334,6 +2336,8 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             return false;
         }
         if (params->keySnap) {
+            if (keys.size() == 0)
+                return true;
             // if some selected note due to raise up by a key will have octave = num octaves
             //    then abort
             for (const Note &note : notes) {
@@ -2387,6 +2391,8 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             return false;
         }
         if (params->keySnap) {
+            if (keys.size() == 0)
+                return true;
             // if some selected note due to lower down by a key will have octave = -1
             //    then abort
             for (const Note &note : notes) {
