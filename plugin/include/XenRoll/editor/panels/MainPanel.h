@@ -242,6 +242,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     const int ratioMarkMinHeight = 10; ///< is needed for deleting small ratio marks like 1/1
     int needToUnselectAllNotesExcept = -1;
     bool needToUnselectAllNotesExcept_Ctrl = false;
+    int needToUnselectThisNote = -1;
+    bool needToUnselectThisNote_Ctrl = false;
     float vertMoveSlowCoef = 0.2f;
 
     // ============================= VOCAL TO MELODY =============================

@@ -991,7 +991,9 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             juce::Path notePath = getNotePath(notes[i]);
             if (notePath.contains(point.toFloat())) {
                 float noteX2 = (notes[i].time + notes[i].duration) * bar_width_px;
+
                 if (noteX2 - point.toFloat().getX() < note_right_corner_width) {
+                    // Resizing or time-stretching
                     if (!event.mods.isShiftDown() && !notes[i].isSelected) {
                         unselectAllNotes();
                     }
@@ -1044,16 +1046,12 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                 }
 
                 if (notes[i].isSelected) {
-                    if (!event.mods.isShiftDown()) {
+                    if (event.mods.isShiftDown()) {
+                        needToUnselectThisNote = i;
+                        needToUnselectThisNote_Ctrl = event.mods.isCtrlDown();
+                    } else {
                         needToUnselectAllNotesExcept = i;
                         needToUnselectAllNotesExcept_Ctrl = event.mods.isCtrlDown();
-                    } else if (event.mods.isCtrlDown()) {
-                        int cents = notes[i].cents;
-                        for (Note &note : notes) {
-                            if ((note.cents == cents) && params->zones.isNoteInActiveZone(note)) {
-                                note.isSelected = true;
-                            }
-                        }
                     }
                 } else {
                     if (!event.mods.isShiftDown()) {
@@ -1681,16 +1679,34 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
 
     if (needToUnselectAllNotesExcept != -1) {
         unselectAllNotes();
-        if (needToUnselectAllNotesExcept_Ctrl) {
-            int cents = notes[needToUnselectAllNotesExcept].cents;
-            for (Note &note : notes) {
-                if ((note.cents == cents) && params->zones.isNoteInActiveZone(note)) {
-                    note.isSelected = true;
+        // need to check because user could press "Del" while moving notes
+        if (needToUnselectAllNotesExcept < notes.size()) {
+            if (needToUnselectAllNotesExcept_Ctrl) {
+                int cents = notes[needToUnselectAllNotesExcept].cents;
+                for (Note &note : notes) {
+                    if ((note.cents == cents) && params->zones.isNoteInActiveZone(note)) {
+                        note.isSelected = true;
+                    }
                 }
             }
+            notes[needToUnselectAllNotesExcept].isSelected = true;
         }
-        notes[needToUnselectAllNotesExcept].isSelected = true;
         needToUnselectAllNotesExcept = -1;
+    } else if (needToUnselectThisNote != -1) {
+        // need to check because user could press "Del" while moving notes
+        if (needToUnselectThisNote < notes.size()) {
+            if (needToUnselectThisNote_Ctrl) {
+                int cents = notes[needToUnselectThisNote].cents;
+                for (Note &note : notes) {
+                    if (note.cents == cents) {
+                        note.isSelected = false;
+                    }
+                }
+            } else {
+                notes[needToUnselectThisNote].isSelected = false;
+            }
+        }
+        needToUnselectThisNote = -1;
     }
 
     if (isAuditioning) {
