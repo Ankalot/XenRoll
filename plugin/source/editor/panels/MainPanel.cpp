@@ -535,9 +535,9 @@ void MainPanel::quantizeSelectedNotes() {
         }
     }
 
-    saveState();
     editor->updateNotes(notes);
     remakeKeys();
+    saveState();
     repaint();
 }
 
@@ -559,9 +559,9 @@ void MainPanel::randomizeSelectedNotesTiming() {
         }
     }
 
-    saveState();
     editor->updateNotes(notes);
     remakeKeys();
+    saveState();
     repaint();
 }
 
@@ -588,6 +588,90 @@ void MainPanel::deleteAllRatiosMarks() {
     params->ratiosMarks.clear();
     repaint();
     saveState();
+}
+
+void MainPanel::mirrorSelNotesHorizontally() {
+    int numSelNotes = 0;
+    float timeStart = std::numeric_limits<float>::max();
+    float timeEnd = 0.0f;
+    for (const Note &note : notes) {
+        if (note.isSelected) {
+            numSelNotes++;
+            timeStart = juce::jmin(timeStart, note.time);
+            timeEnd = juce::jmax(timeEnd, note.time + note.duration);
+        }
+    }
+
+    if (numSelNotes < 1)
+        return;
+
+    for (Note &note : notes) {
+        if (note.isSelected) {
+            note.time = timeStart + timeEnd - note.time - note.duration;
+            if (note.bend != 0) {
+                int newTotalCents = note.octave * 1200 + note.cents + note.bend;
+                note.octave = newTotalCents / 1200;
+                note.cents = newTotalCents - note.octave * 1200;
+                note.bend = -note.bend;
+            }
+        }
+    }
+
+    // Also mirror ratio marks that depend on note(s) that were mirrored
+    for (RatioMark &ratioMark : params->ratiosMarks) {
+        const int lni = ratioMark.getLowerNoteIndex();
+        const int hni = ratioMark.getHigherNoteIndex();
+        if (((lni == -1) || (notes[lni].isSelected)) && ((hni == -1) || (notes[hni].isSelected)) &&
+            ((lni != -1) || (hni != -1))) {
+            ratioMark.time = timeStart + timeEnd - ratioMark.time;
+        }
+    }
+
+    editor->updateNotes(notes);
+    pitchCorrectRatioMarksBasedOnSelNotes();
+    remakeKeys();
+    saveState();
+    repaint();
+}
+
+void MainPanel::mirrorSelNotesVertically() {
+    int numSelNotes = 0;
+    int minPitch = params->num_octaves * 1200;
+    int maxPitch = 0;
+    for (const Note &note : notes) {
+        if (note.isSelected) {
+            numSelNotes++;
+            int totalCents = note.octave * 1200 + note.cents;
+            minPitch = juce::jmin(minPitch, totalCents);
+            maxPitch = juce::jmax(maxPitch, totalCents);
+            if (note.bend > 0) {
+                maxPitch = juce::jmax(maxPitch, totalCents + note.bend);
+            } else if (note.bend < 0) {
+                minPitch = juce::jmin(minPitch, totalCents + note.bend);
+            }
+        }
+    }
+
+    if (numSelNotes < 1)
+        return;
+
+    for (Note &note : notes) {
+        if (note.isSelected) {
+            int totalCents = note.octave * 1200 + note.cents;
+            int newTotalCents = minPitch + maxPitch - totalCents;
+            note.octave = newTotalCents / 1200;
+            note.cents = newTotalCents - note.octave * 1200;
+            if (note.bend != 0) {
+                note.bend = -note.bend;
+            }
+        }
+    }
+
+    editor->updateNotes(notes);
+    pitchCorrectRatioMarksBasedOnSelNotes();
+    remakeKeys();
+    saveState();
+    repaint();
 }
 
 void MainPanel::numBarsChanged() {
@@ -2757,9 +2841,9 @@ void MainPanel::addRecordedNotes(const std::vector<Note> &recordedNotes) {
             numAddedNotes++;
         }
     }
-    saveState();
     editor->updateNotes(notes);
     remakeKeys();
+    saveState();
     editor->showMessage("Recorded " + juce::String(numAddedNotes) + " notes!");
 }
 
@@ -2801,11 +2885,11 @@ void MainPanel::createNotesFromGhostNotes() {
             notes.push_back(note);
         }
     }
-    saveState();
     editor->updateNotes(notes);
     if (!params->showGhostNotesKeys) {
         remakeKeys();
     }
+    saveState();
     repaint();
 }
 

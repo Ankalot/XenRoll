@@ -293,6 +293,10 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     void clearPitchCurve() { mainPanel->clearPitchCurve(); }
 
+    void mirrorSelNotesHorizontally() { mainPanel->mirrorSelNotesHorizontally(); }
+
+    void mirrorSelNotesVertically() { mainPanel->mirrorSelNotesVertically(); }
+
     /**
      * @brief Hide the current popup message
      */

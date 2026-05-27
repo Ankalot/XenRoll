@@ -46,12 +46,17 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void randomizeSelectedNotesTiming();
     void randomizeSelectedNotesVelocity();
     void deleteAllRatiosMarks();
+    void mirrorSelNotesHorizontally();
+    void mirrorSelNotesVertically();
 
     // is called from PluginEditor when importing
     void updateNotes(const std::vector<Note> &new_notes);
     void updateGhostNotes(const std::vector<Note> &new_ghostNotes);
     void createNotesFromGhostNotes();
-    ///< If remaking keys was caused just by pitch transposition, set dcents!
+    /**
+     * If remaking keys was caused just by pitch transposition, set dcents!
+     * Contains reattachRatiosMarks method!
+     */
     void remakeKeys(int dcents = 0);
 
     /**

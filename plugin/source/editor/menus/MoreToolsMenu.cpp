@@ -33,6 +33,20 @@ MoreToolsMenu::MoreToolsMenu(AudioPluginAudioProcessorEditor *editor, Theme *the
     deleteAllRatiosMarksButton->onClick = [this, editor]() { editor->deleteAllRatiosMarks(); };
     addAndMakeVisible(deleteAllRatiosMarksButton.get());
 
+    mirrorSelNotesHorButton =
+        std::make_unique<juce::TextButton>("Mirror selected notes horizontally");
+    mirrorSelNotesHorButton->setLookAndFeel(editor->smallLF.get());
+    mirrorSelNotesHorButton->setClickingTogglesState(false);
+    mirrorSelNotesHorButton->onClick = [this, editor]() { editor->mirrorSelNotesHorizontally(); };
+    addAndMakeVisible(mirrorSelNotesHorButton.get());
+
+    mirrorSelNotesVertButton =
+        std::make_unique<juce::TextButton>("Mirror selected notes vertically");
+    mirrorSelNotesVertButton->setLookAndFeel(editor->smallLF.get());
+    mirrorSelNotesVertButton->setClickingTogglesState(false);
+    mirrorSelNotesVertButton->onClick = [this, editor]() { editor->mirrorSelNotesVertically(); };
+    addAndMakeVisible(mirrorSelNotesVertButton.get());
+
     // Position elements
     int y = vertPadding;
     quantizeSelNotesButton->setBounds(horPadding, y, width - 2 * horPadding, rowHeight);
@@ -45,6 +59,12 @@ MoreToolsMenu::MoreToolsMenu(AudioPluginAudioProcessorEditor *editor, Theme *the
     y += rowHeight + rowSkip;
 
     deleteAllRatiosMarksButton->setBounds(horPadding, y, width - 2 * horPadding, rowHeight);
+    y += rowHeight + rowSkip;
+
+    mirrorSelNotesHorButton->setBounds(horPadding, y, width - 2 * horPadding, rowHeight);
+    y += rowHeight + rowSkip;
+
+    mirrorSelNotesVertButton->setBounds(horPadding, y, width - 2 * horPadding, rowHeight);
     y += rowHeight + rowSkip;
 
     const int totalHeight = y + vertPadding;
