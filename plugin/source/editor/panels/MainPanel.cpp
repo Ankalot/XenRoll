@@ -48,28 +48,112 @@ void MainPanel::updatePitchMemoryResults(const PitchMemoryResults &newPitchMemor
 
 void MainPanel::drawOutlinedText(juce::Graphics &g, const juce::String &text,
                                  juce::Rectangle<float> area, const juce::Font &font) {
-    // Precompute once
-    const float fontHeight = font.getHeight();
-    const float areaCentreX = area.getCentreX();
-    const float areaCentreY = area.getCentreY();
+    const juce::String cacheKey = text + "_" + juce::String(font.getHeight());
+    auto it = outlinedTextPathCache.find(cacheKey);
 
-    juce::GlyphArrangement glyphs;
-    glyphs.addLineOfText(font, text, 0.0f, fontHeight);
+    if (it == outlinedTextPathCache.end()) {
+        juce::GlyphArrangement glyphs;
+        glyphs.addLineOfText(font, text, 0.0f, font.getHeight());
 
-    juce::Path textPath;
-    glyphs.createPath(textPath);
+        juce::Path rawPath;
+        glyphs.createPath(rawPath);
 
-    // Get bounds and compute translation in one step
-    const auto bounds = textPath.getBounds();
-    textPath.applyTransform(juce::AffineTransform::translation(
-        areaCentreX - (bounds.getX() + bounds.getWidth() * 0.5f),
-        areaCentreY - (bounds.getY() + bounds.getHeight() * 0.5f)));
+        const auto bounds = rawPath.getBounds();
+
+        rawPath.applyTransform(
+            juce::AffineTransform::translation(-(bounds.getX() + bounds.getWidth() * 0.5f),
+                                               -(bounds.getY() + bounds.getHeight() * 0.5f)));
+
+        if (outlinedTextPathCache.size() >= OUTLINED_TEXT_CACHE_MAX_SIZE) {
+            outlinedTextPathCache.clear();
+        }
+
+        it = outlinedTextPathCache.emplace(cacheKey, rawPath).first;
+    }
+
+    juce::Path textPath = it->second;
+
+    const auto center = area.getCentre();
+    textPath.applyTransform(juce::AffineTransform::translation(center.getX(), center.getY()));
 
     g.setColour(params->theme.darkest);
     g.strokePath(textPath, outlineStroke);
 
     g.setColour(params->theme.brightest);
     g.fillPath(textPath);
+
+    // Using image caching can greatly increase FPS, but not while notes are bending
+    //       (because the cache will overflow easily). Also, to avoid blurring on
+    //       HiDPI/Retina displays & smooth subpixel shift, you need to make quite
+    //       a big scaling...
+
+    /*const float scale = g.getInternalContext().getPhysicalPixelScaleFactor();
+    const float superScale = 1.5f; // to avoid blurring
+    const float totalScale = scale * superScale;
+
+    const juce::String cacheKey =
+        text + "_" + juce::String(font.getHeight()) + "_" + juce::String(totalScale);
+    auto it = outlinedTextCache.find(cacheKey);
+
+    if (it == outlinedTextCache.end()) {
+        juce::GlyphArrangement glyphs;
+        glyphs.addLineOfText(font, text, 0.0f, font.getHeight());
+
+        juce::Path textPath;
+        glyphs.createPath(textPath);
+
+        const auto bounds = textPath.getBounds();
+
+        const float strokeThickness = outlineStroke.getStrokeThickness() * totalScale;
+        const float padding = 4.0f * totalScale;
+
+        textPath.applyTransform(juce::AffineTransform::scale(totalScale));
+        const auto scaledBounds = textPath.getBounds();
+
+        const int pixelW = juce::roundToInt(
+            std::ceil(scaledBounds.getWidth() + (strokeThickness * 2.0f) + padding));
+        const int pixelH = juce::roundToInt(
+            std::ceil(scaledBounds.getHeight() + (strokeThickness * 2.0f) + padding));
+
+        juce::Image img(juce::Image::ARGB, pixelW, pixelH, true);
+        juce::Graphics imgG(img);
+
+        const float alignedX =
+            std::floor(-scaledBounds.getX()) + strokeThickness + (padding * 0.5f);
+        const float alignedY =
+            std::floor(-scaledBounds.getY()) + strokeThickness + (padding * 0.5f);
+        textPath.applyTransform(juce::AffineTransform::translation(alignedX, alignedY));
+
+        juce::PathStrokeType scaledStroke(strokeThickness);
+        scaledStroke.setJointStyle(outlineStroke.getJointStyle());
+        scaledStroke.setEndStyle(outlineStroke.getEndStyle());
+
+        imgG.setColour(params->theme.darkest);
+        imgG.strokePath(textPath, scaledStroke);
+
+        imgG.setColour(params->theme.brightest);
+        imgG.fillPath(textPath);
+
+        if (outlinedTextCache.size() >= OUTLINED_TEXT_CACHE_MAX_SIZE) {
+            outlinedTextCache.clear();
+        }
+
+        it = outlinedTextCache.emplace(cacheKey, img).first;
+    }
+
+    const auto &img = it->second;
+
+    const float logicalW = (float)img.getWidth() / totalScale;
+    const float logicalH = (float)img.getHeight() / totalScale;
+
+    const juce::Point<float> center = area.getCentre();
+    const float targetX = center.getX() - (logicalW * 0.5f);
+    const float targetY = center.getY() - (logicalH * 0.5f);
+
+    auto transform = juce::AffineTransform::scale(1.0f / totalScale).translated(targetX, targetY);
+
+    g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
+    g.drawImageTransformed(img, transform, false);*/
 }
 
 float MainPanel::adaptHor(float inputThickness) {
