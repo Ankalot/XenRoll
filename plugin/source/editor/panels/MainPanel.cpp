@@ -32,7 +32,7 @@ MainPanel::~MainPanel() { removeKeyListener(this); }
 
 void MainPanel::initViewport() {
     viewport = findParentComponentOfClass<juce::Viewport>();
-    viewport->setViewPosition(params->lastViewPos);
+    viewport->setViewPosition(params->lastViewPos.toInt());
 }
 
 const juce::PathStrokeType MainPanel::outlineStroke(Theme::wide, juce::PathStrokeType::mitered);
@@ -938,12 +938,11 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
 
     const int oldWidth = getWidth();
     const int oldHeight = getHeight();
-    const auto viewPos = viewport->getViewPosition();
     const int viewWidth = viewport->getViewWidth();
     const int viewHeight = viewport->getViewHeight();
 
-    const float centerX = (viewPos.x + viewWidth / 2.0f) / oldWidth;
-    const float centerY = (viewPos.y + viewHeight / 2.0f) / oldHeight;
+    const float centerX = (params->lastViewPos.x + viewWidth / 2.0f) / oldWidth;
+    const float centerY = (params->lastViewPos.y + viewHeight / 2.0f) / oldHeight;
 
     float stretchFactor = 1.0f + wheel.deltaY * 0.5f;
     if (event.mods.isCtrlDown()) {
@@ -963,11 +962,18 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
 
     const int newWidth = getWidth();
     const int newHeight = getHeight();
-    const int targetX = juce::roundToInt(centerX * newWidth - viewWidth / 2.0f);
-    const int targetY = juce::roundToInt(centerY * newHeight - viewHeight / 2.0f);
+    const float targetX =
+        juce::jlimit(0.0f, juce::jmax(0.0f, static_cast<float>(newWidth - viewWidth)),
+                     centerX * newWidth - viewWidth / 2.0f);
+    const float targetY =
+        juce::jlimit(0.0f, juce::jmax(0.0f, static_cast<float>(newHeight - viewHeight)),
+                     centerY * newHeight - viewHeight / 2.0f);
 
-    viewport->setViewPosition(juce::jlimit(0, juce::jmax(0, newWidth - viewWidth), targetX),
-                              juce::jlimit(0, juce::jmax(0, newHeight - viewHeight), targetY));
+    viewport->setViewPosition(juce::roundToInt(targetX), juce::roundToInt(targetY));
+
+    // We need to do this because visibleAreaChanged() in viewport will override lastViewPos with
+    //    rounded view position, that's not accurate enough for continuous zooming (scrolling)!
+    params->lastViewPos = {targetX, targetY};
 }
 
 std::pair<int, int> MainPanel::pointToOctaveCents(juce::Point<int> point) {
@@ -1364,7 +1370,6 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
         }
 
         if (scrolled) {
-            params->lastViewPos = viewport->getViewPosition();
             editor->repaintTopPanel();
         }
     }
@@ -1380,7 +1385,6 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
 
         if (viewport != nullptr) {
             auto newPos = viewport->getViewPosition() - panDelta;
-            params->lastViewPos = newPos;
             viewport->setViewPosition(newPos);
         }
 

@@ -126,7 +126,7 @@ class Parameters {
     int start_octave = 2;
     float lastDuration = 1.0f;
     float lastVelocity = defaultVelocity;
-    juce::Point<int> lastViewPos = {0, 0};
+    juce::Point<float> lastViewPos = {0, 0}; // float for accuracy when zooming (scrolling)
     float octave_height_px = init_octave_height_px;
     float bar_width_px = init_bar_width_px;
     bool showGhostNotesKeys = true;

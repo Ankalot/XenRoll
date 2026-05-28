@@ -151,8 +151,8 @@ class SmallLookAndFeel : public juce::LookAndFeel_V4 {
 
 class MainViewport : public juce::Viewport {
   public:
-    MainViewport(Theme *theme, juce::Viewport *leftViewport, juce::Viewport *topViewport)
-        : theme(theme), leftViewport(leftViewport), topViewport(topViewport) {
+    MainViewport(Parameters *params, juce::Viewport *leftViewport, juce::Viewport *topViewport)
+        : params(params), leftViewport(leftViewport), topViewport(topViewport) {
         updateColors();
     }
 
@@ -165,8 +165,8 @@ class MainViewport : public juce::Viewport {
      * @brief Update scrollbar colors to match current theme
      */
     void updateColors() {
-        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
-        getHorizontalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
+        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, params->theme.bright);
+        getHorizontalScrollBar().setColour(juce::ScrollBar::thumbColourId, params->theme.bright);
     }
 
     /**
@@ -174,7 +174,7 @@ class MainViewport : public juce::Viewport {
      * @param playHeadTime Current playhead time in bars
      * @param bar_width_px Width of one bar in pixels
      */
-    void setCamOnTime(float playHeadTime, int bar_width_px) {
+    void setCamOnTime(float playHeadTime, float bar_width_px) {
         auto *viewedComponent = getViewedComponent();
         if (viewedComponent == nullptr)
             return;
@@ -203,7 +203,7 @@ class MainViewport : public juce::Viewport {
     }
 
   private:
-    Theme *theme;
+    Parameters *params;
     juce::Viewport *leftViewport;
     juce::Viewport *topViewport;
     std::function<void()> updateCallback;
@@ -227,6 +227,8 @@ class MainViewport : public juce::Viewport {
             updateCallback();
         }
         isUpdating = false;
+
+        params->lastViewPos = getViewPosition().toFloat();
     }
 };
 

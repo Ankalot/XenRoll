@@ -193,7 +193,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(topViewport.get());
 
     mainPanel = std::make_unique<MainPanel>(this, &(processorRef.params));
-    mainViewport = std::make_unique<MainViewport>(&processorRef.params.theme, leftViewport.get(),
+    mainViewport = std::make_unique<MainViewport>(&processorRef.params, leftViewport.get(),
                                                   topViewport.get());
     mainViewport->setUpdateCallback([this]() { this->updateMainViewportSize(); });
     mainViewport->setScrollBarsShown(true, true);
