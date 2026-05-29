@@ -2,6 +2,7 @@
 #include "XenRoll/editor/PluginEditor.h"      // must be first!
 #include "XenRoll/editor/panels/MainPanel.h"  // must be second!
 // clang-format on
+#include <functional>
 #include <random>
 
 namespace audio_plugin {
@@ -37,8 +38,8 @@ void MainPanel::initViewport() {
 
 const juce::PathStrokeType MainPanel::outlineStroke(Theme::wide, juce::PathStrokeType::mitered);
 
-int MainPanel::totalCentsToY(int totalCents) {
-    return juce::roundToInt(octave_height_px * (params->num_octaves - totalCents / 1200.0f));
+float MainPanel::totalCentsToY(int totalCents) {
+    return octave_height_px * (params->num_octaves - totalCents / 1200.0f);
 }
 
 void MainPanel::updatePitchMemoryResults(const PitchMemoryResults &newPitchMemoryResults) {
@@ -48,7 +49,10 @@ void MainPanel::updatePitchMemoryResults(const PitchMemoryResults &newPitchMemor
 
 void MainPanel::drawOutlinedText(juce::Graphics &g, const juce::String &text,
                                  juce::Rectangle<float> area, const juce::Font &font) {
-    const juce::String cacheKey = text + "_" + juce::String(font.getHeight());
+    size_t cacheKey = text.hash();
+    cacheKey ^=
+        std::hash<float>{}(font.getHeight()) + 0x9e3779b9 + (cacheKey << 6) + (cacheKey >> 2);
+
     auto it = outlinedTextPathCache.find(cacheKey);
 
     if (it == outlinedTextPathCache.end()) {
@@ -68,10 +72,10 @@ void MainPanel::drawOutlinedText(juce::Graphics &g, const juce::String &text,
             outlinedTextPathCache.clear();
         }
 
-        it = outlinedTextPathCache.emplace(cacheKey, rawPath).first;
+        it = outlinedTextPathCache.emplace(cacheKey, std::move(rawPath)).first;
     }
 
-    juce::Path textPath = it->second;
+    juce::Path textPath(it->second);
 
     const auto center = area.getCentre();
     textPath.applyTransform(juce::AffineTransform::translation(center.getX(), center.getY()));
@@ -173,6 +177,8 @@ float MainPanel::adaptFont(float inputThickness) {
 
 void MainPanel::paint(juce::Graphics &g) {
     // We paint only visible area
+    // Drawing rects instead of lines/paths where possible for optimization
+    //       (it is extremely fast with OpenGL, inited in PluginEditor)!
 
     if (viewport == nullptr)
         return;
@@ -197,81 +203,124 @@ void MainPanel::paint(juce::Graphics &g) {
         noteRoundCoef = newNoteRoundCoef;
     }
 
+    const float adaptedHorWide = adaptHor(Theme::wide);
+    const float adaptedHorWider = adaptHor(Theme::wider);
+    const float adaptedHorNarrow = adaptHor(Theme::narrow);
+
+    const float adaptedHorWiderOffset = adaptedHorWider * 0.5f;
+    const float adaptedHorNarrowOffset = adaptedHorNarrow * 0.5f;
+
+    const float adaptedVertWide = adaptVert(Theme::wide);
+    const float adaptedVertNarrow = adaptVert(Theme::narrow);
+    const float adaptedVertNarrower = adaptVert(Theme::narrower);
+
+    const float adaptedVertNarrowOffset = adaptedVertNarrow * 0.5f;
+    const float adaptedVertNarrowerOffset = adaptedVertNarrower * 0.5f;
+
+    // === octaves ===
     g.setColour(params->theme.darkest);
-    // octaves
     int octave_i_start = static_cast<int>(clipY / octave_height_px);
     int octave_i_end = std::min(static_cast<int>((clipY + clipHeight) / octave_height_px) + 1,
                                 params->num_octaves);
-    const float adaptedHorWide = adaptHor(Theme::wide);
+    const float octaveLineThickness = juce::jmax(1.0f, adaptedHorWide);
+    const float octaveLineOffset = octaveLineThickness / 2.0f;
     for (int i = octave_i_start; i <= octave_i_end; ++i) {
         float yPos = i * octave_height_px;
-        g.drawLine(static_cast<float>(clipX), yPos, static_cast<float>(clipX + clipWidth), yPos,
-                   adaptedHorWide);
+        g.fillRect(static_cast<float>(clipX), yPos - octaveLineOffset,
+                   static_cast<float>(clipWidth), octaveLineThickness);
     }
+
+    // === bars, beats, subdivs ===
+    g.setColour(params->theme.darkest);
+    int barStep = std::ceil(params->min_bar_width_px / bar_width_px);
+    int bar_i_start = (static_cast<int>(clipX / bar_width_px) / barStep) * barStep;
+    int rawEnd = std::ceil((clipX + clipWidth) / bar_width_px);
+    int alignedEnd = ((rawEnd + barStep - 1) / barStep) * barStep;
+    int bar_i_end = juce::jmin(alignedEnd, params->get_num_bars());
+
     // bars
-    int bar_i_start = static_cast<int>(clipX / bar_width_px);
-    int bar_i_end =
-        std::min(static_cast<int>((clipX + clipWidth) / bar_width_px) + 1, params->get_num_bars());
-    const float adaptedVertWide = adaptVert(Theme::wide);
-    for (int i = bar_i_start; i <= bar_i_end; ++i) {
+    const float barLineThickness = juce::jmax(1.0f, adaptedVertWide);
+    const float barLineOffset = barLineThickness * 0.5f;
+    for (int i = bar_i_start; i <= bar_i_end; i += barStep) {
         float xPos = i * bar_width_px;
-        g.drawLine(xPos, 0.0f, xPos, octave_height_px * params->num_octaves, adaptedVertWide);
+        g.fillRect(xPos - barLineOffset, static_cast<float>(clipY), barLineThickness,
+                   static_cast<float>(clipHeight));
     }
-    // beats and subdivisions
-    const float adaptedVertNarrow = adaptVert(Theme::narrow);
-    const float adaptedVertNarrower = adaptVert(Theme::narrower);
-    for (int i = bar_i_start; i < bar_i_end; ++i) {
-        for (int j = 0; j < params->num_beats; ++j) {
-            float xPos = (i + static_cast<float>(j) / params->num_beats) * bar_width_px;
-            g.drawLine(xPos, 0.0f, xPos, octave_height_px * params->num_octaves, adaptedVertNarrow);
-            for (int k = 1; k < params->num_subdivs; ++k) {
-                float xPosSub = xPos + static_cast<float>(k) /
-                                           (params->num_subdivs * params->num_beats) * bar_width_px;
-                g.drawLine(xPosSub, 0.0f, xPosSub, octave_height_px * params->num_octaves,
-                           adaptedVertNarrower);
-            }
-        }
-    }
-    // keys
-    const float adaptedHorNarrow = adaptHor(Theme::narrow);
-    for (const int &key : keys) {
-        for (int j = octave_i_start; j < octave_i_end; ++j) {
-            float yPos = (j + 1.0f - key / 1200.0f) * octave_height_px;
-            auto line = juce::Line<float>(0.0f, yPos, params->get_num_bars() * bar_width_px, yPos);
-            if (params->generateNewKeys && keyIsGenNew[key]) {
-                g.drawDashedLine(line, dashLengths, numDashLengths, adaptedHorNarrow);
-            } else {
-                g.drawLine(line, adaptedHorNarrow);
+
+    // beats & subdivs
+    const float subdivWidth = bar_width_px / (params->num_beats * params->num_subdivs);
+    const float beatWidth = bar_width_px / params->num_beats;
+    // don't draw beats/subdivs if bars are skipped
+    const bool drawBeats = (beatWidth >= params->min_beat_width_px) && (barStep == 1);
+    const bool drawSubdivs = (subdivWidth >= params->min_subdiv_width_px) && drawBeats;
+    if (drawBeats) {
+        for (int i = bar_i_start; i < bar_i_end; ++i) {
+            for (int j = 0; j < params->num_beats; ++j) {
+                float xPos = (i + static_cast<float>(j) / params->num_beats) * bar_width_px;
+                if (j != 0) {
+                    // beats
+                    g.fillRect(xPos - adaptedVertNarrowOffset, static_cast<float>(clipY),
+                               adaptedVertNarrow, static_cast<float>(clipHeight));
+                }
+
+                // subdivs
+                if (drawSubdivs) {
+                    for (int k = 1; k < params->num_subdivs; ++k) {
+                        float xPosSub = xPos + static_cast<float>(k) /
+                                                   (params->num_subdivs * params->num_beats) *
+                                                   bar_width_px;
+                        g.fillRect(xPosSub - adaptedVertNarrowerOffset, static_cast<float>(clipY),
+                                   adaptedVertNarrower, static_cast<float>(clipHeight));
+                    }
+                }
             }
         }
     }
 
-    // PlayHead line
+    // === keys ===
+    g.setColour(params->theme.darkest);
+    for (const int &key : keys) {
+        for (int j = octave_i_start; j < octave_i_end; ++j) {
+            float yPos = (j + 1.0f - key / 1200.0f) * octave_height_px;
+            if (params->generateNewKeys && keyIsGenNew[key]) {
+                auto line = juce::Line<float>(static_cast<float>(clipX), yPos,
+                                              static_cast<float>(clipX + clipWidth), yPos);
+                g.drawDashedLine(line, dashLengths, numDashLengths, adaptedHorNarrow);
+            } else {
+                g.fillRect(static_cast<float>(clipX), yPos - adaptedHorNarrowOffset,
+                           static_cast<float>(clipWidth), adaptedHorNarrow);
+            }
+        }
+    }
+
+    // === PlayHead line ===
     if ((playHeadTime * bar_width_px >= clipX) &&
         (playHeadTime * bar_width_px <= clipX + clipWidth)) {
-        // g.setColour(params->theme.brighter);
         g.setColour(params->theme.activated);
-        g.drawLine(playHeadTime * bar_width_px, static_cast<float>(clipY),
-                   playHeadTime * bar_width_px, static_cast<float>(clipY + clipHeight),
-                   Theme::narrower);
+        g.fillRect(playHeadTime * bar_width_px - Theme::narrower * 0.5f, static_cast<float>(clipY),
+                   Theme::narrower, static_cast<float>(clipHeight));
     }
 
     auto clipFloat = clip.toFloat();
     juce::PathStrokeType strokeType(Theme::narrower);
     strokeType.setJointStyle(juce::PathStrokeType::mitered);
 
-    // ghost notes
+    // === ghost notes ===
     g.setColour(params->theme.darkest.interpolatedWith(params->theme.darker, 0.5));
     for (const Note &note : ghostNotes) {
-        juce::Path notePath = getNotePath(note);
-        // is needed only when params->showPitchesMemoryTraces
-        if (notePath.getBounds().intersects(clipFloat)) {
+        auto noteBounds = getNoteBounds(note);
+        if (noteBounds.intersects(clipFloat)) {
+            if (note.duration * bar_width_px > 1.0f) {
+                juce::Path notePath = getNotePath(note);
+                g.fillPath(notePath);
+            } else {
+                g.fillRect(noteBounds.withWidth(1.0f));
+            }
             numDrawnNotes++;
-            g.fillPath(notePath);
         }
     }
 
-    // Audition line
+    // === Audition line ===
     if (isAuditioning) {
         g.setColour(params->theme.activated.darker(0.3f));
         for (const Note &note : notes) {
@@ -280,40 +329,49 @@ void MainPanel::paint(juce::Graphics &g) {
                 break;
             }
         }
-        g.drawLine(auditionTime * bar_width_px, static_cast<float>(clipY),
-                   auditionTime * bar_width_px, static_cast<float>(clipY + clipHeight),
-                   Theme::narrower);
+        g.fillRect(auditionTime * bar_width_px, static_cast<float>(clipY) - Theme::narrower * 0.5f,
+                   Theme::narrower, static_cast<float>(clipHeight));
     }
 
-    // notes
+    // === notes ===
     int j = 0;
     for (const Note &note : notes) {
-        juce::Path notePath = getNotePath(note);
         // is needed only when params->showPitchesMemoryTraces
         bool inActiveZone = params->zones.isNoteInActiveZone(note);
-        if (notePath.getBounds().intersects(clipFloat)) {
-            if (params->showPitchesMemoryTraces && inActiveZone) {
-                if (j < pitchMemoryResults.second.size()) {
-                    float noteHarm = pitchMemoryResults.second[j];
-                    if (noteHarm > 0) {
-                        g.setColour(
-                            Theme::midHarmony.interpolatedWith(Theme::maxHarmony, noteHarm));
-                    } else {
-                        g.setColour(
-                            Theme::midHarmony.interpolatedWith(Theme::minHarmony, -noteHarm));
+        auto noteBounds = getNoteBounds(note);
+        if (noteBounds.intersects(clipFloat)) {
+            if (note.duration * bar_width_px > 1.0f) {
+                juce::Path notePath = getNotePath(note);
+                if (params->showPitchesMemoryTraces && inActiveZone) {
+                    if (j < pitchMemoryResults.second.size()) {
+                        float noteHarm = pitchMemoryResults.second[j];
+                        if (noteHarm > 0) {
+                            g.setColour(
+                                Theme::midHarmony.interpolatedWith(Theme::maxHarmony, noteHarm));
+                        } else {
+                            g.setColour(
+                                Theme::midHarmony.interpolatedWith(Theme::minHarmony, -noteHarm));
+                        }
                     }
+                } else {
+                    g.setColour(params->theme.dark.interpolatedWith(
+                        params->theme.brighter.brighter(1.0f), note.velocity));
                 }
+                g.fillPath(notePath);
+                if (note.isSelected) {
+                    g.setColour(params->theme.brightest);
+                } else {
+                    g.setColour(params->theme.darkest);
+                }
+                g.strokePath(notePath, strokeType);
             } else {
-                g.setColour(params->theme.dark.interpolatedWith(
-                    params->theme.brighter.brighter(1.0f), note.velocity));
+                if (note.isSelected) {
+                    g.setColour(params->theme.brightest);
+                } else {
+                    g.setColour(params->theme.darkest);
+                }
+                g.fillRect(noteBounds.withWidth(1.0f));
             }
-            g.fillPath(notePath);
-            if (note.isSelected) {
-                g.setColour(params->theme.brightest);
-            } else {
-                g.setColour(params->theme.darkest);
-            }
-            g.strokePath(notePath, strokeType);
             numDrawnNotes++;
         }
 
@@ -321,54 +379,70 @@ void MainPanel::paint(juce::Graphics &g) {
             j++;
         }
     }
-    // note bend text
+
+    // === note bend text ===
     if (!params->hideCents) {
         for (const Note &note : notes) {
-            juce::Path notePath = getNotePath(note);
-            if (notePath.getBounds().intersects(clipFloat)) {
+            const auto noteBounds = getNoteBounds(note);
+            if (noteBounds.intersects(clipFloat)) {
                 if ((note.bend != 0) && note.isSelected) {
                     juce::String bendText = juce::String::formatted(
                         "%c%d", (note.bend > 0 ? '+' : '-'), abs(note.bend));
-                    drawOutlinedText(g, bendText, notePath.getBounds(), bendFont);
+                    drawOutlinedText(g, bendText, noteBounds, bendFont);
                 }
             }
         }
     }
 
-    // vocal notes
+    // === vocal notes ===
     if (params->vocalToMelody) {
         // already recorded vocal notes (but the recording hasn't ended yet)
         g.setColour(params->theme.activated);
         for (const Note &note : vocalNotes) {
-            juce::Path notePath = getNotePath(note);
-            if (notePath.getBounds().intersects(clipFloat)) {
-                g.fillPath(notePath);
-                g.strokePath(notePath, strokeType);
+            auto noteBounds = getNoteBounds(note);
+            if (noteBounds.intersects(clipFloat)) {
+                if (note.duration * bar_width_px > 1.0f) {
+                    juce::Path notePath = getNotePath(note);
+                    g.fillPath(notePath);
+                } else {
+                    g.fillRect(noteBounds.withWidth(1.0f));
+                }
+                numDrawnNotes++;
             }
         }
         // currently recording vocal note
         if (showRecNote) {
-            juce::Path notePath = getNotePath(recNote);
-            if (notePath.getBounds().intersects(clipFloat)) {
-                g.fillPath(notePath);
-                g.strokePath(notePath, strokeType);
+            auto noteBounds = getNoteBounds(recNote);
+            if (noteBounds.intersects(clipFloat)) {
+                if (recNote.duration * bar_width_px > 1.0f) {
+                    juce::Path notePath = getNotePath(recNote);
+                    g.fillPath(notePath);
+                } else {
+                    g.fillRect(noteBounds.withWidth(1.0f));
+                }
+                numDrawnNotes++;
             }
         }
     }
 
-    // recorded manually played notes
+    // === recorded manually played notes ===
     if (params->recordManuallyPlayedNotes) {
         g.setColour(params->theme.activated);
         for (const Note &note : editor->getRecordedManuallyPlayedNotes()) {
-            juce::Path notePath = getNotePath(note);
-            if (notePath.getBounds().intersects(clipFloat)) {
-                g.fillPath(notePath);
-                g.strokePath(notePath, strokeType);
+            auto noteBounds = getNoteBounds(note);
+            if (noteBounds.intersects(clipFloat)) {
+                if (note.duration * bar_width_px > 1.0f) {
+                    juce::Path notePath = getNotePath(note);
+                    g.fillPath(notePath);
+                } else {
+                    g.fillRect(noteBounds.withWidth(1.0f));
+                }
+                numDrawnNotes++;
             }
         }
     }
 
-    // Pitch traces
+    // === Pitch traces ===
     if (params->showPitchesMemoryTraces && !params->pitchMemoryShowOnlyHarmonicity) {
         const auto &pitchTraces = pitchMemoryResults.first;
 
@@ -381,23 +455,28 @@ void MainPanel::paint(juce::Graphics &g) {
                        std::back_inserter(timeStamps), [](const auto &pair) { return pair.first; });
 
         int i = 0;
-        const float adaptedHorWider = adaptHor(Theme::wider);
         for (const auto &pts : pitchTraces.second) {
             const float timeStart = timeStamps[i];
             float timeEnd = params->get_num_bars();
             if (i + 1 != numTimeStamps) {
                 timeEnd = timeStamps[i + 1];
             }
-            const int posXstart = juce::roundToInt(timeStart * bar_width_px);
-            const int posXend = juce::roundToInt(timeEnd * bar_width_px);
+            const float posXstart = timeStart * bar_width_px;
+            const float posXend = timeEnd * bar_width_px;
             if ((posXstart <= clipX + clipWidth) && (posXend >= clipX)) {
                 for (int j = 0; j < numPitches; ++j) {
                     const float traceValue = pts.second[j];
-                    const int posY = totalCentsToY(pitchTraces.first[j]);
+                    const float posY = totalCentsToY(pitchTraces.first[j]);
                     if ((posY >= clipY) && (posY <= clipY + clipHeight)) {
                         const juce::uint8 brightness = juce::roundToInt(255 * traceValue);
                         g.setColour(juce::Colour::fromRGB(brightness, brightness, brightness));
-                        g.drawLine(posXstart, posY, posXend, posY, adaptedHorWider);
+                        const float clippedXStart =
+                            juce::jmax(posXstart, static_cast<float>(clipX));
+                        const float clippedXEnd =
+                            juce::jmin(posXend, static_cast<float>(clipX + clipWidth));
+                        g.fillRect(juce::jmax(posXstart, static_cast<float>(clipX)),
+                                   posY - adaptedHorWiderOffset, clippedXEnd - clippedXStart,
+                                   adaptedHorWider);
                     }
                 }
             }
@@ -405,7 +484,7 @@ void MainPanel::paint(juce::Graphics &g) {
         }
     }
 
-    // selecting rectangle
+    // === selecting rectangle ===
     if (isSelecting) {
         juce::Rectangle<int> selectionRect = juce::Rectangle(selectStartPoint, selectLastPoint);
         g.setColour(params->theme.darkest.withAlpha(0.5f));
@@ -415,13 +494,12 @@ void MainPanel::paint(juce::Graphics &g) {
         g.drawRect(selectionRect, static_cast<int>(Theme::narrow));
     }
 
-    // pitch curve
+    // === pitch curve ===
     // this is 100%: (pitchCurve.first.size() == pitchCurve.second.size())
     const int pitchCurveSize = pitchCurve.first.size();
     if (pitchCurveSize != 0) {
         juce::Path path;
         bool curveBreak = true;
-        const float adaptedHorWider = adaptHor(Theme::wider);
         const int clipXleft = clipX - juce::roundToInt(clipWidth * 0.05f);
         const int clipXright = clipX + juce::roundToInt(clipWidth * 1.05f);
         for (int i = 0; i < pitchCurveSize; ++i) {
@@ -468,7 +546,7 @@ void MainPanel::paint(juce::Graphics &g) {
         }
     }
 
-    // ratios marks
+    // === ratios marks ===
     g.setColour(params->theme.activated);
     const auto fontSizeRatio = adaptFont(Theme::big);
     const auto fontSizeError = adaptFont(Theme::small_);
@@ -490,16 +568,14 @@ void MainPanel::paint(juce::Graphics &g) {
             if (ratioMarkXPos < lowerNoteLeftX) {
                 if ((lowerNoteLeftX >= clipX) && (ratioMarkXPos <= clipX + clipWidth)) {
                     // outboard line for the lower note
-                    g.drawLine(
-                        juce::Line<float>(ratioMarkXPos, lowerKeyY, lowerNoteLeftX, lowerKeyY),
-                        adaptedHorNarrow);
+                    g.fillRect(ratioMarkXPos, lowerKeyY - adaptedHorNarrow * 0.5,
+                               lowerNoteLeftX - ratioMarkXPos, adaptedHorNarrow);
                 }
             } else if (ratioMarkXPos > lowerNoteRightX) {
                 if ((lowerNoteRightX <= clipX + clipWidth) && (ratioMarkXPos >= clipX)) {
                     // outboard line for the lower note
-                    g.drawLine(
-                        juce::Line<float>(ratioMarkXPos, lowerKeyY, lowerNoteRightX, lowerKeyY),
-                        adaptedHorNarrow);
+                    g.fillRect(lowerNoteRightX, lowerKeyY - adaptedHorNarrow * 0.5,
+                               ratioMarkXPos - lowerNoteRightX, adaptedHorNarrow);
                 }
             }
         }
@@ -512,16 +588,14 @@ void MainPanel::paint(juce::Graphics &g) {
             if (ratioMarkXPos < higherNoteLeftX) {
                 if ((higherNoteLeftX >= clipX) && (ratioMarkXPos <= clipX + clipWidth)) {
                     // outboard line for the higher note
-                    g.drawLine(
-                        juce::Line<float>(ratioMarkXPos, higherKeyY, higherNoteLeftX, higherKeyY),
-                        adaptedHorNarrow);
+                    g.fillRect(ratioMarkXPos, higherKeyY - adaptedHorNarrow * 0.5,
+                               higherNoteLeftX - ratioMarkXPos, adaptedHorNarrow);
                 }
             } else if (ratioMarkXPos > higherNoteRightX) {
                 if ((higherNoteRightX <= clipX + clipWidth) && (ratioMarkXPos >= clipX)) {
                     // outboard line for the higher note
-                    g.drawLine(
-                        juce::Line<float>(ratioMarkXPos, higherKeyY, higherNoteRightX, higherKeyY),
-                        adaptedHorNarrow);
+                    g.fillRect(higherNoteRightX, higherKeyY - adaptedHorNarrow * 0.5,
+                               ratioMarkXPos - higherNoteRightX, adaptedHorNarrow);
                 }
             }
         }
@@ -564,7 +638,7 @@ void MainPanel::paint(juce::Graphics &g) {
         }
     }
 
-    // ratio mark preline
+    // === ratio mark preline ===
     if (isDrawingRatioMark) {
         g.setColour(params->theme.activated);
         const auto point1 = ratioMarkStartPoint.toFloat();
@@ -576,7 +650,7 @@ void MainPanel::paint(juce::Graphics &g) {
                     adaptedVertWide * 3);
     }
 
-    // debug overlay
+    // === debug overlay ===
     if (params->showDebugOverlay) {
         const auto endTime = juce::Time::getMillisecondCounterHiRes();
         const double elapsed = endTime - startTime;
@@ -2877,17 +2951,34 @@ bool MainPanel::thereAreSelectedNotes() {
     return false;
 }
 
-juce::Path MainPanel::getNotePath(const Note &note) {
-    float h; // height
+float MainPanel::getNotesHeight() {
     if (params->constNoteRectHeight) {
-        h = init_octave_height_px * params->noteRectHeightCoef;
+        return init_octave_height_px * params->noteRectHeightCoef;
     } else {
-        h = juce::jmin(octave_height_px * params->noteRectHeightCoef,
-                       params->max_note_height_scale * init_octave_height_px *
-                           params->noteRectHeightCoef);
+        return juce::jmin(octave_height_px * params->noteRectHeightCoef,
+                          params->max_note_height_scale * init_octave_height_px *
+                              params->noteRectHeightCoef);
     }
+}
 
-    return notePathManager->getPath(note, bar_width_px, octave_height_px, h, noteRoundCoef);
+juce::Rectangle<float> MainPanel::getNoteBounds(const Note &note) {
+    const float h = getNotesHeight();
+
+    const float leftX = note.time * bar_width_px;
+    const float width = note.duration * bar_width_px;
+
+    const float y1 = totalCentsToY(note.octave * 1200 + note.cents);
+    const float y2 = totalCentsToY(note.octave * 1200 + note.cents + note.bend);
+
+    const float topY = juce::jmin(y1, y2) - h / 2;
+    const float height = std::abs(y1 - y2) + h;
+
+    return juce::Rectangle<float>(leftX, topY, width, height);
+}
+
+juce::Path MainPanel::getNotePath(const Note &note) {
+    return notePathManager->getPath(note, bar_width_px, octave_height_px, getNotesHeight(),
+                                    noteRoundCoef);
 }
 
 float MainPanel::timeToSnappedTime(float time) {

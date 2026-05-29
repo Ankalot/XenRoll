@@ -2,6 +2,38 @@
 
 namespace audio_plugin {
 
+void NotePathManager::addConditionalArc(juce::Path &path, float centreX, float centreY,
+                                        float radius, float fromRadians, float toRadians,
+                                        bool startAsNewSubPath) const {
+    const float angleDelta = std::abs(toRadians - fromRadians);
+
+    if (angleDelta >= juce::MathConstants<float>::halfPi) {
+        path.addCentredArc(centreX, centreY, radius, radius, 0.0f, fromRadians, toRadians,
+                           startAsNewSubPath);
+        return;
+    }
+
+    const float sagitta = radius * (1.0f - std::cos(angleDelta * 0.5f));
+
+    if (sagitta > MAX_VISUAL_DEVIATION) {
+        path.addCentredArc(centreX, centreY, radius, radius, 0.0f, fromRadians, toRadians,
+                           startAsNewSubPath);
+    } else {
+        float startX = centreX + radius * std::sin(fromRadians);
+        float startY = centreY - radius * std::cos(fromRadians);
+
+        float endX = centreX + radius * std::sin(toRadians);
+        float endY = centreY - radius * std::cos(toRadians);
+
+        if (startAsNewSubPath || path.isEmpty()) {
+            path.startNewSubPath(startX, startY);
+        } else {
+            path.lineTo(startX, startY);
+        }
+        path.lineTo(endX, endY);
+    }
+}
+
 juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                                                float noteRoundCoef) const {
     constexpr float x1 = 0;
@@ -10,8 +42,6 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
     const float y2 = y1 - dy;
 
     const float r = noteRoundCoef * juce::jmin(h, w) * 0.5f;
-    const float maxR = juce::jmin(h, w) * 0.5f;
-    constexpr float tol = 1.0f / MAX_PX_SCALE;
 
     constexpr float pi = juce::MathConstants<float>::pi;
     constexpr float halfPi = juce::MathConstants<float>::halfPi;
@@ -24,7 +54,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
         // make vertical rectangle
         if (dy == 0) {
             // no bend (y1 == y2)
-            if (maxR - r < tol) {
+            if (noteRoundCoef > 0.99f) {
                 // full rounding (top & bottom)
                 const juce::Point<float> v0 = {x1 + halfW, y1 - halfH + halfW}; // top circle
                 const juce::Point<float> v1 = {x2 - halfW, y1 + halfH - halfW}; // bot circle
@@ -32,7 +62,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                 path.addCentredArc(v0.getX(), v0.getY(), halfW, halfW, 0, -halfPi, halfPi, true);
                 path.addCentredArc(v1.getX(), v1.getY(), halfW, halfW, 0, halfPi, pi + halfPi);
                 path.closeSubPath();
-            } else if (r < tol) {
+            } else if (r < TOL_RADIUS) {
                 // no rounding
                 path.startNewSubPath(x1, y1 - halfH); // top-left corner
                 path.lineTo(x2, y1 - halfH);          // top-right corner
@@ -54,7 +84,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
             }
         } else if (dy < 0) {
             // negative bend
-            if (maxR - r < tol) {
+            if (noteRoundCoef > 0.99f) {
                 // full rounding (top & bottom)
                 const juce::Point<float> v0 = {x1 + halfW, y1 - halfH + halfW}; // top circle
                 const juce::Point<float> v1 = {x2 - halfW, y2 + halfH - halfW}; // bot circle
@@ -62,7 +92,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                 path.addCentredArc(v0.getX(), v0.getY(), halfW, halfW, 0, -halfPi, halfPi, true);
                 path.addCentredArc(v1.getX(), v1.getY(), halfW, halfW, 0, halfPi, pi + halfPi);
                 path.closeSubPath();
-            } else if (r < tol) {
+            } else if (r < TOL_RADIUS) {
                 // edges rounding (top & bottom)
                 const juce::Point<float> v0 = {x1, y1 + halfH}; // bot-left corner/circle
                 const juce::Point<float> v1 = {x2, y2 - halfH}; // top-right corner/circle
@@ -71,16 +101,16 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                     const float g = v0.getDistanceFrom(v1); // dist between v0 and v1
                     const float alpha = std::acos(w / g) + std::acos(h / g);
 
-                    path.addCentredArc(v0.getX(), v0.getY(), h, h, 0, 0, halfPi - alpha, true);
+                    addConditionalArc(path, v0.getX(), v0.getY(), h, 0, halfPi - alpha, true);
                     path.lineTo(v1);
-                    path.addCentredArc(v1.getX(), v1.getY(), h, h, 0, pi, pi + halfPi - alpha);
+                    addConditionalArc(path, v1.getX(), v1.getY(), h, pi, pi + halfPi - alpha);
                     path.lineTo(v0);
                     path.closeSubPath();
                 } else {
                     const float alpha = std::acos(w / h);
 
-                    path.addCentredArc(v0.getX(), v0.getY(), h, h, 0, 0, halfPi - alpha, true);
-                    path.addCentredArc(v1.getX(), v1.getY(), h, h, 0, pi, pi + halfPi - alpha);
+                    addConditionalArc(path, v0.getX(), v0.getY(), h, 0, halfPi - alpha, true);
+                    addConditionalArc(path, v1.getX(), v1.getY(), h, pi, pi + halfPi - alpha);
                     path.closeSubPath();
                 }
             } else {
@@ -96,29 +126,27 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                     const float alpha = std::acos((h - 2 * r) / g) + std::acos((w - 2 * r) / g);
 
                     path.addCentredArc(v0.getX(), v0.getY(), r, r, 0, -halfPi, 0, true);
-                    path.addCentredArc(v1.getX(), v1.getY(), h - r, h - r, 0, 0, halfPi - alpha);
-                    path.addCentredArc(v3.getX(), v3.getY(), r, r, 0, halfPi - alpha, halfPi);
+                    addConditionalArc(path, v1.getX(), v1.getY(), h - r, 0, halfPi - alpha);
+                    addConditionalArc(path, v3.getX(), v3.getY(), r, halfPi - alpha, halfPi);
                     path.addCentredArc(v2.getX(), v2.getY(), r, r, 0, halfPi, pi);
-                    path.addCentredArc(v3.getX(), v3.getY(), h - r, h - r, 0, pi,
-                                       pi + halfPi - alpha);
-                    path.addCentredArc(v1.getX(), v1.getY(), r, r, 0, pi + halfPi - alpha,
-                                       pi + halfPi);
+                    addConditionalArc(path, v3.getX(), v3.getY(), h - r, pi, pi + halfPi - alpha);
+                    addConditionalArc(path, v1.getX(), v1.getY(), r, pi + halfPi - alpha,
+                                      pi + halfPi);
                     path.closeSubPath();
                 } else {
                     // 2 corners & parts of top and bot edges
                     const float alpha = std::acos((w - r) / (h - r));
 
                     path.addCentredArc(v0.getX(), v0.getY(), r, r, 0, -halfPi, 0, true);
-                    path.addCentredArc(v1.getX(), v1.getY(), h - r, h - r, 0, 0, halfPi - alpha);
+                    addConditionalArc(path, v1.getX(), v1.getY(), h - r, 0, halfPi - alpha);
                     path.addCentredArc(v2.getX(), v2.getY(), r, r, 0, halfPi, pi);
-                    path.addCentredArc(v3.getX(), v3.getY(), h - r, h - r, 0, pi,
-                                       pi + halfPi - alpha);
+                    addConditionalArc(path, v3.getX(), v3.getY(), h - r, pi, pi + halfPi - alpha);
                     path.closeSubPath();
                 }
             }
         } else {
             // positive bend
-            if (maxR - r < tol) {
+            if (noteRoundCoef > 0.99f) {
                 // full rounding (top & bottom)
                 const juce::Point<float> v0 = {x1 + halfW, y2 - halfH + halfW}; // top circle
                 const juce::Point<float> v1 = {x2 - halfW, y1 + halfH - halfW}; // bot circle
@@ -126,7 +154,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                 path.addCentredArc(v0.getX(), v0.getY(), halfW, halfW, 0, -halfPi, halfPi, true);
                 path.addCentredArc(v1.getX(), v1.getY(), halfW, halfW, 0, halfPi, pi + halfPi);
                 path.closeSubPath();
-            } else if (r < tol) {
+            } else if (r < TOL_RADIUS) {
                 // edges rounding (top & bottom)
                 const juce::Point<float> v0 = {x2, y2 + halfH}; // bot-right corner/circle
                 const juce::Point<float> v1 = {x1, y1 - halfH}; // top=left corner/circle
@@ -135,16 +163,16 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                     const float g = v0.getDistanceFrom(v1);
                     const float alpha = std::acos(w / g) + std::acos(h / g);
 
-                    path.addCentredArc(v0.getX(), v0.getY(), h, h, 0, 0, alpha - halfPi, true);
+                    addConditionalArc(path, v0.getX(), v0.getY(), h, 0, alpha - halfPi, true);
                     path.lineTo(v1);
-                    path.addCentredArc(v1.getX(), v1.getY(), h, h, 0, pi, halfPi + alpha);
+                    addConditionalArc(path, v1.getX(), v1.getY(), h, pi, halfPi + alpha);
                     path.lineTo(v0);
                     path.closeSubPath();
                 } else {
                     float alpha = std::acos(w / h);
 
-                    path.addCentredArc(v0.getX(), v0.getY(), h, h, 0, 0, alpha - halfPi, true);
-                    path.addCentredArc(v1.getX(), v1.getY(), h, h, 0, pi, halfPi + alpha);
+                    addConditionalArc(path, v0.getX(), v0.getY(), h, 0, alpha - halfPi, true);
+                    addConditionalArc(path, v1.getX(), v1.getY(), h, pi, halfPi + alpha);
                     path.closeSubPath();
                 }
             } else {
@@ -160,23 +188,21 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                     const float alpha = std::acos((h - 2 * r) / g) + std::acos((w - 2 * r) / g);
 
                     path.addCentredArc(v3.getX(), v3.getY(), r, r, 0, halfPi, 0, true);
-                    path.addCentredArc(v2.getX(), v2.getY(), h - r, h - r, 0, 0, alpha - halfPi);
-                    path.addCentredArc(v0.getX(), v0.getY(), r, r, 0, alpha - halfPi, -halfPi);
+                    addConditionalArc(path, v2.getX(), v2.getY(), h - r, 0, alpha - halfPi);
+                    addConditionalArc(path, v0.getX(), v0.getY(), r, alpha - halfPi, -halfPi);
                     path.addCentredArc(v1.getX(), v1.getY(), r, r, 0, -halfPi, -pi);
-                    path.addCentredArc(v0.getX(), v0.getY(), h - r, h - r, 0, -pi,
-                                       -pi - halfPi + alpha);
-                    path.addCentredArc(v2.getX(), v2.getY(), r, r, 0, -pi - halfPi + alpha,
-                                       -pi - halfPi);
+                    addConditionalArc(path, v0.getX(), v0.getY(), h - r, -pi, -pi - halfPi + alpha);
+                    addConditionalArc(path, v2.getX(), v2.getY(), r, -pi - halfPi + alpha,
+                                      -pi - halfPi);
                     path.closeSubPath();
                 } else {
                     // 2 corners & parts of top and bot edges
                     const float alpha = std::acos((w - r) / (h - r));
 
                     path.addCentredArc(v3.getX(), v3.getY(), r, r, 0, halfPi, 0, true);
-                    path.addCentredArc(v2.getX(), v2.getY(), h - r, h - r, 0, 0, alpha - halfPi);
+                    addConditionalArc(path, v2.getX(), v2.getY(), h - r, 0, alpha - halfPi);
                     path.addCentredArc(v1.getX(), v1.getY(), r, r, 0, -halfPi, -pi);
-                    path.addCentredArc(v0.getX(), v0.getY(), h - r, h - r, 0, -pi,
-                                       -pi - halfPi + alpha);
+                    addConditionalArc(path, v0.getX(), v0.getY(), h - r, -pi, -pi - halfPi + alpha);
                     path.closeSubPath();
                 }
             }
@@ -184,12 +210,12 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
     } else if (dy == 0) {
         // make horizontal rectangle
         // no bend (y1 == y2)
-        if (maxR - r < tol) {
+        if (noteRoundCoef > 0.99f) {
             // full rounding (left & right)
             path.addCentredArc(x1 + halfH, y1, halfH, halfH, 0, pi, twoPi, true); // left circle
             path.addCentredArc(x2 - halfH, y1, halfH, halfH, 0, 0, pi);           // right circle
             path.closeSubPath();
-        } else if (r < tol) {
+        } else if (r < TOL_RADIUS) {
             // no rounding
             path.startNewSubPath(x1, y1 - halfH); // top-left corner
             path.lineTo(x2, y1 - halfH);          // top-right corner
@@ -214,7 +240,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
         if (dy < 0) {
             // negative bend
             dy = -dy;
-            if (maxR - r < tol) {
+            if (noteRoundCoef > 0.99f) {
                 // full rounding (left & right)
                 const juce::Point<float> v0 = {x1 + halfH, y1}; // left circle
                 const juce::Point<float> v1 = {x2 - halfH, y2}; // right circle
@@ -225,7 +251,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                                    true);
                 path.addCentredArc(v1.getX(), v1.getY(), halfH, halfH, 0, alpha, pi + alpha);
                 path.closeSubPath();
-            } else if (r < tol) {
+            } else if (r < TOL_RADIUS) {
                 // no rounding (but parts of top & bot edges)
                 const juce::Point<float> v0 = {x1, y1 + halfH}; // bot-left corner & circle
                 const juce::Point<float> v1 = {x2, y2 - halfH}; // top-right corner & circle
@@ -233,9 +259,9 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                 const float g = v0.getDistanceFrom(v1);
                 const float alpha = v0.getAngleToPoint(v1) - std::acos(h / g);
 
-                path.addCentredArc(v0.getX(), v0.getY(), h, h, 0, 0, alpha, true);
+                addConditionalArc(path, v0.getX(), v0.getY(), h, 0, alpha, true);
                 path.lineTo(v1.getX(), v1.getY());
-                path.addCentredArc(v1.getX(), v1.getY(), h, h, 0, pi, pi + alpha);
+                addConditionalArc(path, v1.getX(), v1.getY(), h, pi, pi + alpha);
                 path.lineTo(v0.getX(), v0.getY());
                 path.closeSubPath();
             } else {
@@ -249,16 +275,16 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                 const float alpha = v3.getAngleToPoint(v1) - std::acos((h - 2 * r) / g);
 
                 path.addCentredArc(v0.getX(), v0.getY(), r, r, 0, -halfPi, 0, true);
-                path.addCentredArc(v3.getX(), v3.getY(), h - r, h - r, 0, 0, alpha);
-                path.addCentredArc(v1.getX(), v1.getY(), r, r, 0, alpha, halfPi);
+                addConditionalArc(path, v3.getX(), v3.getY(), h - r, 0, alpha);
+                addConditionalArc(path, v1.getX(), v1.getY(), r, alpha, halfPi);
                 path.addCentredArc(v2.getX(), v2.getY(), r, r, 0, halfPi, pi);
-                path.addCentredArc(v1.getX(), v1.getY(), h - r, h - r, 0, pi, pi + alpha);
-                path.addCentredArc(v3.getX(), v3.getY(), r, r, 0, pi + alpha, pi + halfPi);
+                addConditionalArc(path, v1.getX(), v1.getY(), h - r, pi, pi + alpha);
+                addConditionalArc(path, v3.getX(), v3.getY(), r, pi + alpha, pi + halfPi);
                 path.closeSubPath();
             }
         } else {
             // positive bend
-            if (maxR - r < tol) {
+            if (noteRoundCoef > 0.99f) {
                 // full rounding (left & right)
                 const juce::Point<float> v0 = {x1 + halfH, y1}; // left circle
                 const juce::Point<float> v1 = {x2 - halfH, y2}; // right circle
@@ -269,7 +295,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                                    true);
                 path.addCentredArc(v1.getX(), v1.getY(), halfH, halfH, 0, alpha, pi + alpha);
                 path.closeSubPath();
-            } else if (r < tol) {
+            } else if (r < TOL_RADIUS) {
                 // no rounding (but parts of top & bot edges)
                 const juce::Point<float> v0 = {x2, y2 + halfH}; // bot-right corner & circle
                 const juce::Point<float> v1 = {x1, y1 - halfH}; // top-left corner & circle
@@ -277,9 +303,9 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                 const float g = v0.getDistanceFrom(v1);
                 const float alpha = v0.getAngleToPoint(v1) + std::acos(h / g);
 
-                path.addCentredArc(v0.getX(), v0.getY(), h, h, 0, 0, alpha, true);
+                addConditionalArc(path, v0.getX(), v0.getY(), h, 0, alpha, true);
                 path.lineTo(v1.getX(), v1.getY());
-                path.addCentredArc(v1.getX(), v1.getY(), h, h, 0, pi, pi + alpha);
+                addConditionalArc(path, v1.getX(), v1.getY(), h, pi, pi + alpha);
                 path.lineTo(v0.getX(), v0.getY());
                 path.closeSubPath();
             } else {
@@ -293,11 +319,11 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
                 const float alpha = v2.getAngleToPoint(v0) + std::acos((h - 2 * r) / g);
 
                 path.addCentredArc(v1.getX(), v1.getY(), r, r, 0, halfPi, 0, true);
-                path.addCentredArc(v2.getX(), v2.getY(), h - r, h - r, 0, 0, alpha);
-                path.addCentredArc(v0.getX(), v0.getY(), r, r, 0, alpha, -halfPi);
+                addConditionalArc(path, v2.getX(), v2.getY(), h - r, 0, alpha);
+                addConditionalArc(path, v0.getX(), v0.getY(), r, alpha, -halfPi);
                 path.addCentredArc(v3.getX(), v3.getY(), r, r, 0, -halfPi, -pi);
-                path.addCentredArc(v0.getX(), v0.getY(), h - r, h - r, 0, -pi, -pi + alpha);
-                path.addCentredArc(v2.getX(), v2.getY(), r, r, 0, -pi + alpha, -pi - halfPi);
+                addConditionalArc(path, v0.getX(), v0.getY(), h - r, -pi, -pi + alpha);
+                addConditionalArc(path, v2.getX(), v2.getY(), r, -pi + alpha, -pi - halfPi);
                 path.closeSubPath();
             }
         }
@@ -312,29 +338,24 @@ juce::Path NotePathManager::getPath(const Note &note, float barWidthPx, float oc
     CacheKey key{durationScaledPx, note.bend};
 
     auto it = cache.find(key);
-    juce::Path canonical;
-    if (it != cache.end()) {
-        // Get canonical path from cache
-        canonical = it->second;
-    } else {
-        // Create canonical path
-        canonical =
-            buildCanonicalPath(note.duration * barWidthPx, note.bend / 1200.0f * octaveHeightPx,
-                               noteHeight, noteRoundCoef);
 
-        // if the cache is full, then free it up
+    if (it == cache.end()) {
         if (cache.size() >= MAX_CACHE_SIZE) {
             cache.clear();
         }
 
-        // Insert it to cache
-        cache[key] = canonical;
+        juce::Path canonical =
+            buildCanonicalPath(note.duration * barWidthPx, note.bend / 1200.0f * octaveHeightPx,
+                               noteHeight, noteRoundCoef);
+
+        auto insertion = cache.emplace(key, std::move(canonical));
+        it = insertion.first;
     }
 
-    // Translate canonical path
     const float x1 = note.time * barWidthPx;
     const float y1 = (numOctaves - note.octave - note.cents / 1200.0f) * octaveHeightPx;
-    juce::Path result = canonical;
+
+    juce::Path result(it->second);
     result.applyTransform(juce::AffineTransform::translation(x1, y1));
 
     return result;

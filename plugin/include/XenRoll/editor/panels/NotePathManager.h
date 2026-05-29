@@ -19,8 +19,13 @@ class NotePathManager {
   private:
     const int numOctaves;
 
-    ///< Is used to scale duration in CacheKey & to round corner radius in path (tol)
+    ///< Is used to scale duration in CacheKey
     static constexpr float MAX_PX_SCALE = 4.0f;
+    ///< Minimum rounding radius
+    static constexpr float TOL_RADIUS = 1.8f;
+    ///< If arc has angle < 90° and sagitta less than this, then just draw a line instead
+    static constexpr float MAX_VISUAL_DEVIATION = 0.4f;
+
     static constexpr size_t MAX_CACHE_SIZE = 1000; // 1000 elements = ~0.5 Mb total
 
     ///< Cache key, contains only params that affect the shape of note
@@ -55,6 +60,10 @@ class NotePathManager {
      * @return juce::Path Canonical path
      */
     juce::Path buildCanonicalPath(float w, float dy, float h, float noteRoundCoef) const;
+
+    void addConditionalArc(juce::Path &path, float centreX, float centreY, float radius,
+                           float fromRadians, float toRadians,
+                           bool startAsNewSubPath = false) const;
 };
 
 } // namespace audio_plugin

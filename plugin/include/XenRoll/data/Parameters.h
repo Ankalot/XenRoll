@@ -52,6 +52,9 @@ class Parameters {
     static constexpr float max_bar_width_px = 4000.0f;
     static constexpr float max_octave_height_px = 5000.0f;
     static constexpr float max_note_height_scale = 2.0f;
+    static constexpr float min_subdiv_width_px = 4.0f; // for drawing subdiv lines
+    static constexpr float min_beat_width_px = 6.0f;   // for drawing beat lines
+    static constexpr float min_bar_width_px = 30.0f;   // for drawing bar lines
     // ===== Vocal to melody =====
     static constexpr float minVocalVolume_dB = -60.0f;
     static constexpr float maxVocalVolume_dB = 0.0f;

@@ -205,7 +205,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     std::mutex mptcMtx;
 
     juce::Font bendFont;
-    std::unordered_map<juce::String, juce::Path> outlinedTextPathCache;
+    std::unordered_map<size_t, juce::Path> outlinedTextPathCache;
     static constexpr int OUTLINED_TEXT_CACHE_MAX_SIZE = 150;
 
     PitchMemoryResults pitchMemoryResults = {{}, {}};
@@ -293,6 +293,11 @@ class MainPanel : public juce::Component, public juce::KeyListener {
      */
     void updateLayout();
 
+    float getNotesHeight(); ///< in pixels
+
+    ///< For fast check if we need to draw note in paint()
+    juce::Rectangle<float> getNoteBounds(const Note &note);
+
     /**
      * @brief Get the path for drawing a note
      * @param note Note to get path for
@@ -344,7 +349,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void pitchCorrectRatioMarksBasedOnSelNotes();
     void timeCorrectRatioMarksBasedOnSelNotes(float dtime);
 
-    int totalCentsToY(int totalCents);
+    float totalCentsToY(int totalCents);
 
     void restoreState();
 

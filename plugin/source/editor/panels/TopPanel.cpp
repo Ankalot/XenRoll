@@ -156,22 +156,25 @@ void TopPanel::paint(juce::Graphics &g) {
 
     // Bars
     g.setColour(params->theme.darkest);
-    int bar_i_start = static_cast<int>(clipX / bar_width_px);
-    int bar_i_end =
-        std::min(static_cast<int>((clipX + clipWidth) / bar_width_px) + 1, params->get_num_bars());
-    for (int i = bar_i_start; i <= bar_i_end; ++i) {
+    int barStep = std::ceil(params->min_bar_width_px / bar_width_px);
+    int bar_i_start = (static_cast<int>(clipX / bar_width_px) / barStep) * barStep;
+    int rawEnd = std::ceil((clipX + clipWidth) / bar_width_px);
+    int alignedEnd = ((rawEnd + barStep - 1) / barStep) * barStep;
+    int bar_i_end = juce::jmin(alignedEnd, params->get_num_bars());
+    const float barLineThickness = juce::jmax(1.0f, adaptSize(Theme::wide));
+    for (int i = bar_i_start; i <= bar_i_end; i += barStep) {
         float xPos = i * bar_width_px;
-        g.drawLine(xPos, 0.0f, xPos, static_cast<float>(topPanel_height_px),
-                   adaptSize(Theme::wide));
+        g.drawLine(xPos, 0.0f, xPos, static_cast<float>(topPanel_height_px), barLineThickness);
     }
 
     // Bar number
     g.setFont(adaptFont(Theme::big));
-    for (int i = bar_i_start; i < bar_i_end; ++i) {
+    const int barNumOffset = juce::roundToInt(adaptFont(6.0f));
+    for (int i = bar_i_start; i < bar_i_end; i += barStep) {
         int xPos = juce::roundToInt(i * bar_width_px);
         g.drawText(juce::String(i + 1),
-                   juce::Rectangle<int>(xPos + static_cast<int>(adaptSize(10.0f)), 0,
-                                        static_cast<int>(bar_width_px - adaptSize(10.0f)),
+                   juce::Rectangle<int>(xPos + barNumOffset, 0,
+                                        static_cast<int>(barStep * bar_width_px) - barNumOffset,
                                         topPanel_height_px),
                    juce::Justification::centredLeft, false);
     }
