@@ -155,6 +155,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool wasMovingRatioMark = false;
     ///< for bending not up to keys! no "bend key snap"
     bool wasBending = false;
+    ///< for changing velocity using mouse scroll
+    bool wasVelocityChanging = false;
     ///< for small timestep change from keyboard only (left/right arrows & no time snap)
     bool wasTimeChanging = false;
     bool wasPitchChanging = false; ///< for ±1¢ from keyboard only (up/down arrows & no key snap)
@@ -247,6 +249,11 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     int needToUnselectThisNote = -1;
     bool needToUnselectThisNote_Ctrl = false;
     float vertMoveSlowCoef = 0.2f;
+
+    ///< is changed inside showOrUpdateVelocityPanel() and hideVelocityPanel() only!
+    bool isShowingVelocityPanel = false;
+    void showOrUpdateVelocityPanel();
+    void hideVelocityPanel();
 
     // ============================= VOCAL TO MELODY =============================
     std::vector<Note> vocalNotes;

@@ -348,8 +348,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     const std::vector<Note> &getNotes() { return processorRef.getNotes(); }
 
-    void showVelocityPanel(float initVel) {
-        velocityPanel->setVelocity(initVel);
+    void showVelocityPanel(float minVel, float maxVel) {
+        velocityPanel->setVelocityRange(minVel, maxVel);
         velocityPanel->setVisible(true);
     }
 
@@ -386,6 +386,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
         mainViewport->updateColors();
         helpViewport->updateColors();
         pitchMemorySettingsPanel->updateColors();
+        velocityPanel->updateColors();
         sendLookAndFeelChange();
     }
 
@@ -543,7 +544,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     bool wasPlayingRMPN = false;
     // ===========================================
 
-    const int velocity_width_px = 120;
+    const int velocity_width_px = 200;
     const int velocity_height_px = 40;
     const int velocity_bot_gap_px = 20;
 

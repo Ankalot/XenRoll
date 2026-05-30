@@ -739,6 +739,9 @@ void MainPanel::randomizeSelectedNotesVelocity() {
 
     saveState();
     editor->updateNotes(notes);
+    if (isShowingVelocityPanel) {
+        showOrUpdateVelocityPanel();
+    }
     repaint();
 }
 
@@ -918,6 +921,7 @@ std::pair<int, int> MainPanel::keyDown(int octave, int cents) const {
 
 void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
                                const juce::MouseWheelDetails &wheel) {
+    // Bending selected notes
     if (event.mods.isAltDown()) {
         bool bended = false;
         if (event.mods.isCtrlDown()) {
@@ -977,7 +981,6 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
             bended = true;
             saveState();
         } else {
-            wasBending = true;
             int multiplier = 1;
             if (event.mods.isShiftDown()) {
                 multiplier = 10;
@@ -1004,6 +1007,22 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
             editor->updateNotes(notes);
             repaint();
         }
+        return;
+    }
+
+    // Changing velocity of selected notes
+    if (event.mods.isShiftDown()) {
+        const float dvel = 4.0f / 127;
+        const float dVelocity = wheel.deltaY > 0 ? dvel : -dvel;
+        for (Note &note : notes) {
+            if (note.isSelected) {
+                note.velocity = juce::jlimit(0.0f, 1.0f, note.velocity + dVelocity);
+            }
+        }
+        editor->updateNotes(notes);
+        wasVelocityChanging = true;
+        showOrUpdateVelocityPanel();
+        repaint();
         return;
     }
 
@@ -1101,6 +1120,24 @@ bool MainPanel::lineIntersectsRatioMark(const RatioMark &ratioMark, const juce::
     return ratioMarkRectangle.intersects(line.toFloat());
 }
 
+void MainPanel::showOrUpdateVelocityPanel() {
+    isShowingVelocityPanel = true;
+    float minVel = 1.0f;
+    float maxVel = 0.0f;
+    for (const Note &note : notes) {
+        if (note.isSelected) {
+            minVel = juce::jmin(note.velocity, minVel);
+            maxVel = juce::jmax(note.velocity, maxVel);
+        }
+    }
+    editor->showVelocityPanel(minVel, maxVel);
+}
+
+void MainPanel::hideVelocityPanel() {
+    isShowingVelocityPanel = false;
+    editor->hideVelocityPanel();
+}
+
 // Isn't called if already dragging
 void MainPanel::mouseDown(const juce::MouseEvent &event) {
     grabKeyboardFocus();
@@ -1112,10 +1149,19 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             for (int i = static_cast<int>(notes.size() - 1); i >= 0; --i) {
                 juce::Path notePath = getNotePath(notes[i]);
                 if (notePath.contains(point.toFloat())) {
-                    // Show velocity panel
-                    notes[i].isSelected = true;
-                    editor->showVelocityPanel(notes[i].velocity);
-                    repaint();
+                    // Show or hide velocity panel
+                    if (notes[i].isSelected) {
+                        if (isShowingVelocityPanel) {
+                            hideVelocityPanel();
+                        } else {
+                            showOrUpdateVelocityPanel();
+                        }
+                    } else {
+                        unselectAllNotes();
+                        notes[i].isSelected = true;
+                        showOrUpdateVelocityPanel();
+                        repaint();
+                    }
                     return;
                 }
             }
@@ -1163,6 +1209,9 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                     }
                     notes[i].isSelected = true;
                     repaint();
+                    if (isShowingVelocityPanel) {
+                        showOrUpdateVelocityPanel();
+                    }
                     setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
 
                     if (event.mods.isAltDown()) {
@@ -1230,6 +1279,9 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                         }
                     }
                     notes[i].isSelected = true;
+                    if (isShowingVelocityPanel) {
+                        showOrUpdateVelocityPanel();
+                    }
                     repaint();
                 }
 
@@ -1268,7 +1320,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         unselectAllNotes();
         if (thereAreSelNotes) {
             repaint();
-            editor->hideVelocityPanel();
+            hideVelocityPanel();
             return;
         }
 
@@ -1360,24 +1412,33 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             return;
         }
 
+        juce::Point<float> pointFloat = point.toFloat();
+        int numNotes = static_cast<int>(notes.size());
+        // we start iterating with the newest notes
+        for (int i = numNotes - 1; i >= 0; --i) {
+            juce::Path notePath = getNotePath(notes[i]);
+            if (notePath.contains(pointFloat)) {
+                // Delete note under cursor
+                deleteNote(i);
+                saveState();
+                editor->updateNotes(notes);
+                if (isShowingVelocityPanel) {
+                    if (thereAreSelectedNotes()) {
+                        showOrUpdateVelocityPanel();
+                    } else {
+                        hideVelocityPanel();
+                    }
+                }
+                repaint();
+                return;
+            }
+        }
+
         // Is selecting
         isSelecting = true;
         // Start rectangular selection
         selectStartPoint = point;
         selectLastPoint = point;
-        juce::Point<float> pointFloat = point.toFloat();
-        // we start iterating with the newest notes
-        int numNotes = static_cast<int>(notes.size());
-        for (int i = numNotes - 1; i >= 0; --i) {
-            juce::Path notePath = getNotePath(notes[i]);
-            if (notePath.contains(pointFloat)) {
-                deleteNote(i);
-                saveState();
-                editor->updateNotes(notes);
-                repaint();
-                return;
-            }
-        }
     }
 }
 
@@ -1854,6 +1915,9 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
             notes[needToUnselectAllNotesExcept].isSelected = true;
         }
         needToUnselectAllNotesExcept = -1;
+        if (isShowingVelocityPanel) {
+            showOrUpdateVelocityPanel();
+        }
     } else if (needToUnselectThisNote != -1) {
         // need to check because user could press "Del" while moving notes
         if (needToUnselectThisNote < notes.size()) {
@@ -1869,6 +1933,13 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
             }
         }
         needToUnselectThisNote = -1;
+        if (isShowingVelocityPanel) {
+            if (thereAreSelectedNotes()) {
+                showOrUpdateVelocityPanel();
+            } else {
+                hideVelocityPanel();
+            }
+        }
     }
 
     if (isAuditioning) {
@@ -1880,12 +1951,21 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
         if (!event.mods.isShiftDown()) {
             unselectAllNotes();
         }
+        int numSelNotes = 0;
         juce::Rectangle<int> selectionRect = juce::Rectangle(selectStartPoint, selectLastPoint);
-        for (int i = 0; i < notes.size(); ++i) {
-            juce::Path notePath = getNotePath(notes[i]);
+        for (Note &note : notes) {
+            juce::Path notePath = getNotePath(note);
             if (doesPathIntersectRect(notePath, selectionRect.toFloat())) {
-                notes[i].isSelected = true;
+                note.isSelected = true;
             }
+            if (note.isSelected) {
+                numSelNotes++;
+            }
+        }
+        if (numSelNotes == 0) {
+            hideVelocityPanel();
+        } else if (isShowingVelocityPanel) {
+            showOrUpdateVelocityPanel();
         }
         isSelecting = false;
     }
@@ -2372,7 +2452,7 @@ void MainPanel::restoreState() {
         editor->changeNumBars(restoredNumBars);
     }
     unselectAllNotes();
-    editor->hideVelocityPanel();
+    hideVelocityPanel();
     remakeKeys();
     editor->updateNotes(notes);
     repaint();
@@ -2417,6 +2497,9 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     // select all notes
     if (key == juce::KeyPress('a', juce::ModifierKeys::commandModifier, 0)) {
         selectAllNotes();
+        if (isShowingVelocityPanel) {
+            showOrUpdateVelocityPanel();
+        }
         return true;
     }
 
@@ -2424,7 +2507,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     if (key == juce::KeyPress::escapeKey) {
         unselectAllNotes();
         repaint();
-        editor->hideVelocityPanel();
+        hideVelocityPanel();
         return true;
     }
 
@@ -2440,6 +2523,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         }
         saveState();
         editor->updateNotes(notes);
+        hideVelocityPanel();
         repaint();
         return true;
     }
@@ -2459,7 +2543,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     // paste copied notes
     if (key == juce::KeyPress('v', juce::ModifierKeys::commandModifier, 0)) {
         unselectAllNotes();
-        editor->hideVelocityPanel();
+        hideVelocityPanel();
         bool needGenNewKeys = false;
         bool needUpdateKeys = false;
         for (int i = 0; i < copiedNotes.size(); ++i) {
@@ -2826,6 +2910,13 @@ void MainPanel::modifierKeysChanged(const juce::ModifierKeys &modifiers) {
     if (wasBending && !modifiers.isAltDown()) {
         wasBending = false;
         saveState();
+        return;
+    }
+
+    if (wasVelocityChanging && !modifiers.isShiftDown()) {
+        wasVelocityChanging = false;
+        saveState();
+        return;
     }
 }
 
@@ -3023,6 +3114,13 @@ void MainPanel::updateNotes(const std::vector<Note> &new_notes) {
     }
     notes = new_notes;
     remakeKeys();
+    if (isShowingVelocityPanel) {
+        if (thereAreSelectedNotes()) {
+            showOrUpdateVelocityPanel();
+        } else {
+            hideVelocityPanel();
+        }
+    }
     repaint();
 }
 
@@ -3040,6 +3138,13 @@ void MainPanel::addRecordedNotes(const std::vector<Note> &recordedNotes) {
     remakeKeys();
     saveState();
     editor->showMessage("Recorded " + juce::String(numAddedNotes) + " notes!");
+    if (isShowingVelocityPanel) {
+        if (thereAreSelectedNotes()) {
+            showOrUpdateVelocityPanel();
+        } else {
+            hideVelocityPanel();
+        }
+    }
 }
 
 void MainPanel::updateVocalNotes(const std::vector<Note> &newVocalNotes) {
@@ -3084,11 +3189,20 @@ void MainPanel::createNotesFromGhostNotes() {
     if (!params->showGhostNotesKeys) {
         remakeKeys();
     }
+    if (isShowingVelocityPanel) {
+        if (thereAreSelectedNotes()) {
+            showOrUpdateVelocityPanel();
+        } else {
+            hideVelocityPanel();
+        }
+    }
     saveState();
     repaint();
 }
 
 void MainPanel::setVelocitiesOfSelectedNotes(float vel) {
+    // Is called from velocity panel, so no need to call 
+    // showOrUpdateVelocityPanel()
     for (Note &note : notes) {
         if (note.isSelected) {
             note.velocity = vel;
