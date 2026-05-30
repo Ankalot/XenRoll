@@ -150,8 +150,6 @@ void SmallLookAndFeel::drawButtonBackground(juce::Graphics &g, juce::Button &but
 
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor &p)
     : AudioProcessorEditor(&p), processorRef(p) {
-    openGLContext.setComponentPaintingEnabled(true);
-    openGLContext.attachTo(*this);
 
     fontLF = std::make_unique<FontLookAndFeel>();
     juce::LookAndFeel_V4::setDefaultLookAndFeel(fontLF.get());
@@ -713,7 +711,6 @@ AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
     processorRef.params.editorWidth = getWidth();
     processorRef.params.editorHeight = getHeight();
     setLookAndFeel(nullptr);
-    openGLContext.detach();
 }
 
 void AudioPluginAudioProcessorEditor::reconnectOSCSender() {

@@ -38,15 +38,17 @@ void LeftPanel::paint(juce::Graphics &g) {
 
     // octaves
     g.setColour(params->theme.darkest);
+    const float adaptedWide = adaptSize(Theme::wide);
     for (int i = 0; i <= params->num_octaves; ++i) {
         float yPos = i * octave_height_px;
-        g.drawLine(0, yPos, 40, yPos, adaptSize(Theme::wide));
+        g.drawLine(0, yPos, 40, yPos, adaptedWide);
         g.drawLine(static_cast<float>(leftPanel_width_px - 20), yPos,
-                   static_cast<float>(leftPanel_width_px), yPos, adaptSize(Theme::wide));
+                   static_cast<float>(leftPanel_width_px), yPos, adaptedWide);
     }
 
     // keys
     g.setFont(adaptFont(Theme::medium));
+    const float adaptedNarrow = adaptSize(Theme::narrow);
     juce::String keyText = juce::String::fromUTF8("⤬⤬⤬");
     for (int i = 0; i < params->num_octaves; ++i) {
         int j = 0;
@@ -54,7 +56,7 @@ void LeftPanel::paint(juce::Graphics &g) {
             float yPos = (i + 1.0f - key / 1200.0f) * octave_height_px;
             g.setColour(params->theme.darkest);
             g.drawLine(leftPanel_width_px - 20.0f, yPos, static_cast<float>(leftPanel_width_px),
-                       yPos, adaptSize(Theme::narrow));
+                       yPos, adaptedNarrow);
             if (params->showKeysHarmonicity) {
                 const int totalCents = key + 1200 * (params->num_octaves - i - 1);
                 if (keysHarmonicity.contains(totalCents)) {

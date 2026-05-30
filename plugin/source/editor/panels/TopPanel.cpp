@@ -132,7 +132,7 @@ void TopPanel::paint(juce::Graphics &g) {
     // Zones points
     g.setColour(params->theme.darkest);
     juce::Path trianglePath;
-    const float zpw = adaptSize(zonePoint_collision_width_px);
+    const float zpw = juce::jmax(3.0f, adaptSize(zonePoint_collision_width_px));
     for (int i = 1; i < zp.size() - 1; ++i) {
         float zp_px = zp[i] * bar_width_px;
         if ((zp_px >= clipX) && (zp_px <= clipX + clipWidth)) {

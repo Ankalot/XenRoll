@@ -155,7 +155,11 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     }
 
     void changedChannelsEconomyModeMPE() {
-        channelsManagerMPE->setEconomyMode(params.channelsEconomyModeMPE);
+        if (params.getTuningType() == Parameters::TuningType::MPE) {
+            pitchesOverflow = false;
+            editorKnowsAboutOverflow = false;
+            channelsManagerMPE->setEconomyMode(params.channelsEconomyModeMPE);
+        }
     }
 
     void startAuditioning(double newAuditionTime) {

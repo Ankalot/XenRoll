@@ -41,6 +41,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
     constexpr float y1 = 0;
     const float y2 = y1 - dy;
 
+    const float maxR = juce::jmin(h, w) * 0.5f;
     const float r = noteRoundCoef * juce::jmin(h, w) * 0.5f;
 
     constexpr float pi = juce::MathConstants<float>::pi;
@@ -54,7 +55,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
         // make vertical rectangle
         if (dy == 0) {
             // no bend (y1 == y2)
-            if (noteRoundCoef > 0.99f) {
+            if ((maxR - r < TOL_RADIUS) && (r >= TOL_RADIUS)) {
                 // full rounding (top & bottom)
                 const juce::Point<float> v0 = {x1 + halfW, y1 - halfH + halfW}; // top circle
                 const juce::Point<float> v1 = {x2 - halfW, y1 + halfH - halfW}; // bot circle
@@ -84,7 +85,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
             }
         } else if (dy < 0) {
             // negative bend
-            if (noteRoundCoef > 0.99f) {
+            if ((maxR - r < TOL_RADIUS) && (r >= TOL_RADIUS)) {
                 // full rounding (top & bottom)
                 const juce::Point<float> v0 = {x1 + halfW, y1 - halfH + halfW}; // top circle
                 const juce::Point<float> v1 = {x2 - halfW, y2 + halfH - halfW}; // bot circle
@@ -146,7 +147,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
             }
         } else {
             // positive bend
-            if (noteRoundCoef > 0.99f) {
+            if ((maxR - r < TOL_RADIUS) && (r >= TOL_RADIUS)) {
                 // full rounding (top & bottom)
                 const juce::Point<float> v0 = {x1 + halfW, y2 - halfH + halfW}; // top circle
                 const juce::Point<float> v1 = {x2 - halfW, y1 + halfH - halfW}; // bot circle
@@ -210,7 +211,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
     } else if (dy == 0) {
         // make horizontal rectangle
         // no bend (y1 == y2)
-        if (noteRoundCoef > 0.99f) {
+        if ((maxR - r < TOL_RADIUS) && (r >= TOL_RADIUS)) {
             // full rounding (left & right)
             path.addCentredArc(x1 + halfH, y1, halfH, halfH, 0, pi, twoPi, true); // left circle
             path.addCentredArc(x2 - halfH, y1, halfH, halfH, 0, 0, pi);           // right circle
@@ -240,7 +241,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
         if (dy < 0) {
             // negative bend
             dy = -dy;
-            if (noteRoundCoef > 0.99f) {
+            if ((maxR - r < TOL_RADIUS) && (r >= TOL_RADIUS)) {
                 // full rounding (left & right)
                 const juce::Point<float> v0 = {x1 + halfH, y1}; // left circle
                 const juce::Point<float> v1 = {x2 - halfH, y2}; // right circle
@@ -284,7 +285,7 @@ juce::Path NotePathManager::buildCanonicalPath(float w, float dy, float h,
             }
         } else {
             // positive bend
-            if (noteRoundCoef > 0.99f) {
+            if ((maxR - r < TOL_RADIUS) && (r >= TOL_RADIUS)) {
                 // full rounding (left & right)
                 const juce::Point<float> v0 = {x1 + halfH, y1}; // left circle
                 const juce::Point<float> v1 = {x2 - halfH, y2}; // right circle

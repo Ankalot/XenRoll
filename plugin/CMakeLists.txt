@@ -41,7 +41,7 @@ if(WIN32)
 endif()
 
 # Enable Address Sanitizer for Debug builds on Windows/MSVC
-if(WIN32 AND MSVC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+#[[if(WIN32 AND MSVC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(${PROJECT_NAME} PRIVATE /fsanitize=address)
     target_link_options(${PROJECT_NAME} PRIVATE /fsanitize=address)
 
@@ -49,7 +49,7 @@ if(WIN32 AND MSVC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(${PROJECT_NAME} PRIVATE _DISABLE_VECTOR_ANNOTATION _DISABLE_STRING_ANNOTATION)
 
     message(STATUS "Address Sanitizer is ENABLED for Debug build")
-endif()
+endif()]]
 
 # Sets the source files of the plugin project.
 set(SOURCE_FILES
@@ -186,7 +186,6 @@ target_link_libraries_system(
     juce::juce_dsp
     juce::juce_audio_formats
     juce::juce_osc
-    juce::juce_opengl
 )
 target_link_libraries(
     ${PROJECT_NAME} PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags

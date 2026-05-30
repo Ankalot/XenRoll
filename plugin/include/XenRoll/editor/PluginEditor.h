@@ -26,7 +26,6 @@
 #include "XenRoll/editor/panels/VelocityPanel.h"
 #include "XenRoll/processor/PluginProcessor.h"
 #include <juce_gui_basics/juce_gui_basics.h>
-#include <juce_opengl/juce_opengl.h>
 #include <juce_osc/juce_osc.h>
 
 namespace audio_plugin {
@@ -443,7 +442,6 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
   private:
     AudioPluginAudioProcessor &processorRef;
-    juce::OpenGLContext openGLContext;
 
     std::shared_ptr<DissonanceMeter> dissonanceMeter;
 

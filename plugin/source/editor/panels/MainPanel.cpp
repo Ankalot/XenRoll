@@ -21,6 +21,7 @@ MainPanel::MainPanel(AudioPluginAudioProcessorEditor *editor, Parameters *params
 
     addKeyListener(this);
     setWantsKeyboardFocus(true);
+    setMouseClickGrabsKeyboardFocus (true);
 
     notes = editor->getNotes();
     unselectAllNotes();
@@ -668,7 +669,20 @@ void MainPanel::paint(juce::Graphics &g) {
 
         // Num of drawn notes
         juce::String notesText = juce::String::formatted("Drawn notes: %d", numDrawnNotes);
-        g.drawText(notesText, overlayRect, juce::Justification::topRight, false);
+        g.drawText(notesText, overlayRect.removeFromTop(Theme::small_),
+                   juce::Justification::topRight, false);
+
+        // Renderer name
+        juce::String rendererName = "Software (CPU)";
+        juce::String contextType = typeid(g.getInternalContext()).name();
+        if (contextType.contains("OpenGL"))
+            rendererName = "OpenGL (GPU)";
+        else if (contextType.contains("Direct2D"))
+            rendererName = "Direct2D (GPU, Windows)";
+        else if (contextType.contains("CoreGraphics"))
+            rendererName = "CoreGraphics (CPU-bound, Mac)";
+        juce::String rendererText = "Renderer: " + rendererName;
+        g.drawText(rendererText, overlayRect, juce::Justification::topRight, false);
     }
 }
 
@@ -923,6 +937,9 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
                                const juce::MouseWheelDetails &wheel) {
     // Bending selected notes
     if (event.mods.isAltDown()) {
+        if (!thereAreSelectedNotes()) {
+            return;
+        }
         bool bended = false;
         if (event.mods.isCtrlDown()) {
             // Bending mode: snap to keys
@@ -1012,6 +1029,9 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
 
     // Changing velocity of selected notes
     if (event.mods.isShiftDown()) {
+        if (!thereAreSelectedNotes()) {
+            return;
+        }
         const float dvel = 4.0f / 127;
         const float dVelocity = wheel.deltaY > 0 ? dvel : -dvel;
         for (Note &note : notes) {
@@ -2513,6 +2533,10 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
 
     // delete selected notes
     if (key == juce::KeyPress::deleteKey) {
+        if (!thereAreSelectedNotes()) {
+            return true;
+        }
+
         int numNotes = static_cast<int>(notes.size());
         for (int i = 0; i < numNotes; ++i) {
             if (notes[i].isSelected) {
@@ -2618,6 +2642,10 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
 
     // set cents for selected notes
     if (key == juce::KeyPress::returnKey) {
+        if (!thereAreSelectedNotes()) {
+            return true;
+        }
+
         int cents = getCentsFromMessage();
         if (cents != -1) {
             cents = cents % 1200;
@@ -2649,6 +2677,10 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     // Raising/lowering selected notes by cents from input (Shift/Ctrl+Return)
     if ((key == juce::KeyPress(juce::KeyPress::returnKey, juce::ModifierKeys::shiftModifier, 0)) ||
         (key == juce::KeyPress(juce::KeyPress::returnKey, juce::ModifierKeys::ctrlModifier, 0))) {
+        if (!thereAreSelectedNotes()) {
+            return true;
+        }
+
         int dcents = getCentsFromMessage();
         if (dcents != -1) {
             const int direction = key.getModifiers().isShiftDown() ? 1 : -1;
@@ -2679,11 +2711,11 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         return true;
     }
 
-    // Moving notes horizontally (Left/Right keys, with optional Shift for large step)
+    // Moving selected notes horizontally (Left/Right keys, with optional Shift for large step)
     if ((key.getKeyCode() == juce::KeyPress::rightKey) ||
         (key.getKeyCode() == juce::KeyPress::leftKey)) {
         if (!thereAreSelectedNotes()) {
-            return false;
+            return key.getModifiers().isShiftDown();
         }
 
         const int direction = (key.getKeyCode() == juce::KeyPress::rightKey) ? 1 : -1;
@@ -2830,6 +2862,10 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     // Raising/lowering selected notes by an octave (Shift+Up/Down)
     if ((key == juce::KeyPress(juce::KeyPress::upKey, juce::ModifierKeys::shiftModifier, 0)) ||
         (key == juce::KeyPress(juce::KeyPress::downKey, juce::ModifierKeys::shiftModifier, 0))) {
+        if (!thereAreSelectedNotes()) {
+            return true;
+        }
+
         const int direction = (key.getKeyCode() == juce::KeyPress::upKey) ? 1 : -1;
 
         // Check if all notes will be inside panel
@@ -3201,7 +3237,7 @@ void MainPanel::createNotesFromGhostNotes() {
 }
 
 void MainPanel::setVelocitiesOfSelectedNotes(float vel) {
-    // Is called from velocity panel, so no need to call 
+    // Is called from velocity panel, so no need to call
     // showOrUpdateVelocityPanel()
     for (Note &note : notes) {
         if (note.isSelected) {
