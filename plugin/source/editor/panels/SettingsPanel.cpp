@@ -103,7 +103,7 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     noteRectRoundingLabel->setText("Note Rectangle Corner Rounding (!):", juce::dontSendNotification);
     noteRectRoundingLabel->setFont(settingFont);
     noteRectRoundingLabel->setTooltip(
-        "A non-zero value may cause lag when there are many notes on screen simultaneously.");
+        "A non-zero value may cause lag when there are many bent notes on screen simultaneously.");
     addAndMakeVisible(noteRectRoundingLabel.get());
 
     noteRectRoundingSlider = std::make_unique<juce::Slider>();

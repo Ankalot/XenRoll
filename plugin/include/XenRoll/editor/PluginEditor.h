@@ -54,6 +54,12 @@ class CustomLookAndFeel : public juce::LookAndFeel_V4 {
 
     void updateColors();
 
+    void drawAlertBox(juce::Graphics &g, juce::AlertWindow &alert,
+                      const juce::Rectangle<int> &textArea, juce::TextLayout &textLayout) override {
+        g.fillAll(alert.findColour(juce::AlertWindow::backgroundColourId));
+        juce::LookAndFeel_V4::drawAlertBox(g, alert, textArea, textLayout);
+    }
+
     void drawTooltip(juce::Graphics &g, const juce::String &text, int width, int height) override {
         juce::Rectangle<int> bounds(width, height);
         auto cornerSize = 5.0f;

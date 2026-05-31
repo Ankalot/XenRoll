@@ -302,15 +302,22 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     float getNotesHeight(); ///< in pixels
 
-    ///< For fast check if we need to draw note in paint()
+    ///< For fast check (for example if we need to draw note in paint())
     juce::Rectangle<float> getNoteBounds(const Note &note);
 
+    // It is possible to return reference to canonical path (realtive to {0, 0}) and translation,
+    //    and only then apply translation in juce::Graphics and draw path, but for some reason that
+    //    doesn't speed up drawing, GPU doesn't cache same paths...
     /**
      * @brief Get the path for drawing a note
      * @param note Note to get path for
      * @return Path representing the note shape
      */
     juce::Path getNotePath(const Note &note);
+
+    void drawNote(juce::Graphics &g, const Note &note, const juce::Rectangle<float> noteBounds,
+                  const juce::PathStrokeType &strokeType, juce::Colour fillColour,
+                  bool drawOutline = false, juce::Colour outlineColour = juce::Colours::black);
 
     /**
      * @brief Delete a note by index
@@ -349,6 +356,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool doesPathIntersectRect(const juce::Path &somePath, const juce::Rectangle<float> &rect);
     void selectAllNotes();
 
+    bool pointOnNote(const Note &note, const juce::Point<float> &point);
     bool pointOnRatioMark(const RatioMark &ratioMark, const juce::Point<int> &point);
     bool lineIntersectsRatioMark(const RatioMark &ratioMark, const juce::Line<int> &line);
 
