@@ -2,6 +2,7 @@
 #include "XenRoll/editor/PluginEditor.h"      // must be first!
 #include "XenRoll/editor/panels/MainPanel.h"  // must be second!
 // clang-format on
+#include "XenRoll/common/Helpers.h"
 #include <functional>
 #include <random>
 
@@ -1085,20 +1086,6 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
     params->lastViewPos = {targetX, targetY};
 }
 
-std::pair<int, int> MainPanel::pointToOctaveCents(juce::Point<int> point) {
-    int octave = params->num_octaves - 1 - static_cast<int>(point.getY() / octave_height_px);
-    int cents = static_cast<int>(round(
-                    (1.0f - (fmodf(point.getY(), octave_height_px) / octave_height_px)) * 1200)) %
-                1200;
-    if (cents == 0) {
-        octave += 1;
-        if (octave == params->num_octaves) {
-            octave--;
-        }
-    }
-    return std::make_pair(octave, cents);
-}
-
 bool MainPanel::pointOnNote(const Note &note, const juce::Point<float> &point) {
     return getNoteBounds(note).contains(point) && getNotePath(note).contains(point);
 }
@@ -1346,11 +1333,12 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                                 1.0f / (params->num_beats * params->num_subdivs));
         }
         params->lastDuration = duration;
-        int octave, cents;
-        std::tie(octave, cents) = pointToOctaveCents(point);
+        int totalCents = yToTotalCents(point.getY(), params->num_octaves, octave_height_px);
         if (params->keySnap && !keys.empty()) {
-            std::tie(octave, cents) = centsToKeysCents(octave, cents);
+            totalCents = findNearestKeyTotalCents(totalCents, keys, params->num_octaves);
         }
+        int octave = totalCents / 1200;
+        int cents = totalCents % 1200;
         notes.push_back({octave, cents, time, false, duration, params->lastVelocity});
         keysFromAllNotes.insert(cents);
         if (params->zones.isNoteInActiveZone(*(notes.rbegin()))) {
@@ -1369,7 +1357,6 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
 
         if (GlobalSettings::getInstance().getPlayDraggedNotes()) {
             // play placed note
-            const int totalCents = cents + octave * 1200;
             {
                 std::lock_guard<std::mutex> lock(mptcMtx);
                 // we need to do this for playing a key that is already been played
@@ -1442,26 +1429,6 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
 }
 
 template <typename T> int sgn(T val) { return (T(0) < val) - (val < T(0)); }
-
-std::pair<int, int> MainPanel::findNearestKey(int octave, int cents) {
-    int minDist = 10000;
-    int nearestCents;
-    int nearestOctave = octave;
-    for (const int key : keys) {
-        if (std::abs(cents - key) < minDist) {
-            minDist = std::abs(cents - key);
-            nearestCents = key;
-        }
-    }
-    if (std::abs(1200 + *keys.begin() - cents) < minDist) {
-        nearestOctave += 1;
-        nearestCents = *keys.begin();
-    } else if (std::abs(*keys.rbegin() - 1200 - cents) < minDist) {
-        nearestOctave -= 1;
-        nearestCents = *keys.rbegin();
-    }
-    return std::make_pair(nearestOctave, nearestCents);
-}
 
 void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     auto currDragPoint = event.getPosition();
@@ -1751,13 +1718,10 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
             if (dcents != prevDcents) {
                 // Apply vertical movement
                 if (params->keySnap) {
-                    if ((initialTotalCentsForDrag.size() == 1) && (keys.size() != 0)) {
+                    if ((initialTotalCentsForDrag.size() == 1) && !keys.empty()) {
                         int initialTotalCents = initialTotalCentsForDrag[0];
                         int newTotalCents = initialTotalCents + dcents;
-                        int newOctave = newTotalCents / 1200;
-                        int newCents = newTotalCents - newOctave * 1200;
-                        std::tie(newOctave, newCents) = findNearestKey(newOctave, newCents);
-                        newTotalCents = newOctave * 1200 + newCents;
+                        newTotalCents = findNearestKeyTotalCents(newTotalCents, keys, params->num_octaves);
                         dcents = newTotalCents - initialTotalCents;
 
                         auto it = std::find_if(notes.begin(), notes.end(),
@@ -1767,8 +1731,8 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                             if ((dcents != prevDcents) &&
                                 (newTotalCentsWithBend < params->num_octaves * 1200) &&
                                 (newTotalCentsWithBend >= 0)) {
-                                it->octave = newOctave;
-                                it->cents = newCents;
+                                it->octave = newTotalCents / 1200;
+                                it->cents = newTotalCents % 1200;
 
                                 changedPitch = true;
                             }
@@ -2079,15 +2043,12 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
 
     if (isDrawingRatioMark) {
         if ((ratioMarkStartPoint != ratioMarkLastPoint) && !keys.empty()) {
-            int startKeyOctave, startKeyCents, lastKeyOctave, lastKeyCents;
 
-            std::tie(startKeyOctave, startKeyCents) = pointToOctaveCents(ratioMarkStartPoint);
-            std::tie(startKeyOctave, startKeyCents) = findNearestKey(startKeyOctave, startKeyCents);
-            int startKeyTotalCents = startKeyOctave * 1200 + startKeyCents;
+            int startKeyTotalCents = yToTotalCents(ratioMarkStartPoint.getY(), params->num_octaves, octave_height_px);
+            startKeyTotalCents = findNearestKeyTotalCents(startKeyTotalCents, keys, params->num_octaves);
 
-            std::tie(lastKeyOctave, lastKeyCents) = pointToOctaveCents(ratioMarkLastPoint);
-            std::tie(lastKeyOctave, lastKeyCents) = findNearestKey(lastKeyOctave, lastKeyCents);
-            int lastKeyTotalCents = lastKeyOctave * 1200 + lastKeyCents;
+            int lastKeyTotalCents = yToTotalCents(ratioMarkLastPoint.getY(), params->num_octaves, octave_height_px);
+            lastKeyTotalCents = findNearestKeyTotalCents(lastKeyTotalCents, keys, params->num_octaves);
 
             if (startKeyTotalCents != lastKeyTotalCents) {
                 float startTime = ratioMarkStartPoint.getX() / bar_width_px;
@@ -2358,30 +2319,6 @@ void MainPanel::generateNewKeys() {
     }
 }
 
-std::optional<int> MainPanel::findNearestKeyWithLimit(int key, int maxCentsChange,
-                                                      const std::set<int> &keys) {
-    if (keys.empty()) {
-        return std::nullopt;
-    }
-
-    int bestKey = -1;
-    int bestDistance = maxCentsChange + 1;
-
-    for (const auto k : keys) {
-        int diff = std::abs(k - key);
-        int dist = std::min(diff, 1200 - diff);
-        if ((dist != 0) && (dist < bestDistance)) {
-            bestKey = k;
-            bestDistance = dist;
-        }
-    }
-
-    if (bestDistance <= maxCentsChange) {
-        return bestKey;
-    }
-    return std::nullopt;
-}
-
 void MainPanel::reattachRatiosMarks(int dcents) {
     if (!params->autoCorrectRatiosMarks) {
         return;
@@ -2424,42 +2361,20 @@ void MainPanel::reattachRatiosMarks(int dcents) {
             RatioMark &ratioMark = *it;
             bool changed = false;
             int higherKeyTotalCents = ratioMark.getHigherKeyTotalCents();
-            int higherKeyCents = higherKeyTotalCents % 1200;
-            if (!keysFromAllNotes.contains(higherKeyCents)) {
-                auto result =
-                    findNearestKeyWithLimit(higherKeyCents, maxCentsChange, keysFromAllNotes);
-                if (result) {
-                    int higherKeyOctave = higherKeyTotalCents / 1200;
-                    int newHigherKeyCents = *result;
-                    if ((newHigherKeyCents - higherKeyCents < -maxCentsChange) &&
-                        (higherKeyOctave < params->num_octaves - 1)) {
-                        higherKeyTotalCents = 1200 * (higherKeyOctave + 1) + newHigherKeyCents;
-                    } else if ((newHigherKeyCents - higherKeyCents > maxCentsChange) &&
-                               (higherKeyOctave > 0)) {
-                        higherKeyTotalCents = 1200 * (higherKeyOctave - 1) + newHigherKeyCents;
-                    } else {
-                        higherKeyTotalCents = 1200 * higherKeyOctave + newHigherKeyCents;
-                    }
+            if (!keysFromAllNotes.contains(higherKeyTotalCents % 1200) && !keysFromAllNotes.empty()) {
+                int nearestKeyTotalCents = findNearestKeyTotalCents(higherKeyTotalCents, keysFromAllNotes, params->num_octaves);
+                int diff = std::abs(nearestKeyTotalCents - higherKeyTotalCents);
+                if ((diff <= maxCentsChange) && (diff > 0)) {
+                    higherKeyTotalCents = nearestKeyTotalCents;
                     changed = true;
                 }
             }
             int lowerKeyTotalCents = ratioMark.getLowerKeyTotalCents();
-            int lowerKeyCents = lowerKeyTotalCents % 1200;
-            if (!keysFromAllNotes.contains(lowerKeyCents)) {
-                auto result =
-                    findNearestKeyWithLimit(lowerKeyCents, maxCentsChange, keysFromAllNotes);
-                if (result) {
-                    int lowerKeyOctave = lowerKeyTotalCents / 1200;
-                    int newLowerKeyCents = *result;
-                    if ((newLowerKeyCents - lowerKeyCents < -maxCentsChange) &&
-                        (lowerKeyOctave < params->num_octaves - 1)) {
-                        lowerKeyTotalCents = 1200 * (lowerKeyOctave + 1) + newLowerKeyCents;
-                    } else if ((newLowerKeyCents - lowerKeyCents > maxCentsChange) &&
-                               (lowerKeyOctave > 0)) {
-                        lowerKeyTotalCents = 1200 * (lowerKeyOctave - 1) + newLowerKeyCents;
-                    } else {
-                        lowerKeyTotalCents = 1200 * lowerKeyOctave + newLowerKeyCents;
-                    }
+            if (!keysFromAllNotes.contains(lowerKeyTotalCents % 1200) && !keysFromAllNotes.empty()) {
+                int nearestKeyTotalCents = findNearestKeyTotalCents(lowerKeyTotalCents, keysFromAllNotes, params->num_octaves);
+                int diff = std::abs(nearestKeyTotalCents - lowerKeyTotalCents);
+                if ((diff <= maxCentsChange) && (diff > 0)) {
+                    lowerKeyTotalCents = nearestKeyTotalCents;
                     changed = true;
                 }
             }
@@ -3200,26 +3115,6 @@ void MainPanel::drawNote(juce::Graphics &g, const Note &note,
 float MainPanel::timeToSnappedTime(float time) {
     return 1.0f / (params->num_beats * params->num_subdivs) *
            floor(time / (1.0f / (params->num_beats * params->num_subdivs)));
-}
-
-std::tuple<int, int> MainPanel::centsToKeysCents(int octave, int cents) {
-    int nearest = 0;
-    int minDist = 100000;
-    for (const int &key : keys) {
-        if (abs(key - cents) < minDist) {
-            minDist = abs(key - cents);
-            nearest = key;
-        }
-    }
-    if (octave != 0 && abs(1200 + cents - *keys.rbegin()) < minDist) {
-        octave--;
-        nearest = *keys.rbegin();
-    }
-    if (octave != params->num_octaves + 1 && abs(1200 + *keys.begin() - cents) < minDist) {
-        octave++;
-        nearest = *keys.begin();
-    }
-    return {octave, nearest};
 }
 
 int MainPanel::getKeyIndex(int cents) {

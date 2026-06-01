@@ -1,4 +1,5 @@
 #include "XenRoll/processor/PluginProcessor.h"
+#include "XenRoll/common/Helpers.h"
 #include "XenRoll/editor/PluginEditor.h"
 #include "XenRoll/processor/audio/dsp/PitchDetectorMPM.h"
 #include <algorithm>
@@ -200,46 +201,20 @@ void AudioPluginAudioProcessor::tryStartRecording() {
 
 // ====================================== VOCAL TO MELODY ======================================
 
-std::optional<int> AudioPluginAudioProcessor::findNearestKeyWithLimit(int key, int maxCentsChange,
-                                                                      const std::set<int> &keys) {
-    if (keys.empty()) {
-        return std::nullopt;
-    }
-
-    int bestKey = -1;
-    int bestDistance = maxCentsChange + 1;
-
-    for (const auto k : keys) {
-        int diff = std::abs(k - key);
-        int dist = std::min(diff, 1200 - diff);
-        if (dist < bestDistance) {
-            bestKey = k;
-            bestDistance = dist;
-        }
-    }
-
-    if (bestDistance <= maxCentsChange) {
-        return bestKey;
-    }
-    return std::nullopt;
-}
-
 bool AudioPluginAudioProcessor::trySnapNote(Note &note, const std::set<int> &keys) {
-    int noteCents = note.cents;
-    int noteOctave = note.octave;
-    const int maxCentsChange = params.vocalToMelodyDCents;
-    auto result = findNearestKeyWithLimit(noteCents, maxCentsChange, keys);
-    if (result) {
-        const int newNoteTotalCents = *result;
-        const int newNoteCents = newNoteTotalCents % 1200;
-        if ((newNoteCents - noteCents < -maxCentsChange) && (noteOctave < params.num_octaves - 1)) {
-            note.octave += 1;
-        } else if ((newNoteCents - noteCents > maxCentsChange) && (noteOctave > 0)) {
-            note.octave -= 1;
-        }
-        note.cents = newNoteCents;
+    if (keys.empty())
+        return false;
+
+    int totalCents = note.octave * 1200 + note.cents;
+    int newTotalCents = findNearestKeyTotalCents(totalCents, keys, params.num_octaves);
+    int maxCentsChange = params.vocalToMelodyDCents;
+    int diff = std::abs(totalCents - newTotalCents);
+    if (diff <= maxCentsChange) {
+        note.octave = newTotalCents / 1200;
+        note.cents = newTotalCents % 1200;
+        return true;
     }
-    return (note.octave != noteOctave || note.cents != noteCents);
+    return false;
 }
 
 void AudioPluginAudioProcessor::fixateRecordingNote() {

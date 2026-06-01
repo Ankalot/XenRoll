@@ -110,24 +110,6 @@ class MainPanel : public juce::Component, public juce::KeyListener {
      */
     void setVelocitiesOfSelectedNotes(float vel);
 
-    /**
-     * @brief Find nearest key to a given pitch
-     * @param octave Octave number
-     * @param cents Cents within octave
-     * @return Pair of (octave, cents) of nearest key
-     */
-    std::pair<int, int> findNearestKey(int octave, int cents);
-
-    /**
-     * @brief Find nearest key within maximum cents change
-     * @param key Cents of the key
-     * @param maxCentsChange Maximum cents change allowed
-     * @param keys Set of available keys
-     * @return Optional total cents of nearest key, or nullopt if none found
-     */
-    std::optional<int> findNearestKeyWithLimit(int key, int maxCentsChange,
-                                               const std::set<int> &keys);
-
     void updatePitchMemoryResults(const PitchMemoryResults &newPitchMemoryResults);
 
     const std::vector<Note> &getNotes() { return notes; }
@@ -284,8 +266,6 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     ///< Find new {ocateve, cents} after lowering by a key; keys MUST BE NOTE EMPTY!
     std::pair<int, int> keyDown(int octave, int cents) const;
 
-    std::pair<int, int> pointToOctaveCents(juce::Point<int> point);
-
     /**
      * @brief Adapt horizontal thickness based on zoom level
      * @param inputThickness Input thickness
@@ -358,13 +338,6 @@ class MainPanel : public juce::Component, public juce::KeyListener {
      */
     int getKeyIndex(int cents);
 
-    /**
-     * @brief Convert octave and cents to octave and nearest key cents
-     * @param octave Octave number
-     * @param cents Cents within octave
-     * @return Tuple of (octave, cents of nearest key)
-     */
-    std::tuple<int, int> centsToKeysCents(int octave, int cents);
     bool doesPathIntersectRect(const juce::Path &somePath, const juce::Rectangle<float> &rect);
     void selectAllNotes();
 

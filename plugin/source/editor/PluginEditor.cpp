@@ -174,8 +174,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     pitchMemoryThreadPool = std::make_unique<juce::ThreadPool>(1);
 
-    startTimer(timerMs);
-
     tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 300);
 
     leftPanel = std::make_unique<LeftPanel>(leftPanel_width_px, this, &(processorRef.params));
@@ -204,6 +202,37 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         std::make_unique<ClockDiagramPanel>(&(processorRef.params), this, mainPanel->getNotes());
     addAndMakeVisible(clockDiagramPanel.get());
     clockDiagramPanel->setVisible(processorRef.params.showClockDiagram);
+
+    camOnPlayHeadButton = std::make_unique<SVGButton>(
+        &processorRef.params.theme, BinaryData::Fix_cam_svg, BinaryData::Fix_cam_svgSize, true,
+        processorRef.params.isCamFixedOnPlayHead, "Fix the camera to the playhead during playback");
+    camOnPlayHeadButton->onClick = [this](const juce::MouseEvent &me) {
+        processorRef.params.isCamFixedOnPlayHead = !processorRef.params.isCamFixedOnPlayHead;
+        return true;
+    };
+    addAndMakeVisible(camOnPlayHeadButton.get());
+
+    turnOnAllZonesButton = std::make_unique<SVGButton>(
+        &processorRef.params.theme, BinaryData::Zones_on_svg, BinaryData::Zones_on_svgSize, false,
+        false, "Turn on all zones");
+    turnOnAllZonesButton->onClick = [this](const juce::MouseEvent &me) {
+        processorRef.params.zones.turnOnAllZones();
+        zonesChanged();
+        topPanel->repaint();
+        return false;
+    };
+    addAndMakeVisible(turnOnAllZonesButton.get());
+
+    turnOffAllZonesButton = std::make_unique<SVGButton>(
+        &processorRef.params.theme, BinaryData::Zones_off_svg, BinaryData::Zones_off_svgSize, false,
+        false, "Turn off all zones");
+    turnOffAllZonesButton->onClick = [this](const juce::MouseEvent &me) {
+        processorRef.params.zones.turnOffAllZones();
+        zonesChanged();
+        topPanel->repaint();
+        return false;
+    };
+    addAndMakeVisible(turnOffAllZonesButton.get());
 
     helpPanel = std::make_unique<HelpPanel>(&processorRef.params.theme);
     helpViewport = std::make_unique<juce::Viewport>();
@@ -429,37 +458,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     currentFont.setHeight(Theme::medium);
     indexLabel->setFont(currentFont);
     addAndMakeVisible(indexLabel.get());
-
-    camOnPlayHeadButton = std::make_unique<SVGButton>(
-        &processorRef.params.theme, BinaryData::Fix_cam_svg, BinaryData::Fix_cam_svgSize, true,
-        processorRef.params.isCamFixedOnPlayHead, "Fix the camera to the playhead during playback");
-    camOnPlayHeadButton->onClick = [this](const juce::MouseEvent &me) {
-        processorRef.params.isCamFixedOnPlayHead = !processorRef.params.isCamFixedOnPlayHead;
-        return true;
-    };
-    addAndMakeVisible(camOnPlayHeadButton.get());
-
-    turnOnAllZonesButton = std::make_unique<SVGButton>(
-        &processorRef.params.theme, BinaryData::Zones_on_svg, BinaryData::Zones_on_svgSize, false,
-        false, "Turn on all zones");
-    turnOnAllZonesButton->onClick = [this](const juce::MouseEvent &me) {
-        processorRef.params.zones.turnOnAllZones();
-        zonesChanged();
-        topPanel->repaint();
-        return false;
-    };
-    addAndMakeVisible(turnOnAllZonesButton.get());
-
-    turnOffAllZonesButton = std::make_unique<SVGButton>(
-        &processorRef.params.theme, BinaryData::Zones_off_svg, BinaryData::Zones_off_svgSize, false,
-        false, "Turn off all zones");
-    turnOffAllZonesButton->onClick = [this](const juce::MouseEvent &me) {
-        processorRef.params.zones.turnOffAllZones();
-        zonesChanged();
-        topPanel->repaint();
-        return false;
-    };
-    addAndMakeVisible(turnOffAllZonesButton.get());
 
     timeSnapButton = std::make_unique<SVGButton>(
         &processorRef.params.theme, BinaryData::Snap_time_svg, BinaryData::Snap_time_svgSize, true,
@@ -705,6 +703,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
                 "PC).",
             "OK", this);
     }
+
+    startTimer(timerMs);
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {

@@ -98,14 +98,6 @@ class LeftPanel : public juce::Component {
 
     std::map<int, float> keysHarmonicity = {}; ///< total cents -> harmonicity
 
-    /**
-     * @brief Convert octave and cents to octave and nearest key cents
-     * @param octave Octave number
-     * @param cents Cents within octave
-     * @return Tuple of (octave, cents of nearest key)
-     */
-    std::tuple<int, int> centsToKeysCents(int octave, int cents);
-
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeftPanel)
 };
 } // namespace audio_plugin

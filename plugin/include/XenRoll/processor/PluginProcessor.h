@@ -258,16 +258,6 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     int freqToTotalCents(float freq);
 
     /**
-     * @brief Find nearest key within maximum cents change
-     * @param key Cents of the key
-     * @param maxCentsChange Maximum cents change allowed
-     * @param keys Set of available keys (in cents)
-     * @return Optional total cents of nearest key, or nullopt if none found
-     */
-    std::optional<int> findNearestKeyWithLimit(int key, int maxCentsChange,
-                                               const std::set<int> &keys);
-
-    /**
      * @brief Try to snap note to a key from keys set
      * @param note Note
      * @param keys Set of available keys (in cents)
@@ -287,8 +277,8 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
      *              General:
      * In overflow state user needs to remove some notes (from piano roll and/or manually pressed)
      */
-    bool pitchesOverflow = false;
-    bool editorKnowsAboutOverflow = false;
+    std::atomic<bool> pitchesOverflow = false;
+    std::atomic<bool> editorKnowsAboutOverflow = false;
 
     /**
      * If using MTS-ESP tuning:

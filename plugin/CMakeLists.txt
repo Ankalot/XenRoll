@@ -106,6 +106,7 @@ set(HEADER_FILES
 
     # common
     ${INCLUDE_DIR}/common/CircularStack.h
+    ${INCLUDE_DIR}/common/Helpers.h
     ${INCLUDE_DIR}/common/PlatformUtils.h
     ${INCLUDE_DIR}/common/RelevanceQueue.h
 
