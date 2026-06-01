@@ -102,7 +102,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
      */
     void reattachRatiosMarks(int dcents = 0);
     void updateRatiosMarks();
-    void numBarsChanged();
+    ///< For calls from PluginEditor. manualChange means not due to import.
+    void numBarsChanged(bool manualChange = false);
 
     /**
      * @brief Set velocity of selected notes
@@ -234,7 +235,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     const int ratioMarkHalfWidth = 5;
     const int ratioMarkMinHeight = 10; ///< is needed for deleting small ratio marks like 1/1
 
-    ///< This threshold will determine either user wants "drag action" or "click action"    
+    ///< This threshold will determine either user wants "drag action" or "click action"
     const int clickMoveThrPx = 2;
     int clickVelPanelNoteInd = -1;
     int clickDelNoteInd = -1;

@@ -825,22 +825,20 @@ void MainPanel::mirrorSelNotesVertically() {
     repaint();
 }
 
-void MainPanel::numBarsChanged() {
-    bool deletedSmth = false;
+void MainPanel::numBarsChanged(bool manualChange) {
+    bool deletedNotes = false;
     size_t notesNum = notes.size();
     for (int i = 0; i < notesNum; ++i) {
         if (notes[i].time + notes[i].duration > params->get_num_bars()) {
             deleteNote(i);
             i--;
             notesNum--;
-            deletedSmth = true;
+            deletedNotes = true;
         }
     }
-    deletedSmth = (std::erase_if(params->ratiosMarks,
-                                 [&](const auto &ratioMark) {
-                                     return (ratioMark.time > params->get_num_bars());
-                                 }) > 0) ||
-                  deletedSmth;
+    bool deleteRatioMarks = (std::erase_if(params->ratiosMarks, [&](const auto &ratioMark) {
+                                 return (ratioMark.time > params->get_num_bars());
+                             }) > 0);
     if (viewport != nullptr) {
         float min_bar_width_px =
             static_cast<float>(viewport->getViewWidth()) / params->get_num_bars();
@@ -849,12 +847,13 @@ void MainPanel::numBarsChanged() {
             editor->changeBarWidthPx(bar_width_px);
         }
     }
-    remakeKeys();
-    updateLayout();
-
-    if (deletedSmth) {
+    if (deletedNotes) {
+        remakeKeys();
+    }
+    if (manualChange && (deletedNotes || deleteRatioMarks)) {
         saveState();
     }
+    updateLayout();
 }
 
 int python_mod(int a, int b) {
@@ -1721,7 +1720,8 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                     if ((initialTotalCentsForDrag.size() == 1) && !keys.empty()) {
                         int initialTotalCents = initialTotalCentsForDrag[0];
                         int newTotalCents = initialTotalCents + dcents;
-                        newTotalCents = findNearestKeyTotalCents(newTotalCents, keys, params->num_octaves);
+                        newTotalCents =
+                            findNearestKeyTotalCents(newTotalCents, keys, params->num_octaves);
                         dcents = newTotalCents - initialTotalCents;
 
                         auto it = std::find_if(notes.begin(), notes.end(),
@@ -2044,11 +2044,15 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
     if (isDrawingRatioMark) {
         if ((ratioMarkStartPoint != ratioMarkLastPoint) && !keys.empty()) {
 
-            int startKeyTotalCents = yToTotalCents(ratioMarkStartPoint.getY(), params->num_octaves, octave_height_px);
-            startKeyTotalCents = findNearestKeyTotalCents(startKeyTotalCents, keys, params->num_octaves);
+            int startKeyTotalCents =
+                yToTotalCents(ratioMarkStartPoint.getY(), params->num_octaves, octave_height_px);
+            startKeyTotalCents =
+                findNearestKeyTotalCents(startKeyTotalCents, keys, params->num_octaves);
 
-            int lastKeyTotalCents = yToTotalCents(ratioMarkLastPoint.getY(), params->num_octaves, octave_height_px);
-            lastKeyTotalCents = findNearestKeyTotalCents(lastKeyTotalCents, keys, params->num_octaves);
+            int lastKeyTotalCents =
+                yToTotalCents(ratioMarkLastPoint.getY(), params->num_octaves, octave_height_px);
+            lastKeyTotalCents =
+                findNearestKeyTotalCents(lastKeyTotalCents, keys, params->num_octaves);
 
             if (startKeyTotalCents != lastKeyTotalCents) {
                 float startTime = ratioMarkStartPoint.getX() / bar_width_px;
@@ -2361,8 +2365,10 @@ void MainPanel::reattachRatiosMarks(int dcents) {
             RatioMark &ratioMark = *it;
             bool changed = false;
             int higherKeyTotalCents = ratioMark.getHigherKeyTotalCents();
-            if (!keysFromAllNotes.contains(higherKeyTotalCents % 1200) && !keysFromAllNotes.empty()) {
-                int nearestKeyTotalCents = findNearestKeyTotalCents(higherKeyTotalCents, keysFromAllNotes, params->num_octaves);
+            if (!keysFromAllNotes.contains(higherKeyTotalCents % 1200) &&
+                !keysFromAllNotes.empty()) {
+                int nearestKeyTotalCents = findNearestKeyTotalCents(
+                    higherKeyTotalCents, keysFromAllNotes, params->num_octaves);
                 int diff = std::abs(nearestKeyTotalCents - higherKeyTotalCents);
                 if ((diff <= maxCentsChange) && (diff > 0)) {
                     higherKeyTotalCents = nearestKeyTotalCents;
@@ -2370,8 +2376,10 @@ void MainPanel::reattachRatiosMarks(int dcents) {
                 }
             }
             int lowerKeyTotalCents = ratioMark.getLowerKeyTotalCents();
-            if (!keysFromAllNotes.contains(lowerKeyTotalCents % 1200) && !keysFromAllNotes.empty()) {
-                int nearestKeyTotalCents = findNearestKeyTotalCents(lowerKeyTotalCents, keysFromAllNotes, params->num_octaves);
+            if (!keysFromAllNotes.contains(lowerKeyTotalCents % 1200) &&
+                !keysFromAllNotes.empty()) {
+                int nearestKeyTotalCents = findNearestKeyTotalCents(
+                    lowerKeyTotalCents, keysFromAllNotes, params->num_octaves);
                 int diff = std::abs(nearestKeyTotalCents - lowerKeyTotalCents);
                 if ((diff <= maxCentsChange) && (diff > 0)) {
                     lowerKeyTotalCents = nearestKeyTotalCents;

@@ -431,7 +431,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         processorRef.params.min_num_bars, processorRef.params.max_num_bars);
     numBarsInput->onValueChanged = [this](int newValue) {
         processorRef.params.set_num_bars(newValue);
-        mainPanel->numBarsChanged();
+        mainPanel->numBarsChanged(true);
         topPanel->numBarsChanged();
     };
     addAndMakeVisible(numBarsInput.get());
@@ -1253,7 +1253,10 @@ void AudioPluginAudioProcessorEditor::parseMidiSclFiles(const juce::File &midiFi
         }
     }
 
-    this->numBarsInput.get()->onValueChanged(totalBars);
+    //this->numBarsInput.get()->onValueChanged(totalBars);
+    processorRef.params.set_num_bars(totalBars);
+    mainPanel->numBarsChanged(false);
+    topPanel->numBarsChanged();
     this->numBeatsInput.get()->onValueChanged(beatsPerBar);
     this->numSubdivsInput.get()->onValueChanged(subdivisionsPerBeat);
 
@@ -1481,7 +1484,10 @@ void AudioPluginAudioProcessorEditor::parseNotesFile(const juce::File &notesFile
         notes[i].bend = inputStream.readInt();
     }
 
-    this->numBarsInput.get()->onValueChanged(numBars);
+    //this->numBarsInput.get()->onValueChanged(numBars);
+    processorRef.params.set_num_bars(numBars);
+    mainPanel->numBarsChanged(false);
+    topPanel->numBarsChanged();
     this->numBeatsInput.get()->onValueChanged(numBeats);
     this->numSubdivsInput.get()->onValueChanged(numSubdivs);
 
