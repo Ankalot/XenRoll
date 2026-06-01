@@ -1060,7 +1060,11 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
         targetX = params->lastViewPos.x; // Keep horizontal position unchanged
     } else {
         // Horizontal zoom
-        if (GlobalSettings::getInstance().getHorZoomOnCursor()) {
+        if (editor->isPlaying() && params->isCamFixedOnPlayHead) {
+            // Zoom relative playhead
+            targetX = juce::jlimit(0.0f, juce::jmax(0.0f, static_cast<float>(newWidth - viewWidth)),
+                                   playHeadTime * bar_width_px - viewWidth / 2.0f);
+        } else if (GlobalSettings::getInstance().getHorZoomOnCursor()) {
             // Zoom relative to mouse cursor position
             float lastMouseX = event.eventComponent->getMouseXYRelative().getX();
             float mouseX = lastMouseX * (static_cast<float>(newWidth) / oldWidth);
