@@ -40,7 +40,6 @@ class VelocityPanel : public juce::Component {
     VelocityPanel(Theme *theme, std::function<void()> onValueChange,
                   std::function<void()> onDragEnd)
         : theme(theme) {
-        setAlwaysOnTop(true);
         setWantsKeyboardFocus(false);
 
         velocitySlider = std::make_unique<juce::Slider>();
@@ -116,7 +115,10 @@ class VelocityPanel : public juce::Component {
         g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerSize);
     }
 
-    void updateColors() { velSliderLF->updateColors(); }
+    void updateColors() {
+        velSliderLF->updateColors();
+        repaint();
+    }
 
   protected:
     // This catches the mouse down event BEFORE JUCE initializes the drag constraints

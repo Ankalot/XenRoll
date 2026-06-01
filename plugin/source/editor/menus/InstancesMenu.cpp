@@ -5,7 +5,6 @@ namespace audio_plugin {
 
 InstancesMenu::InstancesMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor)
     : params(params), editor(editor) {
-    setAlwaysOnTop(true);
     setWantsKeyboardFocus(false);
     setVisible(false);
 

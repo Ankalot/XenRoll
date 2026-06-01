@@ -6,7 +6,6 @@ PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters *params,
                                                    AudioPluginAudioProcessorEditor *editor)
     : params(params) {
     setVisible(false);
-    setAlwaysOnTop(true);
 
     const juce::String TV_0 = juce::String("TV") + juce::juce_wchar(0x2080);
     const juce::String TV_ADD = juce::String("TV") + juce::juce_wchar(0x2090);
@@ -142,7 +141,7 @@ PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters *params,
     algoDescrText += "          if " + TV_j + " < " + TV_MIN + ":  " + TV_j + " := 0";
     algoDescrLabel->setText(algoDescrText, juce::dontSendNotification);
 
-    algoDescrViewport = std::make_unique<AlgoDescrViewport>(&params->theme);
+    algoDescrViewport = std::make_unique<juce::Viewport>();
     algoDescrViewport->setScrollBarsShown(true, false);
     algoDescrViewport->setViewedComponent(algoDescrLabel.get(), false);
     addAndMakeVisible(algoDescrViewport.get());

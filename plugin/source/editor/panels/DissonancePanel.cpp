@@ -6,7 +6,6 @@ DissonancePanel::DissonancePanel(Parameters *params,
                                  std::shared_ptr<DissonanceMeter> dissonanceMeter)
     : params(params), dissonanceMeter(dissonanceMeter) {
     setVisible(false);
-    setAlwaysOnTop(true);
 
     // Other
     partialsFileChooser = std::make_unique<juce::FileChooser>(

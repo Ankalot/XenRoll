@@ -157,22 +157,12 @@ class SmallLookAndFeel : public juce::LookAndFeel_V4 {
 class MainViewport : public juce::Viewport {
   public:
     MainViewport(Parameters *params, juce::Viewport *leftViewport, juce::Viewport *topViewport)
-        : params(params), leftViewport(leftViewport), topViewport(topViewport) {
-        updateColors();
-    }
+        : params(params), leftViewport(leftViewport), topViewport(topViewport) {}
 
     /**
      * @brief Set callback function to update viewport size
      */
     void setUpdateCallback(std::function<void()> callback) { updateCallback = callback; }
-
-    /**
-     * @brief Update scrollbar colors to match current theme
-     */
-    void updateColors() {
-        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, params->theme.bright);
-        getHorizontalScrollBar().setColour(juce::ScrollBar::thumbColourId, params->theme.bright);
-    }
 
     /**
      * @brief Center the viewport on the playhead position
@@ -388,10 +378,6 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
         processorRef.params.theme.setTheme(processorRef.params.themeType);
         customLF->updateColors();
         smallLF->updateColors();
-        mainViewport->updateColors();
-        helpViewport->updateColors();
-        settingsViewport->updateColors();
-        pitchMemorySettingsPanel->updateColors();
         velocityPanel->updateColors();
         sendLookAndFeelChange();
     }
@@ -483,7 +469,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     std::unique_ptr<PopupMessage> popup;
     std::unique_ptr<DragAndDropPopup> dragAndDropPopup;
-    std::unique_ptr<HelpViewport> helpViewport;
+    std::unique_ptr<juce::Viewport> helpViewport;
     std::unique_ptr<HelpPanel> helpPanel;
     std::unique_ptr<SettingsViewport> settingsViewport;
     std::unique_ptr<SettingsPanel> settingsPanel;

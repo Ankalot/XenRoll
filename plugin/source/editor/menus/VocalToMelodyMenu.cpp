@@ -4,7 +4,6 @@
 namespace audio_plugin {
 VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor)
     : params(params), editor(editor) {
-    setAlwaysOnTop(true);
     setWantsKeyboardFocus(false);
     setVisible(false);
 

@@ -6,34 +6,10 @@
 
 namespace audio_plugin {
 
-class HelpViewport : public juce::Viewport {
-  public:
-    HelpViewport(Theme *theme) : theme(theme) {
-        setScrollBarsShown(true, false);
-        getVerticalScrollBar().setColour(juce::ScrollBar::backgroundColourId, theme->dark);
-        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
-        setViewportIgnoreDragFlag(true);
-        setAlwaysOnTop(true);
-    }
-
-    /**
-     * @brief Update scrollbar colors to match current theme
-     */
-    void updateColors() {
-        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
-    }
-
-    void paint(juce::Graphics &g) override { g.fillAll(theme->darker); }
-
-  private:
-    Theme *theme;
-};
-
 class HelpPanel : public juce::Component {
   public:
     HelpPanel(Theme *theme) : theme(theme) {
         setVisible(false);
-        setAlwaysOnTop(true);
     }
 
     void paint(juce::Graphics &g) override {

@@ -7,7 +7,6 @@ namespace audio_plugin {
 class DragAndDropPopup : public juce::Component {
   public:
     DragAndDropPopup(Theme *theme) : theme(theme) {
-        setAlwaysOnTop(true);
         setInterceptsMouseClicks(false, false);
         setVisible(false);
     }

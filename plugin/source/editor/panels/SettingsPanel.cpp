@@ -5,7 +5,6 @@ namespace audio_plugin {
 SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor *editor)
     : params(params) {
     setVisible(false);
-    setAlwaysOnTop(true);
 
     // ==================== BASIC SETTINGS ====================
     basicSettingsHeader = std::make_unique<juce::Label>();

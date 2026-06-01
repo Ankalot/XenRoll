@@ -5,7 +5,6 @@ namespace audio_plugin {
 EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters *params,
                                          AudioPluginAudioProcessorEditor *editor)
     : params(params), editor(editor) {
-    setAlwaysOnTop(true);
     setWantsKeyboardFocus(false);
     setVisible(false);
 

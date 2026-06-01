@@ -206,7 +206,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     clockDiagramPanel->setVisible(processorRef.params.showClockDiagram);
 
     helpPanel = std::make_unique<HelpPanel>(&processorRef.params.theme);
-    helpViewport = std::make_unique<HelpViewport>(&processorRef.params.theme);
+    helpViewport = std::make_unique<juce::Viewport>();
     helpViewport->setViewedComponent(helpPanel.get(), false);
     addAndMakeVisible(helpViewport.get());
     helpViewport->setVisible(false);

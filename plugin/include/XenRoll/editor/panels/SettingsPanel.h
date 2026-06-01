@@ -11,17 +11,7 @@ class SettingsViewport : public juce::Viewport {
   public:
     SettingsViewport(Theme *theme) : theme(theme) {
         setScrollBarsShown(true, false);
-        getVerticalScrollBar().setColour(juce::ScrollBar::backgroundColourId, theme->dark);
-        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
         setViewportIgnoreDragFlag(true);
-        setAlwaysOnTop(true);
-    }
-
-    /**
-     * @brief Update scrollbar colors to match current theme
-     */
-    void updateColors() {
-        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
     }
 
     void visibilityChanged() override {

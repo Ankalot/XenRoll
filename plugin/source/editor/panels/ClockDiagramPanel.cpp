@@ -5,7 +5,6 @@ namespace audio_plugin {
 ClockDiagramPanel::ClockDiagramPanel(Parameters *params, AudioPluginAudioProcessorEditor *editor,
                                      const std::vector<Note> &notes)
     : params(params), editor(editor), notes(notes) {
-    setAlwaysOnTop(true);
     setInterceptsMouseClicks(false, false);
     setWantsKeyboardFocus(false);
     setMouseClickGrabsKeyboardFocus(false);

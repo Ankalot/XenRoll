@@ -4,7 +4,6 @@
 namespace audio_plugin {
 GenNewKeysMenu::GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor)
     : params(params), editor(editor) {
-    setAlwaysOnTop(true);
     setWantsKeyboardFocus(false);
     setVisible(false);
 

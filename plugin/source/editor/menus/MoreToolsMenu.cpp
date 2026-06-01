@@ -4,7 +4,6 @@
 namespace audio_plugin {
 MoreToolsMenu::MoreToolsMenu(AudioPluginAudioProcessorEditor *editor, Theme *theme)
     : editor(editor), theme(theme) {
-    setAlwaysOnTop(true);
     setWantsKeyboardFocus(false);
     setVisible(false);
 

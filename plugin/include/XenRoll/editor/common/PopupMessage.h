@@ -14,7 +14,6 @@ class PopupMessage : public juce::Component, private juce::Timer {
      */
     PopupMessage(Theme *theme, int displayTimeMs, float alpha)
         : theme(theme), displayTimeMs(displayTimeMs), alpha(alpha) {
-        setAlwaysOnTop(true);
         setInterceptsMouseClicks(false, false);
         setVisible(false);
     }
