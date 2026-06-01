@@ -191,8 +191,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(topViewport.get());
 
     mainPanel = std::make_unique<MainPanel>(this, &(processorRef.params));
-    mainViewport = std::make_unique<MainViewport>(&processorRef.params, leftViewport.get(),
-                                                  topViewport.get());
+    mainViewport =
+        std::make_unique<MainViewport>(&processorRef.params, leftViewport.get(), topViewport.get());
     mainViewport->setUpdateCallback([this]() { this->updateMainViewportSize(); });
     mainViewport->setScrollBarsShown(true, true);
     mainViewport->setViewedComponent(mainPanel.get(), false);
@@ -212,8 +212,10 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     helpViewport->setVisible(false);
 
     settingsPanel = std::make_unique<SettingsPanel>(&(processorRef.params), this);
-    addAndMakeVisible(settingsPanel.get());
-    settingsPanel->setVisible(false);
+    settingsViewport = std::make_unique<SettingsViewport>(&processorRef.params.theme);
+    settingsViewport->setViewedComponent(settingsPanel.get(), false);
+    addAndMakeVisible(settingsViewport.get());
+    settingsViewport->setVisible(false);
 
     dissonancePanel = std::make_unique<DissonancePanel>(&(processorRef.params), dissonanceMeter);
     addAndMakeVisible(dissonancePanel.get());
@@ -242,7 +244,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(pitchMemorySettingsButton.get());
 
     settingsButton->onClick = [this](const juce::MouseEvent &me) {
-        settingsPanel->setVisible(!settingsPanel->isVisible());
+        settingsViewport->setVisible(!settingsViewport->isVisible());
 
         helpViewport->setVisible(false);
         dissonancePanel->setVisible(false);
@@ -254,7 +256,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     helpButton->onClick = [this](const juce::MouseEvent &me) {
         helpViewport->setVisible(!helpViewport->isVisible());
 
-        settingsPanel->setVisible(false);
+        settingsViewport->setVisible(false);
         dissonancePanel->setVisible(false);
         pitchMemorySettingsPanel->setVisible(false);
 
@@ -265,7 +267,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         dissonancePanel->setVisible(!dissonancePanel->isVisible());
 
         helpViewport->setVisible(false);
-        settingsPanel->setVisible(false);
+        settingsViewport->setVisible(false);
         pitchMemorySettingsPanel->setVisible(false);
 
         hideVelocityPanel();
@@ -274,7 +276,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     pitchMemorySettingsButton->onClick = [this](const juce::MouseEvent &me) {
         pitchMemorySettingsPanel->setVisible(!pitchMemorySettingsPanel->isVisible());
 
-        settingsPanel->setVisible(false);
+        settingsViewport->setVisible(false);
         helpViewport->setVisible(false);
         dissonancePanel->setVisible(false);
 
@@ -834,7 +836,9 @@ void AudioPluginAudioProcessorEditor::resized() {
     helpViewport->setBounds(allBesidesBottomRect);
     helpPanel->setSize(width - slider_width_px, helpPanel->getRequiredHeight());
 
-    settingsPanel->setBounds(allBesidesBottomRect);
+    settingsViewport->setBounds(allBesidesBottomRect);
+    settingsPanel->setSize(width - slider_width_px, settingsPanel->getRequiredHeight());
+
     dissonancePanel->setBounds(allBesidesBottomRect);
     pitchMemorySettingsPanel->setBounds(allBesidesBottomRect);
 

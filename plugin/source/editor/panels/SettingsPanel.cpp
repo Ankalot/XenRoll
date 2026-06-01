@@ -69,6 +69,24 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     playDraggedNotesCheckbox->setSize(rowHeight, rowHeight);
     addAndMakeVisible(playDraggedNotesCheckbox.get());
 
+    horZoomOnCursorLabel = std::make_unique<juce::Label>();
+    horZoomOnCursorLabel->setText("Horizontal zoom on cursor:", juce::dontSendNotification);
+    horZoomOnCursorLabel->setFont(settingFont);
+    horZoomOnCursorLabel->setTooltip(
+        "If active: horizontal zoom will be centered on the mouse cursor.\n"
+        "If inactive: horizontal zoom will be centered on the view.");
+    addAndMakeVisible(horZoomOnCursorLabel.get());
+
+    horZoomOnCursorCheckbox = std::make_unique<juce::ToggleButton>();
+    horZoomOnCursorLabel->attachToComponent(horZoomOnCursorCheckbox.get(), true);
+    horZoomOnCursorCheckbox->setToggleState(GlobalSettings::getInstance().getHorZoomOnCursor(),
+                                            juce::dontSendNotification);
+    horZoomOnCursorCheckbox->onStateChange = [this]() {
+        GlobalSettings::getInstance().setHorZoomOnCursor(horZoomOnCursorCheckbox->getToggleState());
+    };
+    horZoomOnCursorCheckbox->setSize(rowHeight, rowHeight);
+    addAndMakeVisible(horZoomOnCursorCheckbox.get());
+
     // ==================== VISUAL SETTINGS ====================
     visualSettingsHeader = std::make_unique<juce::Label>();
     visualSettingsHeader->setFont(headerFont);
@@ -100,7 +118,8 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     addAndMakeVisible(themeTypeCombo.get());
 
     noteRectRoundingLabel = std::make_unique<juce::Label>();
-    noteRectRoundingLabel->setText("Note Rectangle Corner Rounding (!):", juce::dontSendNotification);
+    noteRectRoundingLabel->setText("Note Rectangle Corner Rounding (!):",
+                                   juce::dontSendNotification);
     noteRectRoundingLabel->setFont(settingFont);
     noteRectRoundingLabel->setTooltip(
         "A non-zero value may cause lag when there are many bent notes on screen simultaneously.");
@@ -239,6 +258,10 @@ void SettingsPanel::resized() {
 
     auto playRow = area.removeFromTop(rowHeight);
     playDraggedNotesCheckbox->setBounds(playRow.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
+
+    auto horZoomRow = area.removeFromTop(rowHeight);
+    horZoomOnCursorCheckbox->setBounds(horZoomRow.withTrimmedLeft(labelWidth));
     area.removeFromTop(padding + sectionSpacing);
 
     // --- Visual Settings ---
@@ -277,6 +300,15 @@ void SettingsPanel::resized() {
 
     auto chEconMPERow = area.removeFromTop(rowHeight);
     channelsEconomyModeMPECheckbox->setBounds(chEconMPERow.withTrimmedLeft(labelWidth));
+}
+
+int SettingsPanel::getRequiredHeight() const {
+    return padding + // top padding
+           headerRowHeight + padding + 4 * (rowHeight + padding) +
+           sectionSpacing + // Basic Settings
+           headerRowHeight + padding + 4 * (rowHeight + padding) +
+           sectionSpacing +                                       // Visual Settings
+           headerRowHeight + padding + 3 * (rowHeight + padding); // MPE Tuning Mode Settings
 }
 
 void SettingsPanel::paint(juce::Graphics &g) { g.fillAll(params->theme.darker); }

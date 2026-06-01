@@ -390,6 +390,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
         smallLF->updateColors();
         mainViewport->updateColors();
         helpViewport->updateColors();
+        settingsViewport->updateColors();
         pitchMemorySettingsPanel->updateColors();
         velocityPanel->updateColors();
         sendLookAndFeelChange();
@@ -484,6 +485,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     std::unique_ptr<DragAndDropPopup> dragAndDropPopup;
     std::unique_ptr<HelpViewport> helpViewport;
     std::unique_ptr<HelpPanel> helpPanel;
+    std::unique_ptr<SettingsViewport> settingsViewport;
     std::unique_ptr<SettingsPanel> settingsPanel;
     std::unique_ptr<DissonancePanel> dissonancePanel;
     std::unique_ptr<PitchMemorySettingsPanel> pitchMemorySettingsPanel;

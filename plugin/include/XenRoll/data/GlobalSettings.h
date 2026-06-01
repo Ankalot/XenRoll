@@ -22,6 +22,15 @@ class GlobalSettings {
         propsFile->saveIfNeeded();
     } // =========================================
 
+    //  ============ horZoomOnCursor ============
+    static constexpr bool horZoomOnCursor_default = true;
+    bool getHorZoomOnCursor() const { return horZoomOnCursor_.load(std::memory_order_relaxed); }
+    void setHorZoomOnCursor(bool horZoomOnCursor) {
+        horZoomOnCursor_.store(horZoomOnCursor, std::memory_order_relaxed);
+        propsFile->setValue("horZoomOnCursor", horZoomOnCursor);
+        propsFile->saveIfNeeded();
+    } // =========================================
+
     //  =============== micGain_dB ===============
     static constexpr double min_micGain_dB = -24.0;
     static constexpr double max_micGain_dB = 24.0;
@@ -79,6 +88,10 @@ class GlobalSettings {
             propsFile->getBoolValue("playDraggedNotes", playDraggedNotes_default),
             std::memory_order_relaxed);
 
+        horZoomOnCursor_.store(
+            propsFile->getBoolValue("horZoomOnCursor", horZoomOnCursor_default),
+            std::memory_order_relaxed);
+
         double db = propsFile->getDoubleValue("micGain_dB", micGain_dB_default);
         micGain_dB_.store(db, std::memory_order_relaxed);
         micGainLinear_.store(juce::Decibels::decibelsToGain(db), std::memory_order_relaxed);
@@ -92,6 +105,7 @@ class GlobalSettings {
 
     //  ============ Cached values (atomic, lock-free) ============
     std::atomic<bool> playDraggedNotes_;
+    std::atomic<bool> horZoomOnCursor_;
     std::atomic<double> micGain_dB_;
     std::atomic<float> micGainLinear_;
     std::atomic<double> noteRectRounding_;

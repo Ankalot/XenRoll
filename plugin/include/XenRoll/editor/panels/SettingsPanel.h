@@ -7,6 +7,36 @@
 namespace audio_plugin {
 class AudioPluginAudioProcessorEditor;
 
+class SettingsViewport : public juce::Viewport {
+  public:
+    SettingsViewport(Theme *theme) : theme(theme) {
+        setScrollBarsShown(true, false);
+        getVerticalScrollBar().setColour(juce::ScrollBar::backgroundColourId, theme->dark);
+        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
+        setViewportIgnoreDragFlag(true);
+        setAlwaysOnTop(true);
+    }
+
+    /**
+     * @brief Update scrollbar colors to match current theme
+     */
+    void updateColors() {
+        getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, theme->bright);
+    }
+
+    void visibilityChanged() override {
+        auto* settingsPanel = getViewedComponent();
+        if (settingsPanel) {
+            settingsPanel->visibilityChanged();
+        }
+    }
+
+    void paint(juce::Graphics &g) override { g.fillAll(theme->darker); }
+
+  private:
+    Theme *theme;
+};
+
 class SettingsPanel : public juce::Component {
   public:
     SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor *editor);
@@ -18,10 +48,14 @@ class SettingsPanel : public juce::Component {
         if (isVisible()) {
             playDraggedNotesCheckbox->setToggleState(
                 GlobalSettings::getInstance().getPlayDraggedNotes(), juce::dontSendNotification);
+            horZoomOnCursorCheckbox->setToggleState(
+                GlobalSettings::getInstance().getHorZoomOnCursor(), juce::dontSendNotification);
             noteRectRoundingSlider->setValue(GlobalSettings::getInstance().getNoteRectRounding(),
                                              juce::dontSendNotification);
         }
     }
+
+    int getRequiredHeight() const;
 
   private:
     Parameters *params;
@@ -40,6 +74,9 @@ class SettingsPanel : public juce::Component {
 
     std::unique_ptr<juce::Label> playDraggedNotesLabel;
     std::unique_ptr<juce::ToggleButton> playDraggedNotesCheckbox;
+
+    std::unique_ptr<juce::Label> horZoomOnCursorLabel;
+    std::unique_ptr<juce::ToggleButton> horZoomOnCursorCheckbox;
 
     // Visual settings
     std::unique_ptr<juce::Label> themeTypeLabel;

@@ -1050,12 +1050,29 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
 
     const int newWidth = getWidth();
     const int newHeight = getHeight();
-    const float targetX =
-        juce::jlimit(0.0f, juce::jmax(0.0f, static_cast<float>(newWidth - viewWidth)),
-                     centerX * newWidth - viewWidth / 2.0f);
-    const float targetY =
-        juce::jlimit(0.0f, juce::jmax(0.0f, static_cast<float>(newHeight - viewHeight)),
-                     centerY * newHeight - viewHeight / 2.0f);
+
+    float targetX, targetY;
+
+    if (event.mods.isCtrlDown()) {
+        // Vertical zoom: always center on view
+        targetY = juce::jlimit(0.0f, juce::jmax(0.0f, static_cast<float>(newHeight - viewHeight)),
+                               centerY * newHeight - viewHeight / 2.0f);
+        targetX = params->lastViewPos.x; // Keep horizontal position unchanged
+    } else {
+        // Horizontal zoom
+        if (GlobalSettings::getInstance().getHorZoomOnCursor()) {
+            // Zoom relative to mouse cursor position
+            float lastMouseX = event.eventComponent->getMouseXYRelative().getX();
+            float mouseX = lastMouseX * (static_cast<float>(newWidth) / oldWidth);
+            targetX = juce::jlimit(0.0f, juce::jmax(0.0f, static_cast<float>(newWidth - viewWidth)),
+                                   mouseX - (lastMouseX - params->lastViewPos.x));
+        } else {
+            // Zoom relative to view center
+            targetX = juce::jlimit(0.0f, juce::jmax(0.0f, static_cast<float>(newWidth - viewWidth)),
+                                   centerX * newWidth - viewWidth / 2.0f);
+        }
+        targetY = params->lastViewPos.y; // Keep vertical position unchanged
+    }
 
     viewport->setViewPosition(juce::roundToInt(targetX), juce::roundToInt(targetY));
 
