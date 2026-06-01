@@ -1160,6 +1160,8 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
     juce::Point<int> point = event.getPosition();
     startDragPoint = point;
     lastDragPoint = point;
+    startDragPos = getParentComponent()->getLocalPoint(this, lastDragPoint);
+    lastDragPos = startDragPos;
 
     if (event.mods.isMiddleButtonDown()) {
         if (!params->editRatiosMarks) {
@@ -1174,8 +1176,6 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
 
         // Is panning (dragging view)
         isPanning = true;
-        startPanPos = getParentComponent()->getLocalPoint(this, lastDragPoint);
-        lastPanPos = startPanPos;
         if (clickVelPanelNoteInd == -1) {
             setMouseCursor(juce::MouseCursor::DraggingHandCursor);
         }
@@ -1461,6 +1461,7 @@ std::pair<int, int> MainPanel::findNearestKey(int octave, int cents) {
 
 void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     auto currDragPoint = event.getPosition();
+    auto currDragPos = getParentComponent()->getLocalPoint(this, currDragPoint);
     auto delta = currDragPoint - lastDragPoint;
 
     // Set time for clock diagram
@@ -1506,11 +1507,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
 
     // Panning (dragging view)
     if (isPanning) {
-        auto currentPos = getParentComponent()->getLocalPoint(this, currDragPoint);
-
         bool processPanning = false;
         if ((clickVelPanelNoteInd != -1)) {
-            if (currentPos.getDistanceFrom(startPanPos) > clickMoveThrPx) {
+            if (currDragPos.getDistanceFrom(startDragPos) > clickMoveThrPx) {
                 clickVelPanelNoteInd = -1;
                 setMouseCursor(juce::MouseCursor::DraggingHandCursor);
                 processPanning = true;
@@ -1519,7 +1518,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
             processPanning = true;
         }
         if (processPanning) {
-            auto panDelta = currentPos - lastPanPos;
+            auto panDelta = currDragPos - lastDragPos;
 
             if (params->isCamFixedOnPlayHead && editor->isPlaying()) {
                 panDelta.setX(0);
@@ -1534,8 +1533,6 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                 editor->repaintTopPanel();
             }
         }
-
-        lastPanPos = currentPos;
     }
 
     // Resizing selected notes
@@ -1688,7 +1685,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     if (isMoving) {
         bool processMoving = false;
         if (clickUnselAllNotesExcept != -1) {
-            if (currDragPoint.getDistanceFrom(startDragPoint) > clickMoveThrPx) {
+            if (currDragPos.getDistanceFrom(startDragPos) > clickMoveThrPx) {
                 clickUnselAllNotesExcept = -1;
                 processMoving = true;
             }
@@ -1842,7 +1839,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     if (isSelecting) {
         bool processSelecting = false;
         if (clickDelNoteInd != -1) {
-            if (currDragPoint.getDistanceFrom(startDragPoint) > clickMoveThrPx) {
+            if (currDragPos.getDistanceFrom(startDragPos) > clickMoveThrPx) {
                 clickDelNoteInd = -1;
                 processSelecting = true;
             }
@@ -1878,6 +1875,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     }
 
     lastDragPoint = currDragPoint;
+    lastDragPos = currDragPos;
 }
 
 bool MainPanel::doesPathIntersectRect(const juce::Path &somePath,

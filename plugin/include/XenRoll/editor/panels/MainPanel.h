@@ -164,8 +164,10 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool wasTimeChanging = false;
     bool wasPitchChanging = false; ///< for ±1¢ from keyboard only (up/down arrows & no key snap)
     RatioMark *movingRatioMark;
-    juce::Point<int> startPanPos;
-    juce::Point<int> lastPanPos;
+    // Pos is relative to viewport
+    juce::Point<int> startDragPos;
+    juce::Point<int> lastDragPos;
+    // Point is relative to panel
     juce::Point<int> startDragPoint;
     juce::Point<int> lastDragPoint;
     juce::Point<int> selectStartPoint;
