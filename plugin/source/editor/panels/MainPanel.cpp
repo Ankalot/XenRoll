@@ -1141,34 +1141,27 @@ void MainPanel::hideVelocityPanel() {
 void MainPanel::mouseDown(const juce::MouseEvent &event) {
     grabKeyboardFocus();
     juce::Point<int> point = event.getPosition();
-    lastDragPoint = point; // mouseDown isn't called if mouseDrag, so we can do this
+    startDragPoint = point;
+    lastDragPoint = point;
 
     if (event.mods.isMiddleButtonDown()) {
         if (!params->editRatiosMarks) {
             for (int i = static_cast<int>(notes.size() - 1); i >= 0; --i) {
                 if (pointOnNote(notes[i], point.toFloat())) {
-                    // Show or hide velocity panel
-                    if (notes[i].isSelected) {
-                        if (isShowingVelocityPanel) {
-                            hideVelocityPanel();
-                        } else {
-                            showOrUpdateVelocityPanel();
-                        }
-                    } else {
-                        unselectAllNotes();
-                        notes[i].isSelected = true;
-                        showOrUpdateVelocityPanel();
-                        repaint();
-                    }
-                    return;
+                    // Show or hide velocity panel on mouseUp (if it is not panning)
+                    clickVelPanelNoteInd = i;
+                    break;
                 }
             }
         }
 
         // Is panning (dragging view)
         isPanning = true;
-        lastPanPos = getParentComponent()->getLocalPoint(this, lastDragPoint);
-        setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+        startPanPos = getParentComponent()->getLocalPoint(this, lastDragPoint);
+        lastPanPos = startPanPos;
+        if (clickVelPanelNoteInd == -1) {
+            setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+        }
     }
 
     if (event.mods.isLeftButtonDown()) {
@@ -1260,8 +1253,8 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                         needToUnselectThisNote = i;
                         needToUnselectThisNote_Ctrl = event.mods.isCtrlDown();
                     } else {
-                        needToUnselectAllNotesExcept = i;
-                        needToUnselectAllNotesExcept_Ctrl = event.mods.isCtrlDown();
+                        clickUnselAllNotesExcept = i;
+                        clickUnselAllNotesExcept_Ctrl = event.mods.isCtrlDown();
                     }
                 } else {
                     if (!event.mods.isShiftDown()) {
@@ -1413,19 +1406,9 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         // we start iterating with the newest notes
         for (int i = numNotes - 1; i >= 0; --i) {
             if (pointOnNote(notes[i], point.toFloat())) {
-                // Delete note under cursor
-                deleteNote(i);
-                saveState();
-                editor->updateNotes(notes);
-                if (isShowingVelocityPanel) {
-                    if (thereAreSelectedNotes()) {
-                        showOrUpdateVelocityPanel();
-                    } else {
-                        hideVelocityPanel();
-                    }
-                }
-                repaint();
-                return;
+                // Delete note under cursor on mouseUp
+                clickDelNoteInd = i;
+                break;
             }
         }
 
@@ -1507,19 +1490,32 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     // Panning (dragging view)
     if (isPanning) {
         auto currentPos = getParentComponent()->getLocalPoint(this, currDragPoint);
-        auto panDelta = currentPos - lastPanPos;
 
-        if (params->isCamFixedOnPlayHead && editor->isPlaying()) {
-            panDelta.setX(0);
+        bool processPanning = false;
+        if ((clickVelPanelNoteInd != -1)) {
+            if (currentPos.getDistanceFrom(startPanPos) > clickMoveThrPx) {
+                clickVelPanelNoteInd = -1;
+                setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+                processPanning = true;
+            }
+        } else {
+            processPanning = true;
         }
+        if (processPanning) {
+            auto panDelta = currentPos - lastPanPos;
 
-        if (viewport != nullptr) {
-            auto newPos = viewport->getViewPosition() - panDelta;
-            viewport->setViewPosition(newPos);
-        }
+            if (params->isCamFixedOnPlayHead && editor->isPlaying()) {
+                panDelta.setX(0);
+            }
 
-        if (panDelta.getX() != 0) {
-            editor->repaintTopPanel();
+            if (viewport != nullptr) {
+                auto newPos = viewport->getViewPosition() - panDelta;
+                viewport->setViewPosition(newPos);
+            }
+
+            if (panDelta.getX() != 0) {
+                editor->repaintTopPanel();
+            }
         }
 
         lastPanPos = currentPos;
@@ -1673,135 +1669,145 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
 
     // Moving selected notes
     if (isMoving) {
-        needToUnselectAllNotesExcept = -1;
-        float cursorTime = currDragPoint.getX() / bar_width_px;
-        float cursorPitch = params->num_octaves - currDragPoint.getY() / octave_height_px;
-        float dtime = cursorTime - dragPivotTime;
-        int dcents = juce::roundToInt(1200 * (cursorPitch - dragPivotPitch));
-        if (event.mods.isShiftDown()) {
-            // Move vertically (pitch) slowly
-            dcents = juce::roundToInt(dcents * vertMoveSlowCoef);
-        }
-
-        // If timeSnap: time should be divisble by dt (but this can change in next loop)
-        if (params->timeSnap) {
-            float dt = 1.0f / (params->num_beats * params->num_subdivs);
-            dtime = juce::roundToInt(dtime / dt) * dt;
-        }
-
-        // Horizontal movement shouldn't make any selected note's time < 0 or
-        //      (time + duration) > num bars
-        // Vertical movement shouldn't make any selected note go beyond borders
-        size_t idx = 0;
-        for (int i = 0; i < notes.size(); ++i) {
-            if (notes[i].isSelected) {
-                float initialTime = initialStateForDrag[idx].first;
-                float duration = initialStateForDrag[idx].second;
-                int initialTotalCents = initialTotalCentsForDrag[idx];
-                dtime = juce::jmax(dtime, -initialTime);
-                dtime = juce::jmin(dtime, params->get_num_bars() - initialTime - duration);
-                dcents = juce::jmax(
-                    dcents, -juce::jmin(initialTotalCents, initialTotalCents + notes[i].bend));
-                dcents = juce::jmin(
-                    dcents, params->num_octaves * 1200 - 1 -
-                                juce::jmax(initialTotalCents, initialTotalCents + notes[i].bend));
-                idx++;
+        bool processMoving = false;
+        if (clickUnselAllNotesExcept != -1) {
+            if (currDragPoint.getDistanceFrom(startDragPoint) > clickMoveThrPx) {
+                clickUnselAllNotesExcept = -1;
+                processMoving = true;
             }
+        } else {
+            processMoving = true;
         }
+        if (processMoving) {
+            float cursorTime = currDragPoint.getX() / bar_width_px;
+            float cursorPitch = params->num_octaves - currDragPoint.getY() / octave_height_px;
+            float dtime = cursorTime - dragPivotTime;
+            int dcents = juce::roundToInt(1200 * (cursorPitch - dragPivotPitch));
+            if (event.mods.isShiftDown()) {
+                // Move vertically (pitch) slowly
+                dcents = juce::roundToInt(dcents * vertMoveSlowCoef);
+            }
 
-        bool changedTime = false;
-        if (dtime != prevDtime) {
-            // Apply horizontal movement
-            idx = 0;
+            // If timeSnap: time should be divisble by dt (but this can change in next loop)
+            if (params->timeSnap) {
+                float dt = 1.0f / (params->num_beats * params->num_subdivs);
+                dtime = juce::roundToInt(dtime / dt) * dt;
+            }
+
+            // Horizontal movement shouldn't make any selected note's time < 0 or
+            //      (time + duration) > num bars
+            // Vertical movement shouldn't make any selected note go beyond borders
+            size_t idx = 0;
             for (int i = 0; i < notes.size(); ++i) {
                 if (notes[i].isSelected) {
-                    float newTime = initialStateForDrag[idx].first + dtime;
-                    notes[i].time = newTime;
+                    float initialTime = initialStateForDrag[idx].first;
+                    float duration = initialStateForDrag[idx].second;
+                    int initialTotalCents = initialTotalCentsForDrag[idx];
+                    dtime = juce::jmax(dtime, -initialTime);
+                    dtime = juce::jmin(dtime, params->get_num_bars() - initialTime - duration);
+                    dcents = juce::jmax(
+                        dcents, -juce::jmin(initialTotalCents, initialTotalCents + notes[i].bend));
+                    dcents = juce::jmin(dcents, params->num_octaves * 1200 - 1 -
+                                                    juce::jmax(initialTotalCents,
+                                                               initialTotalCents + notes[i].bend));
                     idx++;
                 }
             }
 
-            changedTime = true;
-        }
-
-        bool changedPitch = false;
-        if (dcents != prevDcents) {
-            // Apply vertical movement
-            if (params->keySnap) {
-                if ((initialTotalCentsForDrag.size() == 1) && (keys.size() != 0)) {
-                    int initialTotalCents = initialTotalCentsForDrag[0];
-                    int newTotalCents = initialTotalCents + dcents;
-                    int newOctave = newTotalCents / 1200;
-                    int newCents = newTotalCents - newOctave * 1200;
-                    std::tie(newOctave, newCents) = findNearestKey(newOctave, newCents);
-                    newTotalCents = newOctave * 1200 + newCents;
-                    dcents = newTotalCents - initialTotalCents;
-
-                    auto it = std::find_if(notes.begin(), notes.end(),
-                                           [](const Note &note) { return note.isSelected; });
-                    if (it != notes.end()) {
-                        int newTotalCentsWithBend = newTotalCents + it->bend;
-                        if ((dcents != prevDcents) &&
-                            (newTotalCentsWithBend < params->num_octaves * 1200) &&
-                            (newTotalCentsWithBend >= 0)) {
-                            it->octave = newOctave;
-                            it->cents = newCents;
-
-                            changedPitch = true;
-                        }
-                    }
-                }
-            } else {
+            bool changedTime = false;
+            if (dtime != prevDtime) {
+                // Apply horizontal movement
                 idx = 0;
                 for (int i = 0; i < notes.size(); ++i) {
                     if (notes[i].isSelected) {
-                        int newTotalCents = initialTotalCentsForDrag[idx] + dcents;
-                        int newOctave = newTotalCents / 1200;
-                        int newCents = newTotalCents - newOctave * 1200;
-                        notes[i].octave = newOctave;
-                        notes[i].cents = newCents;
+                        float newTime = initialStateForDrag[idx].first + dtime;
+                        notes[i].time = newTime;
                         idx++;
                     }
                 }
 
-                changedPitch = true;
+                changedTime = true;
             }
-        }
 
-        bool updatedManuallyPlayedKeys = false;
-        if (changedPitch && GlobalSettings::getInstance().getPlayDraggedNotes()) {
-            // Play dragged vertically notes
-            std::lock_guard<std::mutex> lock(mptcMtx);
-            idx = 0;
-            for (int i = 0; i < notes.size(); ++i) {
-                if (notes[i].isSelected) {
-                    dragManuallyPlayedKeys.erase(initialTotalCentsForDrag[idx] + prevDcents);
-                    dragManuallyPlayedKeys.insert(
-                        {notes[i].cents + notes[i].octave * 1200, notes[i].velocity});
-                    idx++;
+            bool changedPitch = false;
+            if (dcents != prevDcents) {
+                // Apply vertical movement
+                if (params->keySnap) {
+                    if ((initialTotalCentsForDrag.size() == 1) && (keys.size() != 0)) {
+                        int initialTotalCents = initialTotalCentsForDrag[0];
+                        int newTotalCents = initialTotalCents + dcents;
+                        int newOctave = newTotalCents / 1200;
+                        int newCents = newTotalCents - newOctave * 1200;
+                        std::tie(newOctave, newCents) = findNearestKey(newOctave, newCents);
+                        newTotalCents = newOctave * 1200 + newCents;
+                        dcents = newTotalCents - initialTotalCents;
+
+                        auto it = std::find_if(notes.begin(), notes.end(),
+                                               [](const Note &note) { return note.isSelected; });
+                        if (it != notes.end()) {
+                            int newTotalCentsWithBend = newTotalCents + it->bend;
+                            if ((dcents != prevDcents) &&
+                                (newTotalCentsWithBend < params->num_octaves * 1200) &&
+                                (newTotalCentsWithBend >= 0)) {
+                                it->octave = newOctave;
+                                it->cents = newCents;
+
+                                changedPitch = true;
+                            }
+                        }
+                    }
+                } else {
+                    idx = 0;
+                    for (int i = 0; i < notes.size(); ++i) {
+                        if (notes[i].isSelected) {
+                            int newTotalCents = initialTotalCentsForDrag[idx] + dcents;
+                            int newOctave = newTotalCents / 1200;
+                            int newCents = newTotalCents - newOctave * 1200;
+                            notes[i].octave = newOctave;
+                            notes[i].cents = newCents;
+                            idx++;
+                        }
+                    }
+
+                    changedPitch = true;
                 }
             }
 
-            updatedManuallyPlayedKeys = true;
-        }
+            bool updatedManuallyPlayedKeys = false;
+            if (changedPitch && GlobalSettings::getInstance().getPlayDraggedNotes()) {
+                // Play dragged vertically notes
+                std::lock_guard<std::mutex> lock(mptcMtx);
+                idx = 0;
+                for (int i = 0; i < notes.size(); ++i) {
+                    if (notes[i].isSelected) {
+                        dragManuallyPlayedKeys.erase(initialTotalCentsForDrag[idx] + prevDcents);
+                        dragManuallyPlayedKeys.insert(
+                            {notes[i].cents + notes[i].octave * 1200, notes[i].velocity});
+                        idx++;
+                    }
+                }
 
-        if (changedTime) {
-            timeCorrectRatioMarksBasedOnSelNotes(dtime - prevDtime);
-        }
-        if (changedPitch) {
-            pitchCorrectRatioMarksBasedOnSelNotes();
-        }
-        if (changedTime || changedPitch) {
-            wasMoving = true;
-            remakeKeys(dcents - prevDcents);
-            editor->updateNotes(notes);
-            repaint();
-            prevDtime = dtime;
-            prevDcents = dcents;
-        }
-        if (updatedManuallyPlayedKeys) {
-            std::lock_guard<std::mutex> lock(mptcMtx);
-            editor->setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
+                updatedManuallyPlayedKeys = true;
+            }
+
+            if (changedTime) {
+                timeCorrectRatioMarksBasedOnSelNotes(dtime - prevDtime);
+            }
+            if (changedPitch) {
+                pitchCorrectRatioMarksBasedOnSelNotes();
+            }
+            if (changedTime || changedPitch) {
+                wasMoving = true;
+                remakeKeys(dcents - prevDcents);
+                editor->updateNotes(notes);
+                repaint();
+                prevDtime = dtime;
+                prevDcents = dcents;
+            }
+            if (updatedManuallyPlayedKeys) {
+                std::lock_guard<std::mutex> lock(mptcMtx);
+                editor->setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
+            }
         }
     }
 
@@ -1817,8 +1823,19 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
 
     // Is selecting
     if (isSelecting) {
-        selectLastPoint = currDragPoint;
-        repaint();
+        bool processSelecting = false;
+        if (clickDelNoteInd != -1) {
+            if (currDragPoint.getDistanceFrom(startDragPoint) > clickMoveThrPx) {
+                clickDelNoteInd = -1;
+                processSelecting = true;
+            }
+        } else {
+            processSelecting = true;
+        }
+        if (processSelecting) {
+            selectLastPoint = currDragPoint;
+            repaint();
+        }
     }
 
     // Is drawing ratio mark
@@ -1865,6 +1882,47 @@ bool MainPanel::doesPathIntersectRect(const juce::Path &somePath,
     return false;
 }
 
+void MainPanel::updateMouseCursor(const juce::MouseEvent &event) {
+    juce::MouseCursor targetCursor = juce::MouseCursor::NormalCursor;
+
+    if (params->editRatiosMarks) {
+        bool isOverRatioMark = false;
+        juce::Point<int> point = event.getPosition();
+        for (const auto &ratioMark : params->ratiosMarks) {
+            if (pointOnRatioMark(ratioMark, point)) {
+                isOverRatioMark = true;
+                break;
+            }
+        }
+        if (isOverRatioMark)
+            targetCursor = juce::MouseCursor::PointingHandCursor;
+    } else {
+        juce::Point<float> point = event.getPosition().toFloat();
+
+        bool isOverNote = false;
+        bool isOverNoteResize = false;
+
+        for (int i = static_cast<int>(notes.size() - 1); i >= 0; --i) {
+            if (pointOnNote(notes[i], point)) {
+                float noteX2 = (notes[i].time + notes[i].duration) * bar_width_px;
+                if (noteX2 - point.getX() < note_right_corner_width)
+                    isOverNoteResize = true;
+                else
+                    isOverNote = true;
+                break;
+            }
+        }
+
+        if (isOverNote)
+            targetCursor = juce::MouseCursor::PointingHandCursor;
+        else if (isOverNoteResize)
+            targetCursor = juce::MouseCursor::RightEdgeResizeCursor;
+    }
+
+    if (getMouseCursor() != targetCursor)
+        setMouseCursor(targetCursor);
+}
+
 void MainPanel::mouseUp(const juce::MouseEvent &event) {
     if (isMoving && GlobalSettings::getInstance().getPlayDraggedNotes()) {
         std::lock_guard<std::mutex> lock(mptcMtx);
@@ -1880,6 +1938,42 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
         saveState();
     }
 
+    if (clickVelPanelNoteInd != -1) {
+        if (clickVelPanelNoteInd < notes.size()) { // need check because user could press "del"
+            // Show or hide velocity panel
+            if (notes[clickVelPanelNoteInd].isSelected) {
+                if (isShowingVelocityPanel) {
+                    hideVelocityPanel();
+                } else {
+                    showOrUpdateVelocityPanel();
+                }
+            } else {
+                unselectAllNotes();
+                notes[clickVelPanelNoteInd].isSelected = true;
+                showOrUpdateVelocityPanel();
+            }
+        }
+        clickVelPanelNoteInd = -1;
+    }
+
+    if (clickDelNoteInd != -1) {
+        if (clickDelNoteInd < notes.size()) { // need check because user could press "del"
+            // Delete note
+            deleteNote(clickDelNoteInd);
+            saveState();
+            editor->updateNotes(notes);
+            if (isShowingVelocityPanel) {
+                if (thereAreSelectedNotes()) {
+                    showOrUpdateVelocityPanel();
+                } else {
+                    hideVelocityPanel();
+                }
+            }
+        }
+        clickDelNoteInd = -1;
+        isSelecting = false; // so no selection will be
+    }
+
     isPanning = false;
     wasResizing = false;
     isResizing = false;
@@ -1893,23 +1987,22 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
     prevDtime = 0.0f;
     prevDcents = 0;
     prevTime = -1.0f;
-    setMouseCursor(juce::MouseCursor::NormalCursor);
 
-    if (needToUnselectAllNotesExcept != -1) {
+    if (clickUnselAllNotesExcept != -1) {
         unselectAllNotes();
         // need to check because user could press "Del" while moving notes
-        if (needToUnselectAllNotesExcept < notes.size()) {
-            if (needToUnselectAllNotesExcept_Ctrl) {
-                int cents = notes[needToUnselectAllNotesExcept].cents;
+        if (clickUnselAllNotesExcept < notes.size()) {
+            if (clickUnselAllNotesExcept_Ctrl) {
+                int cents = notes[clickUnselAllNotesExcept].cents;
                 for (Note &note : notes) {
                     if ((note.cents == cents) && params->zones.isNoteInActiveZone(note)) {
                         note.isSelected = true;
                     }
                 }
             }
-            notes[needToUnselectAllNotesExcept].isSelected = true;
+            notes[clickUnselAllNotesExcept].isSelected = true;
         }
-        needToUnselectAllNotesExcept = -1;
+        clickUnselAllNotesExcept = -1;
         if (isShowingVelocityPanel) {
             showOrUpdateVelocityPanel();
         }
@@ -2023,6 +2116,7 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
         isDrawingRatioMark = false;
     }
 
+    updateMouseCursor(event);
     repaint();
 }
 
@@ -2035,44 +2129,7 @@ void MainPanel::mouseMove(const juce::MouseEvent &event) {
         }
     }
 
-    if (params->editRatiosMarks) {
-        bool isOverRatioMark = false;
-        juce::Point<int> point = event.getPosition();
-        for (const auto &ratioMark : params->ratiosMarks) {
-            if (pointOnRatioMark(ratioMark, point)) {
-                isOverRatioMark = true;
-                break;
-            }
-        }
-        if (isOverRatioMark)
-            setMouseCursor(juce::MouseCursor::PointingHandCursor);
-        else
-            setMouseCursor(juce::MouseCursor::NormalCursor);
-        return;
-    }
-
-    juce::Point<float> point = event.getPosition().toFloat();
-
-    bool isOverNote = false;
-    bool isOverNoteResize = false;
-
-    for (int i = static_cast<int>(notes.size() - 1); i >= 0; --i) {
-        if (pointOnNote(notes[i], point)) {
-            float noteX2 = (notes[i].time + notes[i].duration) * bar_width_px;
-            if (noteX2 - point.getX() < note_right_corner_width)
-                isOverNoteResize = true;
-            else
-                isOverNote = true;
-            break;
-        }
-    }
-
-    if (isOverNote)
-        setMouseCursor(juce::MouseCursor::PointingHandCursor);
-    else if (isOverNoteResize)
-        setMouseCursor(juce::MouseCursor::RightEdgeResizeCursor);
-    else
-        setMouseCursor(juce::MouseCursor::NormalCursor);
+    updateMouseCursor(event);
 }
 
 void MainPanel::deleteNote(int i) {

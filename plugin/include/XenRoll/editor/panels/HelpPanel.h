@@ -49,26 +49,32 @@ class HelpPanel : public juce::Component {
         drawMainHeader(g, leftColumn, "Mouse Actions");
 
         drawSubHeader(g, leftColumn, "Main Panel (canvas)");
-        drawTable(g, leftColumn,
-                  {{"LClick + empty space", "Create a note / deselect all"},
-                   {"LClick + note", "Select note"},
-                   {"Shift + LClick + note", "Add/remove note to/from selection"},
-                   {"Ctrl + LClick + note", "Select all notes of the same pitch (+ Shift to add/remove)"},
-                   {"LDrag + note", "Drag selected notes"},
-                   {"Shift + LDrag + note", "Drag slowly (fine pitch adjustment)"},
-                   {"LDrag + note's right edge", "Resize notes (change duration)"},
-                   {"Alt + LDrag + note's right edge", "Time-stretch selected notes"},
-                   {"RClick + note", "Delete note"},
-                   {"Alt + RClick/RDrag", "Audition notes under the cursor"},
-                   {"RDrag + empty space", "Rectangle-select notes"},
-                   {"MDrag + empty space", "Pan the view"},
-                   {"MClick + note", "Show/hide velocity panel for selected notes"},
-                   {"Scroll", "Zoom in/out (time)"},
-                   {"Ctrl + Scroll", "Zoom in/out (pitch)"},
-                   {"Shift + Scroll", "Increase/decrease velocity of selected notes"},
-                   {"Alt + Scroll", "Bend selected notes"},
-                   {"Alt + Shift + Scroll", "Bend selected notes faster"},
-                   {"Alt + Ctrl + Scroll", "Snap-bend selected notes to nearest keys"}});
+        drawTable(
+            g, leftColumn,
+            {{"LClick + empty space", "Create a note / deselect all"},
+             {"LClick + note", "Select note"},
+             {"Shift + LClick + note", "Add/remove note to/from selection"},
+             {"Ctrl + LClick + note", "Select all notes of the same pitch (+ Shift to add/remove)"},
+             {"LDrag + note", "Drag selected notes"},
+             {"Shift + LDrag + note", "Drag slowly (fine pitch adjustment)"},
+             {"LDrag + note's right edge", "Resize notes (change duration)"},
+             {"Alt + LDrag + note's right edge", "Time-stretch selected notes"},
+             {"RClick + note", "Delete note"},
+             {"Alt + RClick/RDrag", "Audition notes under the cursor"},
+             {"RDrag", "Rectangle-select notes"},
+             {"MDrag", "Pan the view"},
+             {"MClick + note", "Show/hide velocity panel for selected notes"},
+             {"Scroll", "Zoom in/out (time)"},
+             {"Ctrl + Scroll", "Zoom in/out (pitch)"},
+             {"Shift + Scroll", "Increase/decrease velocity of selected notes"},
+             {"Alt + Scroll", "Bend selected notes"},
+             {"Alt + Shift + Scroll", "Bend selected notes faster"},
+             {"Alt + Ctrl + Scroll", "Snap-bend selected notes to nearest keys"},
+             // Mini subheader
+             {"Ratio Marks Editing Mode", ""},
+             {"LClick + empty space", "Create ratio mark"},
+             {"LDrag + ratio mark", "Move ratio mark"},
+             {"RClick/RDrag", "Delete ratio marks"}});
 
         drawSubHeader(g, leftColumn, "Top Panel (with time)");
         drawTable(g, leftColumn,
@@ -76,11 +82,11 @@ class HelpPanel : public juce::Component {
                    {"Alt + RClick", "Turn zone off"},
                    {"Shift + LClick", "Create zone point"},
                    {"Shift + RClick", "Delete zone point"},
-                   {"Click", "Set playhead time (uses OSC, port " +
-                                 juce::String(Parameters::oscPort) + ")"}});
+                   {"LClick/LDrag", "Set playhead time (uses OSC, port " +
+                                        juce::String(Parameters::oscPort) + ")"}});
 
         drawSubHeader(g, leftColumn, "Left Panel (with keys)");
-        drawTable(g, leftColumn, {{"LClick", "Play key (hold to sustain)"}});
+        drawTable(g, leftColumn, {{"LClick/LDrag", "Play key (hold to sustain)"}});
 
         // ==================== KEYBOARD ACTIONS (RIGHT COLUMN) ====================
         drawMainHeader(g, rightColumn, "Keyboard Actions");
@@ -130,8 +136,8 @@ class HelpPanel : public juce::Component {
         const int mainH = mainHeaderHeight + 4;
         const int subH = sectionHeaderHeight + 2;
 
-        // Left column: Main Panel (19 rows), Top Panel (5 rows), Left Panel (1 row)
-        int left = mainH + subH + 19 * rowHeight + sectionSpacing + subH + 5 * rowHeight +
+        // Left column: Main Panel (19 + 3 rows), Top Panel (5 rows), Left Panel (1 row)
+        int left = mainH + subH + 24 * rowHeight + sectionSpacing + subH + 5 * rowHeight +
                    sectionSpacing + subH + 1 * rowHeight;
 
         // Right column: Basic (8), With Cents (4), Moving Notes (4), Hotkeys (4), Extra (1)
@@ -183,6 +189,32 @@ class HelpPanel : public juce::Component {
 
         for (size_t i = 0; i < rows.size(); ++i) {
             auto rowBounds = tableBounds.removeFromTop(rowHeight);
+
+            // === Mini subheader ===
+            if (rows[i].second == "") {
+                g.setColour(theme->brighter);
+
+                juce::String titleText = rows[i].first;
+                g.drawText(titleText, rowBounds, juce::Justification::centred, false);
+
+                float textWidth = g.getCurrentFont().getStringWidthFloat(titleText);
+                const float gap = 10.0f;
+                const float lineThickness = 1.0f;
+                float lineY = rowBounds.getCentreY();
+                float leftLineStartX = rowBounds.getX();
+                float leftLineEndX = rowBounds.getCentreX() - textWidth / 2 - gap;
+                float rightLineStartX = rowBounds.getCentreX() + textWidth / 2 + gap;
+                float rightLineEndX = rowBounds.getRight();
+
+                if (leftLineStartX < leftLineEndX) {
+                    g.drawLine(leftLineStartX, lineY, leftLineEndX, lineY, lineThickness);
+                }
+
+                if (rightLineStartX < rightLineEndX) {
+                    g.drawLine(rightLineStartX, lineY, rightLineEndX, lineY, lineThickness);
+                }
+                continue;
+            }
 
             if (i % 2 == 0) {
                 g.setColour(theme->brighter.withAlpha(0.05f));

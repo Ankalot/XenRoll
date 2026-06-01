@@ -35,6 +35,9 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool keyStateChanged(bool isKeyDown) override;
     void modifierKeysChanged(const juce::ModifierKeys &modifiers) override;
 
+    ///< For use in mouseMove and in mouseUp
+    void updateMouseCursor(const juce::MouseEvent &event);
+
     void drawOutlinedText(juce::Graphics &g, const juce::String &text, juce::Rectangle<float> area,
                           const juce::Font &font);
     void paint(juce::Graphics &g) override;
@@ -161,7 +164,9 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool wasTimeChanging = false;
     bool wasPitchChanging = false; ///< for ±1¢ from keyboard only (up/down arrows & no key snap)
     RatioMark *movingRatioMark;
+    juce::Point<int> startPanPos;
     juce::Point<int> lastPanPos;
+    juce::Point<int> startDragPoint;
     juce::Point<int> lastDragPoint;
     juce::Point<int> selectStartPoint;
     juce::Point<int> selectLastPoint;
@@ -244,8 +249,13 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     const float dashLengths[2] = {45, 15};
     const int ratioMarkHalfWidth = 5;
     const int ratioMarkMinHeight = 10; ///< is needed for deleting small ratio marks like 1/1
-    int needToUnselectAllNotesExcept = -1;
-    bool needToUnselectAllNotesExcept_Ctrl = false;
+
+    ///< This threshold will determine either user wants "drag action" or "click action"    
+    const int clickMoveThrPx = 2;
+    int clickVelPanelNoteInd = -1;
+    int clickDelNoteInd = -1;
+    int clickUnselAllNotesExcept = -1;
+    bool clickUnselAllNotesExcept_Ctrl = false;
     int needToUnselectThisNote = -1;
     bool needToUnselectThisNote_Ctrl = false;
     float vertMoveSlowCoef = 0.2f;
