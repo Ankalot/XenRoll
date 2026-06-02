@@ -8,7 +8,7 @@ class AudioPluginAudioProcessorEditor;
 
 class InstancesMenu : public juce::Component {
   public:
-    InstancesMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor);
+    InstancesMenu(Parameters &params, AudioPluginAudioProcessorEditor &editor);
     ~InstancesMenu() override = default;
 
     void buildMenu();
@@ -24,8 +24,8 @@ class InstancesMenu : public juce::Component {
     }
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(params->theme.darker);
-        g.setColour(params->theme.darkest);
+        g.fillAll(params.theme.darker);
+        g.setColour(params.theme.darkest);
         g.drawRect(getLocalBounds().toFloat(), Theme::wider);
     }
 
@@ -38,8 +38,8 @@ class InstancesMenu : public juce::Component {
     }
 
   private:
-    AudioPluginAudioProcessorEditor *editor;
-    Parameters *params;
+    AudioPluginAudioProcessorEditor &editor;
+    Parameters &params;
 
     int myInd;
     std::set<int> possibleInds;

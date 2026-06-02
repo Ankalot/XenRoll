@@ -16,14 +16,14 @@ class DissonancePanel : public juce::Component {
      * @param params Pointer to parameters
      * @param dissonanceMeter Shared pointer to DissonanceMeter for calculations
      */
-    DissonancePanel(Parameters *params, std::shared_ptr<DissonanceMeter> dissonanceMeter);
+    DissonancePanel(Parameters &params, std::shared_ptr<DissonanceMeter> dissonanceMeter);
     ~DissonancePanel() override;
 
     void resized() override;
     void paint(juce::Graphics &g) override;
 
   private:
-    Parameters *params;
+    Parameters &params;
     std::shared_ptr<DissonanceMeter> dissonanceMeter;
     std::unique_ptr<PartialsPlot> partialsPlot;
     std::unique_ptr<DissonancePlot> dissonancePlot;

@@ -663,8 +663,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         juce::MidiMessage noteOff =
                             juce::MidiMessage::noteOff(chAndMidiNote.first, chAndMidiNote.second);
                         midiMessages.addEvent(noteOff, 0);
-                        it = manPlNoteToChAndMidiNoteMPE.erase(it);
                         channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
+                        it = manPlNoteToChAndMidiNoteMPE.erase(it);
                     } else {
                         ++it;
                     }
@@ -695,9 +695,9 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                             juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
                                 chAndMidiNote.first, chAndMidiNote.second);
                             midiMessages.addEvent(noteOff, 0);
-                            it = noteToChAndMidiNoteMPE.erase(it);
                             delCurrPlayedNotesTotalCentsMPE(totalCents);
                             channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
+                            it = noteToChAndMidiNoteMPE.erase(it);
                         } else {
                             ++it;
                         }
@@ -738,9 +738,9 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                             juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
                                 chAndMidiNote.first, chAndMidiNote.second);
                             midiMessages.addEvent(noteOff, 0);
-                            it = auditionNoteToChAndMidiNoteMPE.erase(it);
                             delCurrPlayedNotesTotalCentsMPE(totalCents);
                             channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
+                            it = auditionNoteToChAndMidiNoteMPE.erase(it);
                         } else {
                             ++it;
                         }
@@ -820,7 +820,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                 juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
                                     chAndMidiNote.first, chAndMidiNote.second);
                                 midiMessages.addEvent(noteOff, noteOffSample);
-                                noteToChAndMidiNoteMPE.erase(itNote);
                                 delCurrPlayedNotesTotalCentsMPE(totalCents);
 
                                 if (params.resetPitchBendOnNoteOff && (note.bend != 0)) {
@@ -832,6 +831,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                 }
 
                                 channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
+                                noteToChAndMidiNoteMPE.erase(itNote);
                             }
                         }
                     }

@@ -11,17 +11,17 @@ class AudioPluginAudioProcessorEditor;
  */
 class TopPanel : public juce::Component {
   public:
-    TopPanel(const int topPanel_height_px, AudioPluginAudioProcessorEditor *editor,
-             Parameters *params);
+    TopPanel(const int topPanel_height_px, AudioPluginAudioProcessorEditor &editor,
+             Parameters &params);
 
     void changeBarWidthPx(float new_bar_width_px) {
         bar_width_px = new_bar_width_px;
-        this->setSize(juce::roundToInt(params->get_num_bars() * bar_width_px), topPanel_height_px);
+        this->setSize(juce::roundToInt(params.get_num_bars() * bar_width_px), topPanel_height_px);
         repaint();
     }
 
     void numBarsChanged() {
-        this->setSize(juce::roundToInt(params->get_num_bars() * bar_width_px), topPanel_height_px);
+        this->setSize(juce::roundToInt(params.get_num_bars() * bar_width_px), topPanel_height_px);
         repaint();
     }
 
@@ -56,8 +56,8 @@ class TopPanel : public juce::Component {
     void paint(juce::Graphics &g) override;
 
   private:
-    AudioPluginAudioProcessorEditor *editor;
-    Parameters *params;
+    AudioPluginAudioProcessorEditor &editor;
+    Parameters &params;
 
     const int topPanel_height_px;
     float init_bar_width_px;

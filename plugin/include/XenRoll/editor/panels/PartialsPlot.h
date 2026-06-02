@@ -6,14 +6,14 @@
 namespace audio_plugin {
 class PartialsPlot : public juce::Component {
   public:
-    PartialsPlot(Parameters *params, bool interpolate) : params(params), interpolate(interpolate) {
-        totalCents = params->plotPartialsTotalCents;
-        tonesPartials = params->get_tonesPartials();
+    PartialsPlot(Parameters &params, bool interpolate) : params(params), interpolate(interpolate) {
+        totalCents = params.plotPartialsTotalCents;
+        tonesPartials = params.get_tonesPartials();
         updatePartials();
     }
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(params->theme.brighter);
+        g.fillAll(params.theme.brighter);
         drawAxes(g);
         drawPartials(g);
     }
@@ -29,7 +29,7 @@ class PartialsPlot : public juce::Component {
      * @brief Update the total cents value from parameters
      */
     void updateTotalCents() {
-        totalCents = params->plotPartialsTotalCents;
+        totalCents = params.plotPartialsTotalCents;
         updatePartials();
         repaint();
     }
@@ -38,13 +38,13 @@ class PartialsPlot : public juce::Component {
      * @brief Update the tones partials from parameters
      */
     void updateTonesPartials() {
-        tonesPartials = params->get_tonesPartials();
+        tonesPartials = params.get_tonesPartials();
         updatePartials();
         repaint();
     }
 
   private:
-    Parameters *params;
+    Parameters &params;
     std::map<int, partialsVec> tonesPartials;
     int totalCents = 0;
     partialsVec partials;
@@ -123,7 +123,7 @@ class PartialsPlot : public juce::Component {
     }
 
     void drawAxes(juce::Graphics &g) {
-        g.setColour(params->theme.darkest);
+        g.setColour(params.theme.darkest);
 
         g.drawRect(plotArea, 1.0f);
 
@@ -179,7 +179,7 @@ class PartialsPlot : public juce::Component {
     }
 
     void drawPartials(juce::Graphics &g) {
-        g.setColour(params->theme.darkest);
+        g.setColour(params.theme.darkest);
 
         // Plot label
         g.setFont(Theme::big);

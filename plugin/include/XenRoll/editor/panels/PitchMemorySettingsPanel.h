@@ -8,13 +8,13 @@ class AudioPluginAudioProcessorEditor;
 
 class PitchMemorySettingsPanel : public juce::Component {
   public:
-    PitchMemorySettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor *editor);
+    PitchMemorySettingsPanel(Parameters &params, AudioPluginAudioProcessorEditor &editor);
 
     void resized() override;
     void paint(juce::Graphics &g) override;
 
   private:
-    Parameters *params;
+    Parameters &params;
     std::unique_ptr<juce::Label> TVvalForZeroHVLabel, TVaddInfluenceLabel, TVminNonzeroLabel,
         showOnlyHarmonicityLabel;
     std::unique_ptr<juce::Slider> TVvalForZeroHVSlider, TVaddInfluenceSlider, TVminNonzeroSlider;

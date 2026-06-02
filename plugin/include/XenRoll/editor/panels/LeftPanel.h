@@ -12,11 +12,11 @@ class AudioPluginAudioProcessorEditor;
  */
 class LeftPanel : public juce::Component {
   public:
-    LeftPanel(int leftPanel_width_px, AudioPluginAudioProcessorEditor *editor, Parameters *params);
+    LeftPanel(int leftPanel_width_px, AudioPluginAudioProcessorEditor &editor, Parameters &params);
 
     void changeOctaveHeightPx(float new_octave_height_px) {
         octave_height_px = new_octave_height_px;
-        this->setSize(leftPanel_width_px, juce::roundToInt(params->num_octaves * octave_height_px));
+        this->setSize(leftPanel_width_px, juce::roundToInt(params.num_octaves * octave_height_px));
         repaint();
     }
 
@@ -93,8 +93,8 @@ class LeftPanel : public juce::Component {
     std::set<int> currPlayingBentKeysTotalCents;
     int manuallyPlayedKeyTotalCents;
 
-    AudioPluginAudioProcessorEditor *editor;
-    Parameters *params;
+    AudioPluginAudioProcessorEditor &editor;
+    Parameters &params;
 
     std::map<int, float> keysHarmonicity = {}; ///< total cents -> harmonicity
 

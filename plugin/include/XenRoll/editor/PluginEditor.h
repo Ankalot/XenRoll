@@ -47,7 +47,7 @@ class FontLookAndFeel : public juce::LookAndFeel_V4 {
 
 class CustomLookAndFeel : public juce::LookAndFeel_V4 {
   public:
-    CustomLookAndFeel(Theme *theme) : theme(theme) { updateColors(); }
+    CustomLookAndFeel(Theme &theme) : theme(theme) { updateColors(); }
 
     // Partly fixes freeze when opening ComboBox menu (on windows 10)
     int getMenuWindowFlags() override { return 0; }
@@ -117,14 +117,14 @@ class CustomLookAndFeel : public juce::LookAndFeel_V4 {
     }
 
   private:
-    Theme *theme;
+    Theme &theme;
     const int padding_x = 6;
     const int padding_y = 2;
 };
 
 class SmallLookAndFeel : public juce::LookAndFeel_V4 {
   public:
-    SmallLookAndFeel(Theme *theme) : theme(theme) { updateColors(); }
+    SmallLookAndFeel(Theme &theme) : theme(theme) { updateColors(); }
 
     // Partly fixes freeze when opening ComboBox menu (on windows 10)
     int getMenuWindowFlags() { return 0; }
@@ -151,12 +151,12 @@ class SmallLookAndFeel : public juce::LookAndFeel_V4 {
                               bool shouldDrawButtonAsDown) override;
 
   private:
-    Theme *theme;
+    Theme &theme;
 };
 
 class MainViewport : public juce::Viewport {
   public:
-    MainViewport(Parameters *params, juce::Viewport *leftViewport, juce::Viewport *topViewport)
+    MainViewport(Parameters &params, juce::Viewport &leftViewport, juce::Viewport &topViewport)
         : params(params), leftViewport(leftViewport), topViewport(topViewport) {}
 
     /**
@@ -198,9 +198,9 @@ class MainViewport : public juce::Viewport {
     }
 
   private:
-    Parameters *params;
-    juce::Viewport *leftViewport;
-    juce::Viewport *topViewport;
+    Parameters &params;
+    juce::Viewport &leftViewport;
+    juce::Viewport &topViewport;
     std::function<void()> updateCallback;
     bool isUpdating = false; ///< Just in case, against infinite recursion
 
@@ -214,8 +214,8 @@ class MainViewport : public juce::Viewport {
         }
         isUpdating = true;
         Viewport::visibleAreaChanged(newVisibleArea);
-        leftViewport->setViewPosition(leftViewport->getViewPositionX(), newVisibleArea.getY());
-        topViewport->setViewPosition(newVisibleArea.getX(), topViewport->getViewPositionY());
+        leftViewport.setViewPosition(leftViewport.getViewPositionX(), newVisibleArea.getY());
+        topViewport.setViewPosition(newVisibleArea.getX(), topViewport.getViewPositionY());
 
         // Update mainViewport size based on scrollbar visibility
         if (updateCallback != nullptr) {
@@ -223,7 +223,7 @@ class MainViewport : public juce::Viewport {
         }
         isUpdating = false;
 
-        params->lastViewPos = getViewPosition().toFloat();
+        params.lastViewPos = getViewPosition().toFloat();
     }
 };
 

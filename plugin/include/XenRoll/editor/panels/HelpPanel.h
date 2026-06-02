@@ -8,12 +8,12 @@ namespace audio_plugin {
 
 class HelpPanel : public juce::Component {
   public:
-    HelpPanel(Theme *theme) : theme(theme) {
+    HelpPanel(Theme &theme) : theme(theme) {
         setVisible(false);
     }
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(theme->darker);
+        g.fillAll(theme.darker);
 
         auto bounds = getLocalBounds().reduced(10);
         int columnWidth = (bounds.getWidth() - columnGap) / 2;
@@ -125,7 +125,7 @@ class HelpPanel : public juce::Component {
     }
 
   private:
-    Theme *theme;
+    Theme &theme;
     const int firstColumnWidth = 280;
     const int rowHeight = 22;
     const int sectionHeaderHeight = 22;
@@ -138,7 +138,7 @@ class HelpPanel : public juce::Component {
     }
 
     void drawMainHeader(juce::Graphics &g, juce::Rectangle<int> &bounds, const juce::String &text) {
-        g.setColour(theme->brightest);
+        g.setColour(theme.brightest);
         g.setFont(Theme::medium);
         auto headerBounds = bounds.removeFromTop(mainHeaderHeight);
         g.drawText(text, headerBounds, juce::Justification::centredLeft, false);
@@ -146,7 +146,7 @@ class HelpPanel : public juce::Component {
     }
 
     void drawSubHeader(juce::Graphics &g, juce::Rectangle<int> &bounds, const juce::String &text) {
-        g.setColour(theme->brighter);
+        g.setColour(theme.brighter);
         g.setFont(Theme::small_);
         auto headerBounds = bounds.removeFromTop(sectionHeaderHeight);
         g.drawText(text, headerBounds, juce::Justification::centredLeft, false);
@@ -158,7 +158,7 @@ class HelpPanel : public juce::Component {
         int tableHeight = static_cast<int>(rows.size()) * rowHeight;
         auto tableBounds = bounds.removeFromTop(tableHeight);
 
-        g.setColour(theme->brighter.withAlpha(0.2f));
+        g.setColour(theme.brighter.withAlpha(0.2f));
         g.fillRect(tableBounds);
 
         g.setFont(Theme::small_);
@@ -168,7 +168,7 @@ class HelpPanel : public juce::Component {
 
             // === Mini subheader ===
             if (rows[i].second == "") {
-                g.setColour(theme->brighter);
+                g.setColour(theme.brighter);
 
                 juce::String titleText = rows[i].first;
                 g.drawText(titleText, rowBounds, juce::Justification::centred, false);
@@ -193,11 +193,11 @@ class HelpPanel : public juce::Component {
             }
 
             if (i % 2 == 0) {
-                g.setColour(theme->brighter.withAlpha(0.05f));
+                g.setColour(theme.brighter.withAlpha(0.05f));
                 g.fillRect(rowBounds);
             }
 
-            g.setColour(theme->brightest);
+            g.setColour(theme.brightest);
 
             auto keyBounds = rowBounds.removeFromLeft(firstColumnWidth).reduced(5, 2);
             g.drawText(rows[i].first, keyBounds, juce::Justification::centredLeft, false);

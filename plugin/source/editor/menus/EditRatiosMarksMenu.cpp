@@ -2,8 +2,8 @@
 #include "XenRoll/editor/PluginEditor.h"
 
 namespace audio_plugin {
-EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters *params,
-                                         AudioPluginAudioProcessorEditor *editor)
+EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters &params,
+                                         AudioPluginAudioProcessorEditor &editor)
     : params(params), editor(editor) {
     setWantsKeyboardFocus(false);
     setVisible(false);
@@ -17,14 +17,14 @@ EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters *params,
     addAndMakeVisible(maxDenLabel.get());
 
     maxDenSlider = std::make_unique<juce::Slider>();
-    maxDenSlider->setLookAndFeel(editor->smallLF.get());
-    maxDenSlider->setRange(params->min_maxDenRatiosMarks, params->max_maxDenRatiosMarks, 1);
-    maxDenSlider->setValue(params->maxDenRatiosMarks);
+    maxDenSlider->setLookAndFeel(editor.smallLF.get());
+    maxDenSlider->setRange(params.min_maxDenRatiosMarks, params.max_maxDenRatiosMarks, 1);
+    maxDenSlider->setValue(params.maxDenRatiosMarks);
     maxDenSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, rowHeight);
     maxDenSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    maxDenSlider->onValueChange = [this, params, editor]() {
-        params->maxDenRatiosMarks = static_cast<int>(maxDenSlider->getValue());
-        editor->editRatiosMarksMenuChanged();
+    maxDenSlider->onValueChange = [this, &params, &editor]() {
+        params.maxDenRatiosMarks = static_cast<int>(maxDenSlider->getValue());
+        editor.editRatiosMarksMenuChanged();
     };
     addAndMakeVisible(maxDenSlider.get());
 
@@ -36,15 +36,15 @@ EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters *params,
     addAndMakeVisible(goodEnoughErrorLabel.get());
 
     goodEnoughErrorSlider = std::make_unique<juce::Slider>();
-    goodEnoughErrorSlider->setLookAndFeel(editor->smallLF.get());
-    goodEnoughErrorSlider->setRange(params->min_goodEnoughErrorRatiosMarks,
-                                    params->max_goodEnoughErrorRatiosMarks, 1);
-    goodEnoughErrorSlider->setValue(params->goodEnoughErrorRatiosMarks);
+    goodEnoughErrorSlider->setLookAndFeel(editor.smallLF.get());
+    goodEnoughErrorSlider->setRange(params.min_goodEnoughErrorRatiosMarks,
+                                    params.max_goodEnoughErrorRatiosMarks, 1);
+    goodEnoughErrorSlider->setValue(params.goodEnoughErrorRatiosMarks);
     goodEnoughErrorSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, rowHeight);
     goodEnoughErrorSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    goodEnoughErrorSlider->onValueChange = [this, params, editor]() {
-        params->goodEnoughErrorRatiosMarks = static_cast<int>(goodEnoughErrorSlider->getValue());
-        editor->editRatiosMarksMenuChanged();
+    goodEnoughErrorSlider->onValueChange = [this, &params, &editor]() {
+        params.goodEnoughErrorRatiosMarks = static_cast<int>(goodEnoughErrorSlider->getValue());
+        editor.editRatiosMarksMenuChanged();
     };
     addAndMakeVisible(goodEnoughErrorSlider.get());
 
@@ -56,12 +56,12 @@ EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters *params,
     addAndMakeVisible(autoCorrectLabel.get());
 
     autoCorrectCheckbox = std::make_unique<juce::ToggleButton>();
-    autoCorrectCheckbox->setLookAndFeel(editor->smallLF.get());
-    autoCorrectCheckbox->setToggleState(params->autoCorrectRatiosMarks, juce::dontSendNotification);
-    autoCorrectCheckbox->onStateChange = [this, params, editor]() {
-        params->autoCorrectRatiosMarks = autoCorrectCheckbox->getToggleState();
-        if (params->autoCorrectRatiosMarks) {
-            editor->remakeKeys();
+    autoCorrectCheckbox->setLookAndFeel(editor.smallLF.get());
+    autoCorrectCheckbox->setToggleState(params.autoCorrectRatiosMarks, juce::dontSendNotification);
+    autoCorrectCheckbox->onStateChange = [this, &params, &editor]() {
+        params.autoCorrectRatiosMarks = autoCorrectCheckbox->getToggleState();
+        if (params.autoCorrectRatiosMarks) {
+            editor.remakeKeys();
         }
     };
     addAndMakeVisible(autoCorrectCheckbox.get());

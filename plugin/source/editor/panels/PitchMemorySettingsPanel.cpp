@@ -2,8 +2,8 @@
 #include "XenRoll/editor/PluginEditor.h"
 
 namespace audio_plugin {
-PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters *params,
-                                                   AudioPluginAudioProcessorEditor *editor)
+PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters &params,
+                                                   AudioPluginAudioProcessorEditor &editor)
     : params(params) {
     setVisible(false);
 
@@ -46,60 +46,60 @@ PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters *params,
 
     TVvalForZeroHVSlider = std::make_unique<juce::Slider>();
     TVvalForZeroHVLabel->attachToComponent(TVvalForZeroHVSlider.get(), true);
-    TVvalForZeroHVSlider->setRange(params->min_pitchMemoryTVvalForZeroHV,
-                                   params->max_pitchMemoryTVvalForZeroHV, 0.01);
-    TVvalForZeroHVSlider->setValue(params->pitchMemoryTVvalForZeroHV);
+    TVvalForZeroHVSlider->setRange(params.min_pitchMemoryTVvalForZeroHV,
+                                   params.max_pitchMemoryTVvalForZeroHV, 0.01);
+    TVvalForZeroHVSlider->setValue(params.pitchMemoryTVvalForZeroHV);
     TVvalForZeroHVSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, textBoxWidth,
                                           rowHeight);
     TVvalForZeroHVSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    TVvalForZeroHVSlider->onDragEnd = [this, params, editor]() {
+    TVvalForZeroHVSlider->onDragEnd = [this, &params, &editor]() {
         float newVal = TVvalForZeroHVSlider->getValue();
-        if (params->pitchMemoryTVvalForZeroHV != newVal) {
-            params->pitchMemoryTVvalForZeroHV = newVal;
-            editor->updatePitchMemory();
+        if (params.pitchMemoryTVvalForZeroHV != newVal) {
+            params.pitchMemoryTVvalForZeroHV = newVal;
+            editor.updatePitchMemory();
         }
     };
     addAndMakeVisible(TVvalForZeroHVSlider.get());
 
     TVaddInfluenceSlider = std::make_unique<juce::Slider>();
     TVaddInfluenceLabel->attachToComponent(TVaddInfluenceSlider.get(), true);
-    TVaddInfluenceSlider->setRange(params->min_pitchMemoryTVaddInfluence,
-                                   params->max_pitchMemoryTVaddInfluence, 0.01);
-    TVaddInfluenceSlider->setValue(params->pitchMemoryTVaddInfluence);
+    TVaddInfluenceSlider->setRange(params.min_pitchMemoryTVaddInfluence,
+                                   params.max_pitchMemoryTVaddInfluence, 0.01);
+    TVaddInfluenceSlider->setValue(params.pitchMemoryTVaddInfluence);
     TVaddInfluenceSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, textBoxWidth,
                                           rowHeight);
     TVaddInfluenceSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    TVaddInfluenceSlider->onDragEnd = [this, params, editor]() {
+    TVaddInfluenceSlider->onDragEnd = [this, &params, &editor]() {
         float newVal = TVaddInfluenceSlider->getValue();
-        if (params->pitchMemoryTVaddInfluence != newVal) {
-            params->pitchMemoryTVaddInfluence = newVal;
-            editor->updatePitchMemory();
+        if (params.pitchMemoryTVaddInfluence != newVal) {
+            params.pitchMemoryTVaddInfluence = newVal;
+            editor.updatePitchMemory();
         }
     };
     addAndMakeVisible(TVaddInfluenceSlider.get());
 
     TVminNonzeroSlider = std::make_unique<juce::Slider>();
     TVminNonzeroLabel->attachToComponent(TVminNonzeroSlider.get(), true);
-    TVminNonzeroSlider->setRange(params->min_pitchMemoryTVminNonzero,
-                                 params->max_pitchMemoryTVminNonzero, 0.01);
-    TVminNonzeroSlider->setValue(params->pitchMemoryTVminNonzero);
+    TVminNonzeroSlider->setRange(params.min_pitchMemoryTVminNonzero,
+                                 params.max_pitchMemoryTVminNonzero, 0.01);
+    TVminNonzeroSlider->setValue(params.pitchMemoryTVminNonzero);
     TVminNonzeroSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, textBoxWidth, rowHeight);
     TVminNonzeroSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    TVminNonzeroSlider->onDragEnd = [this, params, editor]() {
+    TVminNonzeroSlider->onDragEnd = [this, &params, &editor]() {
         float newVal = TVminNonzeroSlider->getValue();
-        if (params->pitchMemoryTVminNonzero != newVal) {
-            params->pitchMemoryTVminNonzero = newVal;
-            editor->updatePitchMemory();
+        if (params.pitchMemoryTVminNonzero != newVal) {
+            params.pitchMemoryTVminNonzero = newVal;
+            editor.updatePitchMemory();
         }
     };
     addAndMakeVisible(TVminNonzeroSlider.get());
 
     showOnlyHarmonicityCheckbox = std::make_unique<juce::ToggleButton>();
     showOnlyHarmonicityLabel->attachToComponent(showOnlyHarmonicityCheckbox.get(), true);
-    showOnlyHarmonicityCheckbox->setToggleState(params->pitchMemoryShowOnlyHarmonicity,
+    showOnlyHarmonicityCheckbox->setToggleState(params.pitchMemoryShowOnlyHarmonicity,
                                                 juce::dontSendNotification);
-    showOnlyHarmonicityCheckbox->onStateChange = [this, params]() {
-        params->pitchMemoryShowOnlyHarmonicity = showOnlyHarmonicityCheckbox->getToggleState();
+    showOnlyHarmonicityCheckbox->onStateChange = [this, &params]() {
+        params.pitchMemoryShowOnlyHarmonicity = showOnlyHarmonicityCheckbox->getToggleState();
     };
     showOnlyHarmonicityCheckbox->setSize(rowHeight, rowHeight);
     addAndMakeVisible(showOnlyHarmonicityCheckbox.get());
@@ -172,8 +172,8 @@ void PitchMemorySettingsPanel::resized() {
 }
 
 void PitchMemorySettingsPanel::paint(juce::Graphics &g) {
-    g.fillAll(params->theme.darker);
-    g.setColour(params->theme.darkest);
+    g.fillAll(params.theme.darker);
+    g.setColour(params.theme.darkest);
     g.drawLine(padding, padding * 5 + rowHeight * 4 + Theme::wider, getWidth() - padding,
                padding * 5 + rowHeight * 4 + Theme::wider, Theme::wider);
 }

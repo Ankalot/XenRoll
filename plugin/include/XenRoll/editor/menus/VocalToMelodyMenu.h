@@ -12,13 +12,13 @@ class AudioPluginAudioProcessorEditor;
  */
 class VocalToMelodyMenu : public juce::Component {
   public:
-    VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor);
+    VocalToMelodyMenu(Parameters &params, AudioPluginAudioProcessorEditor &editor);
 
     ~VocalToMelodyMenu() override {};
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(params->theme.darker);
-        g.setColour(params->theme.darkest);
+        g.fillAll(params.theme.darker);
+        g.setColour(params.theme.darkest);
         g.drawRect(getLocalBounds().toFloat(), Theme::wider);
         // Draw separators
         g.drawLine(0.0f, static_cast<float>(vertPadding + rowHeight + buttonHeight + 2 * rowSkip),
@@ -39,8 +39,8 @@ class VocalToMelodyMenu : public juce::Component {
     }
 
   private:
-    AudioPluginAudioProcessorEditor *editor;
-    Parameters *params;
+    AudioPluginAudioProcessorEditor &editor;
+    Parameters &params;
 
     std::unique_ptr<juce::Label> vocalToMelodyGenCurveLabel, vocalToMelodyGenNotesLabel,
         vocalToMelodyMinNoteDurationLabel, vocalToMelodyDcentsLabel, vocalToMelodyKeySnapLabel,

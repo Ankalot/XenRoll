@@ -2,48 +2,48 @@
 #include "XenRoll/editor/PluginEditor.h"
 
 namespace audio_plugin {
-MoreToolsMenu::MoreToolsMenu(AudioPluginAudioProcessorEditor *editor, Theme *theme)
+MoreToolsMenu::MoreToolsMenu(AudioPluginAudioProcessorEditor &editor, Theme &theme)
     : editor(editor), theme(theme) {
     setWantsKeyboardFocus(false);
     setVisible(false);
 
     quantizeSelNotesButton = std::make_unique<juce::TextButton>("Quantize selected notes");
-    quantizeSelNotesButton->setLookAndFeel(editor->smallLF.get());
+    quantizeSelNotesButton->setLookAndFeel(editor.smallLF.get());
     quantizeSelNotesButton->setClickingTogglesState(false);
-    quantizeSelNotesButton->onClick = [this, editor]() { editor->quantizeSelectedNotes(); };
+    quantizeSelNotesButton->onClick = [this, &editor]() { editor.quantizeSelectedNotes(); };
     addAndMakeVisible(quantizeSelNotesButton.get());
 
     randSelNotesTimeButton = std::make_unique<juce::TextButton>("Randomize selected notes' timing");
-    randSelNotesTimeButton->setLookAndFeel(editor->smallLF.get());
+    randSelNotesTimeButton->setLookAndFeel(editor.smallLF.get());
     randSelNotesTimeButton->setClickingTogglesState(false);
-    randSelNotesTimeButton->onClick = [this, editor]() { editor->randomizeSelectedNotesTiming(); };
+    randSelNotesTimeButton->onClick = [this, &editor]() { editor.randomizeSelectedNotesTiming(); };
     addAndMakeVisible(randSelNotesTimeButton.get());
 
     randSelNotesVelButton =
         std::make_unique<juce::TextButton>("Randomize selected notes' velocity");
-    randSelNotesVelButton->setLookAndFeel(editor->smallLF.get());
+    randSelNotesVelButton->setLookAndFeel(editor.smallLF.get());
     randSelNotesVelButton->setClickingTogglesState(false);
-    randSelNotesVelButton->onClick = [this, editor]() { editor->randomizeSelectedNotesVelocity(); };
+    randSelNotesVelButton->onClick = [this, &editor]() { editor.randomizeSelectedNotesVelocity(); };
     addAndMakeVisible(randSelNotesVelButton.get());
 
     deleteAllRatiosMarksButton = std::make_unique<juce::TextButton>("Delete all ratios marks");
-    deleteAllRatiosMarksButton->setLookAndFeel(editor->smallLF.get());
+    deleteAllRatiosMarksButton->setLookAndFeel(editor.smallLF.get());
     deleteAllRatiosMarksButton->setClickingTogglesState(false);
-    deleteAllRatiosMarksButton->onClick = [this, editor]() { editor->deleteAllRatiosMarks(); };
+    deleteAllRatiosMarksButton->onClick = [this, &editor]() { editor.deleteAllRatiosMarks(); };
     addAndMakeVisible(deleteAllRatiosMarksButton.get());
 
     mirrorSelNotesHorButton =
         std::make_unique<juce::TextButton>("Mirror selected notes horizontally");
-    mirrorSelNotesHorButton->setLookAndFeel(editor->smallLF.get());
+    mirrorSelNotesHorButton->setLookAndFeel(editor.smallLF.get());
     mirrorSelNotesHorButton->setClickingTogglesState(false);
-    mirrorSelNotesHorButton->onClick = [this, editor]() { editor->mirrorSelNotesHorizontally(); };
+    mirrorSelNotesHorButton->onClick = [this, &editor]() { editor.mirrorSelNotesHorizontally(); };
     addAndMakeVisible(mirrorSelNotesHorButton.get());
 
     mirrorSelNotesVertButton =
         std::make_unique<juce::TextButton>("Mirror selected notes vertically");
-    mirrorSelNotesVertButton->setLookAndFeel(editor->smallLF.get());
+    mirrorSelNotesVertButton->setLookAndFeel(editor.smallLF.get());
     mirrorSelNotesVertButton->setClickingTogglesState(false);
-    mirrorSelNotesVertButton->onClick = [this, editor]() { editor->mirrorSelNotesVertically(); };
+    mirrorSelNotesVertButton->onClick = [this, &editor]() { editor.mirrorSelNotesVertically(); };
     addAndMakeVisible(mirrorSelNotesVertButton.get());
 
     // Position elements

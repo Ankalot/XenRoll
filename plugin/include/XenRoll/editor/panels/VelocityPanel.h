@@ -6,20 +6,20 @@
 namespace audio_plugin {
 class VeolcitySliderLookAndFeel : public juce::LookAndFeel_V4 {
   public:
-    VeolcitySliderLookAndFeel(Theme *theme) : theme(theme) { updateColors(); }
+    VeolcitySliderLookAndFeel(Theme &theme) : theme(theme) { updateColors(); }
 
     void updateColors() {
-        setColour(juce::Slider::backgroundColourId, theme->darkest);
-        setColour(juce::Slider::thumbColourId, theme->brighter);
-        setColour(juce::Slider::trackColourId, theme->darkest);
+        setColour(juce::Slider::backgroundColourId, theme.darkest);
+        setColour(juce::Slider::thumbColourId, theme.brighter);
+        setColour(juce::Slider::trackColourId, theme.darkest);
 
-        setColour(juce::Slider::textBoxTextColourId, theme->darkest);
-        setColour(juce::Slider::textBoxBackgroundColourId, theme->brighter);
-        setColour(juce::Slider::textBoxOutlineColourId, theme->brighter);
+        setColour(juce::Slider::textBoxTextColourId, theme.darkest);
+        setColour(juce::Slider::textBoxBackgroundColourId, theme.brighter);
+        setColour(juce::Slider::textBoxOutlineColourId, theme.brighter);
 
-        setColour(juce::TextEditor::highlightedTextColourId, theme->darkest);
+        setColour(juce::TextEditor::highlightedTextColourId, theme.darkest);
 
-        setColour(juce::Label::textWhenEditingColourId, theme->darkest);
+        setColour(juce::Label::textWhenEditingColourId, theme.darkest);
     }
 
     juce::Label *createSliderTextBox(juce::Slider &slider) override {
@@ -29,7 +29,7 @@ class VeolcitySliderLookAndFeel : public juce::LookAndFeel_V4 {
     }
 
   private:
-    Theme *theme;
+    Theme &theme;
 };
 
 /**
@@ -37,7 +37,7 @@ class VeolcitySliderLookAndFeel : public juce::LookAndFeel_V4 {
  */
 class VelocityPanel : public juce::Component {
   public:
-    VelocityPanel(Theme *theme, std::function<void()> onValueChange,
+    VelocityPanel(Theme &theme, std::function<void()> onValueChange,
                   std::function<void()> onDragEnd)
         : theme(theme) {
         setWantsKeyboardFocus(false);
@@ -111,7 +111,7 @@ class VelocityPanel : public juce::Component {
     }
 
     void paint(juce::Graphics &g) override {
-        g.setColour(theme->bright);
+        g.setColour(theme.bright);
         g.fillRoundedRectangle(getLocalBounds().toFloat(), cornerSize);
     }
 
@@ -150,7 +150,7 @@ class VelocityPanel : public juce::Component {
     }
 
   private:
-    Theme *theme;
+    Theme &theme;
     std::unique_ptr<juce::Slider> velocitySlider;
     std::unique_ptr<VeolcitySliderLookAndFeel> velSliderLF;
 

@@ -2,7 +2,7 @@
 #include "XenRoll/editor/PluginEditor.h"
 
 namespace audio_plugin {
-SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor *editor)
+SettingsPanel::SettingsPanel(Parameters &params, AudioPluginAudioProcessorEditor &editor)
     : params(params) {
     setVisible(false);
 
@@ -12,7 +12,7 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     headerFont.setHeight(Theme::big);
     basicSettingsHeader->setFont(headerFont);
     basicSettingsHeader->setText("Basic Settings", juce::dontSendNotification);
-    basicSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
+    basicSettingsHeader->setColour(juce::Label::backgroundColourId, params.theme.darkest);
     addAndMakeVisible(basicSettingsHeader.get());
 
     startingOctaveLabel = std::make_unique<juce::Label>();
@@ -23,12 +23,12 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     addAndMakeVisible(startingOctaveLabel.get());
 
     startingOctaveCombo = std::make_unique<juce::ComboBox>();
-    for (int i = params->min_start_octave; i <= params->max_start_octave; ++i)
+    for (int i = params.min_start_octave; i <= params.max_start_octave; ++i)
         startingOctaveCombo->addItem(juce::String(i), i + 1);
-    startingOctaveCombo->setSelectedId(params->start_octave + 1);
+    startingOctaveCombo->setSelectedId(params.start_octave + 1);
     startingOctaveLabel->attachToComponent(startingOctaveCombo.get(), true);
-    startingOctaveCombo->onChange = [this, params]() {
-        params->start_octave = startingOctaveCombo->getSelectedId() - 1;
+    startingOctaveCombo->onChange = [this, &params]() {
+        params.start_octave = startingOctaveCombo->getSelectedId() - 1;
     };
     addAndMakeVisible(startingOctaveCombo.get());
 
@@ -41,13 +41,13 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
 
     a4FreqSlider = std::make_unique<juce::Slider>();
     a4FreqLabel->attachToComponent(a4FreqSlider.get(), true);
-    a4FreqSlider->setRange(params->min_A4Freq, params->max_A4Freq, 0.01);
-    a4FreqSlider->setValue(params->A4Freq.load());
+    a4FreqSlider->setRange(params.min_A4Freq, params.max_A4Freq, 0.01);
+    a4FreqSlider->setValue(params.A4Freq.load());
     a4FreqSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 75, rowHeight);
     a4FreqSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    a4FreqSlider->onDragEnd = [this, params, editor]() {
-        params->A4Freq.store(a4FreqSlider->getValue());
-        editor->A4freqChanged();
+    a4FreqSlider->onDragEnd = [this, &params, &editor]() {
+        params.A4Freq.store(a4FreqSlider->getValue());
+        editor.A4freqChanged();
     };
     addAndMakeVisible(a4FreqSlider.get());
 
@@ -90,7 +90,7 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     visualSettingsHeader = std::make_unique<juce::Label>();
     visualSettingsHeader->setFont(headerFont);
     visualSettingsHeader->setText("Visual Settings", juce::dontSendNotification);
-    visualSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
+    visualSettingsHeader->setColour(juce::Label::backgroundColourId, params.theme.darkest);
     addAndMakeVisible(visualSettingsHeader.get());
 
     themeTypeLabel = std::make_unique<juce::Label>();
@@ -105,14 +105,14 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
         juce::String itemText = themeNames[i] + " - " + themeDescriptions[i];
         themeTypeCombo->addItem(itemText, i + 1);
     }
-    themeTypeCombo->setSelectedId(static_cast<int>(params->themeType));
+    themeTypeCombo->setSelectedId(static_cast<int>(params.themeType));
     themeTypeLabel->attachToComponent(themeTypeCombo.get(), true);
-    themeTypeCombo->onChange = [this, params, editor]() {
-        params->themeType = static_cast<Theme::ThemeType>(themeTypeCombo->getSelectedId());
-        editor->updateTheme();
-        basicSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
-        visualSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
-        mpeSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
+    themeTypeCombo->onChange = [this, &params, &editor]() {
+        params.themeType = static_cast<Theme::ThemeType>(themeTypeCombo->getSelectedId());
+        editor.updateTheme();
+        basicSettingsHeader->setColour(juce::Label::backgroundColourId, params.theme.darkest);
+        visualSettingsHeader->setColour(juce::Label::backgroundColourId, params.theme.darkest);
+        mpeSettingsHeader->setColour(juce::Label::backgroundColourId, params.theme.darkest);
     };
     addAndMakeVisible(themeTypeCombo.get());
 
@@ -132,9 +132,9 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     noteRectRoundingSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, rowHeight);
     noteRectRoundingSlider->setSliderStyle(juce::Slider::LinearHorizontal);
     noteRectRoundingSlider->setSkewFactorFromMidPoint(0.5f);
-    noteRectRoundingSlider->onDragEnd = [this, editor]() {
+    noteRectRoundingSlider->onDragEnd = [this, &editor]() {
         GlobalSettings::getInstance().setNoteRectRounding(noteRectRoundingSlider->getValue());
-        editor->invalidateNotePathsCache();
+        editor.invalidateNotePathsCache();
     };
     addAndMakeVisible(noteRectRoundingSlider.get());
 
@@ -145,14 +145,14 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
 
     heightCoefSlider = std::make_unique<juce::Slider>();
     heightCoefLabel->attachToComponent(heightCoefSlider.get(), true);
-    heightCoefSlider->setRange(params->min_noteRectHeightCoef, params->max_noteRectHeightCoef,
+    heightCoefSlider->setRange(params.min_noteRectHeightCoef, params.max_noteRectHeightCoef,
                                0.001);
-    heightCoefSlider->setValue(params->noteRectHeightCoef);
+    heightCoefSlider->setValue(params.noteRectHeightCoef);
     heightCoefSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, rowHeight);
     heightCoefSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    heightCoefSlider->onDragEnd = [this, params, editor]() {
-        params->noteRectHeightCoef = static_cast<float>(heightCoefSlider->getValue());
-        editor->invalidateNotePathsCache();
+    heightCoefSlider->onDragEnd = [this, &params, &editor]() {
+        params.noteRectHeightCoef = static_cast<float>(heightCoefSlider->getValue());
+        editor.invalidateNotePathsCache();
     };
     addAndMakeVisible(heightCoefSlider.get());
 
@@ -164,11 +164,11 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
 
     constNoteRectHeightCheckbox = std::make_unique<juce::ToggleButton>();
     constNoteRectHeightLabel->attachToComponent(constNoteRectHeightCheckbox.get(), true);
-    constNoteRectHeightCheckbox->setToggleState(params->constNoteRectHeight,
+    constNoteRectHeightCheckbox->setToggleState(params.constNoteRectHeight,
                                                 juce::dontSendNotification);
-    constNoteRectHeightCheckbox->onStateChange = [this, params, editor]() {
-        params->constNoteRectHeight = constNoteRectHeightCheckbox->getToggleState();
-        editor->invalidateNotePathsCache();
+    constNoteRectHeightCheckbox->onStateChange = [this, &params, &editor]() {
+        params.constNoteRectHeight = constNoteRectHeightCheckbox->getToggleState();
+        editor.invalidateNotePathsCache();
     };
     constNoteRectHeightCheckbox->setSize(rowHeight, rowHeight);
     addAndMakeVisible(constNoteRectHeightCheckbox.get());
@@ -177,7 +177,7 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     mpeSettingsHeader = std::make_unique<juce::Label>();
     mpeSettingsHeader->setFont(headerFont);
     mpeSettingsHeader->setText("MPE Tuning Mode Settings", juce::dontSendNotification);
-    mpeSettingsHeader->setColour(juce::Label::backgroundColourId, params->theme.darkest);
+    mpeSettingsHeader->setColour(juce::Label::backgroundColourId, params.theme.darkest);
     addAndMakeVisible(mpeSettingsHeader.get());
 
     resetPitchBendOnNoteOffLabel = std::make_unique<juce::Label>();
@@ -188,10 +188,10 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
 
     resetPitchBendOnNoteOffCheckbox = std::make_unique<juce::ToggleButton>();
     resetPitchBendOnNoteOffLabel->attachToComponent(resetPitchBendOnNoteOffCheckbox.get(), true);
-    resetPitchBendOnNoteOffCheckbox->setToggleState(params->resetPitchBendOnNoteOff,
+    resetPitchBendOnNoteOffCheckbox->setToggleState(params.resetPitchBendOnNoteOff,
                                                     juce::dontSendNotification);
-    resetPitchBendOnNoteOffCheckbox->onStateChange = [this, params]() {
-        params->resetPitchBendOnNoteOff = resetPitchBendOnNoteOffCheckbox->getToggleState();
+    resetPitchBendOnNoteOffCheckbox->onStateChange = [this, &params]() {
+        params.resetPitchBendOnNoteOff = resetPitchBendOnNoteOffCheckbox->getToggleState();
     };
     resetPitchBendOnNoteOffCheckbox->setSize(rowHeight, rowHeight);
     addAndMakeVisible(resetPitchBendOnNoteOffCheckbox.get());
@@ -209,10 +209,10 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
     semiBendRangeCombo->addItem(juce::juce_wchar(0x00B1) + juce::String("24 semitones"), 24);
     semiBendRangeCombo->addItem(juce::juce_wchar(0x00B1) + juce::String("48 semitones"), 48);
     semiBendRangeCombo->addItem(juce::juce_wchar(0x00B1) + juce::String("96 semitones"), 96);
-    semiBendRangeCombo->setSelectedId(params->semiBendRangeMPE);
+    semiBendRangeCombo->setSelectedId(params.semiBendRangeMPE);
     semiBendRangeLabel->attachToComponent(semiBendRangeCombo.get(), true);
-    semiBendRangeCombo->onChange = [this, params]() {
-        params->semiBendRangeMPE = semiBendRangeCombo->getSelectedId();
+    semiBendRangeCombo->onChange = [this, &params]() {
+        params.semiBendRangeMPE = semiBendRangeCombo->getSelectedId();
     };
     addAndMakeVisible(semiBendRangeCombo.get());
 
@@ -228,11 +228,11 @@ SettingsPanel::SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor
 
     channelsEconomyModeMPECheckbox = std::make_unique<juce::ToggleButton>();
     channelsEconomyModeMPELabel->attachToComponent(channelsEconomyModeMPECheckbox.get(), true);
-    channelsEconomyModeMPECheckbox->setToggleState(params->channelsEconomyModeMPE,
+    channelsEconomyModeMPECheckbox->setToggleState(params.channelsEconomyModeMPE,
                                                    juce::dontSendNotification);
-    channelsEconomyModeMPECheckbox->onStateChange = [this, params, editor]() {
-        params->channelsEconomyModeMPE = channelsEconomyModeMPECheckbox->getToggleState();
-        editor->changedChannelsEconomyModeMPE();
+    channelsEconomyModeMPECheckbox->onStateChange = [this, &params, &editor]() {
+        params.channelsEconomyModeMPE = channelsEconomyModeMPECheckbox->getToggleState();
+        editor.changedChannelsEconomyModeMPE();
     };
     channelsEconomyModeMPECheckbox->setSize(rowHeight, rowHeight);
     addAndMakeVisible(channelsEconomyModeMPECheckbox.get());
@@ -310,5 +310,5 @@ int SettingsPanel::getRequiredHeight() const {
            headerRowHeight + padding + 3 * (rowHeight + padding); // MPE Tuning Mode Settings
 }
 
-void SettingsPanel::paint(juce::Graphics &g) { g.fillAll(params->theme.darker); }
+void SettingsPanel::paint(juce::Graphics &g) { g.fillAll(params.theme.darker); }
 } // namespace audio_plugin

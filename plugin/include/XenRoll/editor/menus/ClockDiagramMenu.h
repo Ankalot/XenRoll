@@ -11,19 +11,19 @@ class AudioPluginAudioProcessorEditor;
  */
 class ClockDiagramMenu : public juce::Component {
   public:
-    ClockDiagramMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor);
+    ClockDiagramMenu(Parameters &params, AudioPluginAudioProcessorEditor &editor);
 
     ~ClockDiagramMenu() override {};
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(params->theme.darker);
-        g.setColour(params->theme.darkest);
+        g.fillAll(params.theme.darker);
+        g.setColour(params.theme.darkest);
         g.drawRect(getLocalBounds().toFloat(), Theme::wider);
     }
 
   private:
-    AudioPluginAudioProcessorEditor *editor;
-    Parameters *params;
+    AudioPluginAudioProcessorEditor &editor;
+    Parameters &params;
 
     std::unique_ptr<juce::Label> maxChordDtimeClockDiagramLabel;
     std::unique_ptr<juce::ComboBox> maxChordDtimeClockDiagramCombo;

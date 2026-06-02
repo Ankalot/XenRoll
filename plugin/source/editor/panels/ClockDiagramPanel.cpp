@@ -2,7 +2,7 @@
 #include "XenRoll/editor/PluginEditor.h"
 
 namespace audio_plugin {
-ClockDiagramPanel::ClockDiagramPanel(Parameters *params, AudioPluginAudioProcessorEditor *editor,
+ClockDiagramPanel::ClockDiagramPanel(Parameters &params, AudioPluginAudioProcessorEditor &editor,
                                      const std::vector<Note> &notes)
     : params(params), editor(editor), notes(notes) {
     setInterceptsMouseClicks(false, false);
@@ -35,7 +35,7 @@ void ClockDiagramPanel::refresh() {
         float prevTime = -1e4;
         int numGroups = 0;
         for (const auto &(timeAndCents) : actualNotesTimeAndCents) {
-            if (timeAndCents.first <= prevTime + params->maxChordDtimeClockDiagram) {
+            if (timeAndCents.first <= prevTime + params.maxChordDtimeClockDiagram) {
                 chordsAndNotes[numGroups - 1].insert(timeAndCents.second);
             } else {
                 chordsAndNotes.push_back({timeAndCents.second});
@@ -50,14 +50,14 @@ void ClockDiagramPanel::refresh() {
 
 void ClockDiagramPanel::paint(juce::Graphics &g) {
     // Background
-    g.setColour(params->theme.bright.withAlpha(opacity));
+    g.setColour(params.theme.bright.withAlpha(opacity));
     g.fillEllipse(getLocalBounds().toFloat());
 
     const float centreX = padding + radius;
     const float centreY = padding + radius;
 
     // 12-EDO ticks
-    g.setColour(params->theme.darker);
+    g.setColour(params.theme.darker);
     for (int i = 0; i < 12; ++i) {
         float angle = i * juce::MathConstants<float>::twoPi / 12.0f;
         float startX = centreX + std::cos(angle) * (radius - tickLength);
@@ -68,13 +68,13 @@ void ClockDiagramPanel::paint(juce::Graphics &g) {
     }
 
     // Circle
-    g.setColour(params->theme.darkest);
+    g.setColour(params.theme.darkest);
     g.drawEllipse(static_cast<float>(padding), static_cast<float>(padding), 2.0f * radius,
                   2.0f * radius, Theme::wide);
 
     // Lines
     const auto pathStrokeType = juce::PathStrokeType(Theme::wider, juce::PathStrokeType::curved);
-    g.setColour(params->theme.activated);
+    g.setColour(params.theme.activated);
     for (const auto &chordOrNote : chordsAndNotes) {
         if (chordOrNote.size() == 1) {
             // Single note
@@ -127,15 +127,15 @@ void ClockDiagramPanel::paint(juce::Graphics &g) {
             }
             polygon.closeSubPath();
 
-            g.setColour(params->theme.activated.withAlpha(0.15f));
+            g.setColour(params.theme.activated.withAlpha(0.15f));
             g.fillPath(polygon);
-            g.setColour(params->theme.activated);
+            g.setColour(params.theme.activated);
             g.strokePath(polygon, pathStrokeType);
         }
     }
 
     // Dots
-    g.setColour(params->theme.activated);
+    g.setColour(params.theme.activated);
     for (const int cents : allCents) {
         float angle = juce::MathConstants<float>::twoPi * (1.0f - cents / 1200.0f) +
                       juce::MathConstants<float>::halfPi;
@@ -145,7 +145,7 @@ void ClockDiagramPanel::paint(juce::Graphics &g) {
     }
 
     // Labels
-    g.setColour(params->theme.darkest);
+    g.setColour(params.theme.darkest);
     g.setFont(Theme::small_);
     for (const auto &cents : allCents) {
         float angle = juce::MathConstants<float>::twoPi * (1.0f - cents / 1200.0f) +

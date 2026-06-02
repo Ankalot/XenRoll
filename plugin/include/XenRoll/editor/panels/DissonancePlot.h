@@ -12,9 +12,9 @@ class DissonancePlot : public juce::Component {
      * @param params Pointer to parameters
      * @param dissonanceMeter Shared pointer to DissonanceMeter for calculations
      */
-    DissonancePlot(Parameters *params, std::shared_ptr<DissonanceMeter> dissonanceMeter)
+    DissonancePlot(Parameters &params, std::shared_ptr<DissonanceMeter> dissonanceMeter)
         : params(params), dissonanceMeter(dissonanceMeter) {
-        totalCents = params->plotDissonanceTotalCents;
+        totalCents = params.plotDissonanceTotalCents;
         threadPool = std::make_unique<juce::ThreadPool>(1);
         updateDissonanceCurve();
     }
@@ -27,7 +27,7 @@ class DissonancePlot : public juce::Component {
     }
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(params->theme.brighter);
+        g.fillAll(params.theme.brighter);
         if (loading) {
             drawLoadScreen(g);
         } else {
@@ -43,7 +43,7 @@ class DissonancePlot : public juce::Component {
      * @note Updates plot
      */
     void updateTotalCents() {
-        totalCents = params->plotDissonanceTotalCents;
+        totalCents = params.plotDissonanceTotalCents;
         updateDissonanceCurve();
     }
 
@@ -80,7 +80,7 @@ class DissonancePlot : public juce::Component {
     }
 
   private:
-    Parameters *params;
+    Parameters &params;
     std::shared_ptr<DissonanceMeter> dissonanceMeter;
     std::atomic<int> totalCents = 0;
     std::array<float, 401> dissonanceCurve{0.0f}; ///< i-th index = i*3 cents
@@ -93,7 +93,7 @@ class DissonancePlot : public juce::Component {
     std::atomic<uint64_t> currentJobId{0};
 
     void drawAxes(juce::Graphics &g) {
-        g.setColour(params->theme.darkest);
+        g.setColour(params.theme.darkest);
 
         g.drawRect(plotArea, 1.0f);
 
@@ -134,7 +134,7 @@ class DissonancePlot : public juce::Component {
 
     // is triggered only when loading = false
     void drawDissonanceCurve(juce::Graphics &g) {
-        g.setColour(params->theme.darkest);
+        g.setColour(params.theme.darkest);
 
         float lastX = plotArea.getX() + centsToX(0);
         float lastY = plotArea.getBottom() - (dissonanceCurve[0] + 1.0f) / 2 * plotArea.getHeight();

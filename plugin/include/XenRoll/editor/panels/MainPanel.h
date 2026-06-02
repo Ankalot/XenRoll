@@ -16,7 +16,7 @@ class AudioPluginAudioProcessorEditor;
  */
 class MainPanel : public juce::Component, public juce::KeyListener {
   public:
-    MainPanel(AudioPluginAudioProcessorEditor *editor, Parameters *params);
+    MainPanel(AudioPluginAudioProcessorEditor &editor, Parameters &params);
     ~MainPanel() override;
 
     ///< CALL RIGHT AFTER CREATING MainViewport AND ASSIGNING MainPanel TO IT
@@ -117,7 +117,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     // Don't forget: call it after changes with ratios marks
     void saveState() {
-        params->stateHistory.push(State(params->get_num_bars(), notes, params->ratiosMarks));
+        params.stateHistory.push(State(params.get_num_bars(), notes, params.ratiosMarks));
     }
 
     void invalidateNotePathsCache() { notePathManager->invalidateCache(); }
@@ -188,11 +188,11 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     std::unique_ptr<NotePathManager> notePathManager;
     float noteRoundCoef; // for paint()
 
-    AudioPluginAudioProcessorEditor *editor;
-    Parameters *params;
+    AudioPluginAudioProcessorEditor &editor;
+    Parameters &params;
     juce::Viewport *viewport;
 
-    ///< is needed when placing a note with params->playDraggedNotes
+    ///< is needed when placing a note with params.playDraggedNotes
     std::map<int, int> placedNoteKeyCounter;
     std::mutex mptcMtx;
 
@@ -211,7 +211,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     //     same place under the cursor, the action will be applied to the later added note.
     std::vector<Note> notes;
     std::set<int> keys;
-    ///< Keys from ALL notes and ghost notes (is needed when params->autoCorrectRatiosMarks)
+    ///< Keys from ALL notes and ghost notes (is needed when params.autoCorrectRatiosMarks)
     std::set<int> keysFromAllNotes;
     std::array<bool, 1200> keyIsGenNew;
     // ==================== Needed for generating new keys ====================

@@ -11,19 +11,19 @@ class AudioPluginAudioProcessorEditor;
  */
 class GenNewKeysMenu : public juce::Component {
   public:
-    GenNewKeysMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor);
+    GenNewKeysMenu(Parameters &params, AudioPluginAudioProcessorEditor &editor);
 
     ~GenNewKeysMenu() override {};
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(params->theme.darker);
-        g.setColour(params->theme.darkest);
+        g.fillAll(params.theme.darker);
+        g.setColour(params.theme.darkest);
         g.drawRect(getLocalBounds().toFloat(), Theme::wider);
     }
 
   private:
-    AudioPluginAudioProcessorEditor *editor;
-    Parameters *params;
+    AudioPluginAudioProcessorEditor &editor;
+    Parameters &params;
 
     std::unique_ptr<juce::Label> numNewKeysLabel, minDistExistNewKeysLabel,
         minDistBetweenNewKeysLabel;

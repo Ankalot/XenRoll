@@ -3,15 +3,15 @@
 
 namespace audio_plugin {
 
-InstancesMenu::InstancesMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor)
+InstancesMenu::InstancesMenu(Parameters &params, AudioPluginAudioProcessorEditor &editor)
     : params(params), editor(editor) {
     setWantsKeyboardFocus(false);
     setVisible(false);
 
-    if (params->getTuningType() == Parameters::TuningType::MPE) {
-        myInd = params->instanceId;
-    } else if (params->getTuningType() == Parameters::TuningType::MTS_ESP) {
-        myInd = params->channelIndex;
+    if (params.getTuningType() == Parameters::TuningType::MPE) {
+        myInd = params.instanceId;
+    } else if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+        myInd = params.channelIndex;
     }
 
     // Setup title
@@ -40,9 +40,9 @@ void InstancesMenu::buildMenu() {
     instancesCheckboxes.clear();
 
     juce::String text;
-    if (params->getTuningType() == Parameters::TuningType::MPE) {
+    if (params.getTuningType() == Parameters::TuningType::MPE) {
         text = "Id ";
-    } else if (params->getTuningType() == Parameters::TuningType::MTS_ESP) {
+    } else if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
         text = "Ch ";
     }
 
@@ -55,27 +55,27 @@ void InstancesMenu::buildMenu() {
         instancesLabels.push_back(std::move(instanceLabel));
 
         auto instanceCheckbox = std::make_unique<juce::ToggleButton>();
-        if (params->getTuningType() == Parameters::TuningType::MPE) {
-            instanceCheckbox->setToggleState(params->ghostNotesInstIds.contains(ind),
+        if (params.getTuningType() == Parameters::TuningType::MPE) {
+            instanceCheckbox->setToggleState(params.ghostNotesInstIds.contains(ind),
                                              juce::dontSendNotification);
             instanceCheckbox->onStateChange = [this, ind, num]() {
                 if (this->instancesCheckboxes[num]->getToggleState()) {
-                    params->ghostNotesInstIds.insert(ind);
+                    params.ghostNotesInstIds.insert(ind);
                 } else {
-                    params->ghostNotesInstIds.erase(ind);
+                    params.ghostNotesInstIds.erase(ind);
                 }
-                editor->updateGhostNotes();
+                editor.updateGhostNotes();
             };
-        } else if (params->getTuningType() == Parameters::TuningType::MTS_ESP) {
-            instanceCheckbox->setToggleState(params->ghostNotesChannels.contains(ind),
+        } else if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+            instanceCheckbox->setToggleState(params.ghostNotesChannels.contains(ind),
                                              juce::dontSendNotification);
             instanceCheckbox->onStateChange = [this, ind, num]() {
                 if (this->instancesCheckboxes[num]->getToggleState()) {
-                    params->ghostNotesChannels.insert(ind);
+                    params.ghostNotesChannels.insert(ind);
                 } else {
-                    params->ghostNotesChannels.erase(ind);
+                    params.ghostNotesChannels.erase(ind);
                 }
-                editor->updateGhostNotes();
+                editor.updateGhostNotes();
             };
         }
         contentComponent.addAndMakeVisible(instanceCheckbox.get());
@@ -98,7 +98,7 @@ void InstancesMenu::buildMenu() {
 }
 
 std::set<int> InstancesMenu::getPossibleInds() {
-    std::set<int> inds = editor->getAllInstancesIndexes();
+    std::set<int> inds = editor.getAllInstancesIndexes();
     inds.erase(myInd);
     return inds;
 }

@@ -9,7 +9,7 @@ class AudioPluginAudioProcessorEditor;
 
 class SettingsViewport : public juce::Viewport {
   public:
-    SettingsViewport(Theme *theme) : theme(theme) {
+    SettingsViewport(Theme &theme) : theme(theme) {
         setScrollBarsShown(true, false);
         setViewportIgnoreDragFlag(true);
     }
@@ -21,15 +21,15 @@ class SettingsViewport : public juce::Viewport {
         }
     }
 
-    void paint(juce::Graphics &g) override { g.fillAll(theme->darker); }
+    void paint(juce::Graphics &g) override { g.fillAll(theme.darker); }
 
   private:
-    Theme *theme;
+    Theme &theme;
 };
 
 class SettingsPanel : public juce::Component {
   public:
-    SettingsPanel(Parameters *params, AudioPluginAudioProcessorEditor *editor);
+    SettingsPanel(Parameters &params, AudioPluginAudioProcessorEditor &editor);
 
     void resized() override;
     void paint(juce::Graphics &g) override;
@@ -48,7 +48,7 @@ class SettingsPanel : public juce::Component {
     int getRequiredHeight() const;
 
   private:
-    Parameters *params;
+    Parameters &params;
 
     // Section headers
     std::unique_ptr<juce::Label> basicSettingsHeader;

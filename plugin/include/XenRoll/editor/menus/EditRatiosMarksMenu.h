@@ -11,19 +11,19 @@ class AudioPluginAudioProcessorEditor;
  */
 class EditRatiosMarksMenu : public juce::Component {
   public:
-    EditRatiosMarksMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor);
+    EditRatiosMarksMenu(Parameters &params, AudioPluginAudioProcessorEditor &editor);
 
     ~EditRatiosMarksMenu() override {};
 
     void paint(juce::Graphics &g) override {
-        g.fillAll(params->theme.darker);
-        g.setColour(params->theme.darkest);
+        g.fillAll(params.theme.darker);
+        g.setColour(params.theme.darkest);
         g.drawRect(getLocalBounds().toFloat(), Theme::wider);
     }
 
   private:
-    AudioPluginAudioProcessorEditor *editor;
-    Parameters *params;
+    AudioPluginAudioProcessorEditor &editor;
+    Parameters &params;
 
     std::unique_ptr<juce::Label> maxDenLabel, goodEnoughErrorLabel;
     std::unique_ptr<juce::Slider> maxDenSlider, goodEnoughErrorSlider;

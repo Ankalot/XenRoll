@@ -2,18 +2,18 @@
 #include "XenRoll/editor/PluginEditor.h"
 
 namespace audio_plugin {
-TopPanel::TopPanel(const int topPanel_height_px, AudioPluginAudioProcessorEditor *editor,
-                   Parameters *params)
+TopPanel::TopPanel(const int topPanel_height_px, AudioPluginAudioProcessorEditor &editor,
+                   Parameters &params)
     : topPanel_height_px(topPanel_height_px), editor(editor), params(params) {
-    bar_width_px = params->bar_width_px;
-    init_bar_width_px = params->init_bar_width_px;
+    bar_width_px = params.bar_width_px;
+    init_bar_width_px = params.init_bar_width_px;
 
     setMouseCursor(juce::MouseCursor::PointingHandCursor);
-    this->setSize(juce::roundToInt(params->get_num_bars() * bar_width_px), topPanel_height_px);
+    this->setSize(juce::roundToInt(params.get_num_bars() * bar_width_px), topPanel_height_px);
 }
 
 void TopPanel::mouseDown(const juce::MouseEvent &event) {
-    editor->bringBackKeyboardFocus();
+    editor.bringBackKeyboardFocus();
     juce::Point<int> point = event.getPosition();
     float time = point.getX() / bar_width_px;
     float precision = zonePoint_collision_width_px / bar_width_px / 2;
@@ -21,13 +21,13 @@ void TopPanel::mouseDown(const juce::MouseEvent &event) {
     // Add zone point
     if (event.mods.isLeftButtonDown() && event.mods.isShiftDown()) {
         float timePoint = time;
-        if (params->timeSnap) {
-            timePoint = 1.0f / (params->num_beats * params->num_subdivs) *
-                        round(time / (1.0f / (params->num_beats * params->num_subdivs)));
+        if (params.timeSnap) {
+            timePoint = 1.0f / (params.num_beats * params.num_subdivs) *
+                        round(time / (1.0f / (params.num_beats * params.num_subdivs)));
         }
-        bool pointAdded = params->zones.addPoint(timePoint);
+        bool pointAdded = params.zones.addPoint(timePoint);
         if (pointAdded) {
-            // editor->zonesChanged();
+            // editor.zonesChanged();
             repaint();
         }
         return;
@@ -35,9 +35,9 @@ void TopPanel::mouseDown(const juce::MouseEvent &event) {
 
     // Remove zone point
     if (event.mods.isRightButtonDown() && event.mods.isShiftDown()) {
-        bool pointRemoved = params->zones.removePoint(time, precision);
+        bool pointRemoved = params.zones.removePoint(time, precision);
         if (pointRemoved) {
-            editor->zonesChanged();
+            editor.zonesChanged();
             repaint();
         }
         return;
@@ -45,16 +45,16 @@ void TopPanel::mouseDown(const juce::MouseEvent &event) {
 
     // Turn on zone
     if (event.mods.isLeftButtonDown() && event.mods.isAltDown()) {
-        params->zones.turnZoneOn(time);
-        editor->zonesChanged();
+        params.zones.turnZoneOn(time);
+        editor.zonesChanged();
         repaint();
         return;
     }
 
     // Turn off zone
     if (event.mods.isRightButtonDown() && event.mods.isAltDown()) {
-        params->zones.turnZoneOff(time);
-        editor->zonesChanged();
+        params.zones.turnZoneOff(time);
+        editor.zonesChanged();
         repaint();
         return;
     }
@@ -62,11 +62,11 @@ void TopPanel::mouseDown(const juce::MouseEvent &event) {
     // Set playhead time via OSC
     if (event.mods.isLeftButtonDown()) {
         float jumpTime = time;
-        if (params->timeSnap) {
-            float dt = 1.0f / (params->num_beats * params->num_subdivs);
+        if (params.timeSnap) {
+            float dt = 1.0f / (params.num_beats * params.num_subdivs);
             jumpTime = dt * juce::roundToInt(time / dt);
         }
-        editor->sendOSCTransportPosition(jumpTime);
+        editor.sendOSCTransportPosition(jumpTime);
         prevDragPlayHeadTime = jumpTime;
         isMovingPlayHead = true;
         return;
@@ -77,13 +77,13 @@ void TopPanel::mouseDrag(const juce::MouseEvent &event) {
     // Set playhead time via OSC
     if (isMovingPlayHead) {
         float time = event.position.getX() / bar_width_px;
-        if (params->timeSnap) {
-            float dt = 1.0f / (params->num_beats * params->num_subdivs);
+        if (params.timeSnap) {
+            float dt = 1.0f / (params.num_beats * params.num_subdivs);
             time = dt * juce::roundToInt(time / dt);
         }
 
         if (time != prevDragPlayHeadTime) {
-            editor->sendOSCTransportPosition(time);
+            editor.sendOSCTransportPosition(time);
             prevDragPlayHeadTime = time;
         }
     }
@@ -104,16 +104,16 @@ void TopPanel::paint(juce::Graphics &g) {
     juce::Rectangle<int> clip = viewport->getViewArea();
     int clipWidth = clip.getWidth();
     int clipX = clip.getX();
-    g.setColour(params->theme.bright);
+    g.setColour(params.theme.bright);
     g.fillRect(clip);
 
     // Zones
-    auto zp = std::vector<float>(params->zones.getZonesPoints().begin(),
-                                 params->zones.getZonesPoints().end());
+    auto zp = std::vector<float>(params.zones.getZonesPoints().begin(),
+                                 params.zones.getZonesPoints().end());
     zp.insert(zp.begin(), 0.0f);
-    zp.push_back(static_cast<float>(params->get_num_bars()));
-    auto zpOnOff = params->zones.getZonesOnOff();
-    g.setColour(params->theme.dark);
+    zp.push_back(static_cast<float>(params.get_num_bars()));
+    auto zpOnOff = params.zones.getZonesOnOff();
+    g.setColour(params.theme.dark);
     // Without this, I see a super thin light strip on my screen between two adjacent off zones.
     const float delta = 0.5f;
     for (int i = 0; i < zpOnOff.size(); ++i) {
@@ -130,7 +130,7 @@ void TopPanel::paint(juce::Graphics &g) {
     }
 
     // Zones points
-    g.setColour(params->theme.darkest);
+    g.setColour(params.theme.darkest);
     juce::Path trianglePath;
     const float zpw = juce::jmax(3.0f, adaptSize(zonePoint_collision_width_px));
     for (int i = 1; i < zp.size() - 1; ++i) {
@@ -155,12 +155,12 @@ void TopPanel::paint(juce::Graphics &g) {
     }
 
     // Bars
-    g.setColour(params->theme.darkest);
-    int barStep = std::ceil(params->min_bar_width_px / bar_width_px);
+    g.setColour(params.theme.darkest);
+    int barStep = std::ceil(params.min_bar_width_px / bar_width_px);
     int bar_i_start = (static_cast<int>(clipX / bar_width_px) / barStep) * barStep;
     int rawEnd = std::ceil((clipX + clipWidth) / bar_width_px);
     int alignedEnd = ((rawEnd + barStep - 1) / barStep) * barStep;
-    int bar_i_end = juce::jmin(alignedEnd, params->get_num_bars());
+    int bar_i_end = juce::jmin(alignedEnd, params.get_num_bars());
     const float barLineThickness = juce::jmax(1.0f, adaptSize(Theme::wide));
     for (int i = bar_i_start; i <= bar_i_end; i += barStep) {
         float xPos = i * bar_width_px;
@@ -192,11 +192,11 @@ void TopPanel::paint(juce::Graphics &g) {
                             static_cast<float>(topPanel_height_px - playHeadHeight));
         playHeadPath.lineTo(playHeadTime * bar_width_px, static_cast<float>(topPanel_height_px));
         playHeadPath.closeSubPath();
-        // g.setColour(params->theme.brighter.withAlpha(1.0f));
-        g.setColour(params->theme.activated.withAlpha(1.0f));
+        // g.setColour(params.theme.brighter.withAlpha(1.0f));
+        g.setColour(params.theme.activated.withAlpha(1.0f));
         g.fillPath(playHeadPath);
 
-        g.setColour(params->theme.darkest);
+        g.setColour(params.theme.darkest);
         juce::PathStrokeType stroke(Theme::narrower);
         stroke.setJointStyle(juce::PathStrokeType::mitered);
         g.strokePath(playHeadPath, stroke);

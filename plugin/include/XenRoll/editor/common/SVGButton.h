@@ -15,7 +15,7 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
      * @param active Initial active state
      * @param tooltipText Tooltip text to display
      */
-    SVGButton(Theme *theme, const char *svgBinaryData, int svgBinaryDataSize, bool togglable = true,
+    SVGButton(Theme &theme, const char *svgBinaryData, int svgBinaryDataSize, bool togglable = true,
               bool active = false, const std::string &tooltipText = "")
         : theme(theme), togglable(togglable), active(active) {
         this->tooltipText = juce::String(tooltipText);
@@ -33,7 +33,7 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
      * @param active Initial active state
      * @param tooltipText Tooltip text to display
      */
-    SVGButton(Theme *theme, const juce::String &svgData, bool togglable = true, bool active = false,
+    SVGButton(Theme &theme, const juce::String &svgData, bool togglable = true, bool active = false,
               const std::string &tooltipText = "")
         : theme(theme), togglable(togglable), active(active) {
         this->tooltipText = juce::String(tooltipText);
@@ -43,9 +43,9 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
 
     void paint(juce::Graphics &g) override {
         if (togglable && active) {
-            recolorDrawable(svg.get(), theme->activated);
+            recolorDrawable(svg.get(), theme.activated);
         } else {
-            recolorDrawable(svg.get(), theme->bright);
+            recolorDrawable(svg.get(), theme.bright);
         }
 
         if (svg != nullptr) {
@@ -116,7 +116,7 @@ class SVGButton : public juce::Component, public juce::TooltipClient {
     // void setState(bool activeNew) { active = activeNew; }
 
   private:
-    Theme *theme;
+    Theme &theme;
     std::unique_ptr<juce::Drawable> svg;
     juce::String tooltipText;
     bool togglable;

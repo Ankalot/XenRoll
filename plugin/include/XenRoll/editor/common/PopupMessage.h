@@ -12,7 +12,7 @@ class PopupMessage : public juce::Component, private juce::Timer {
      * @param displayTimeMs Time to display message in milliseconds
      * @param alpha Background opacity (0.0 to 1.0)
      */
-    PopupMessage(Theme *theme, int displayTimeMs, float alpha)
+    PopupMessage(Theme &theme, int displayTimeMs, float alpha)
         : theme(theme), displayTimeMs(displayTimeMs), alpha(alpha) {
         setInterceptsMouseClicks(false, false);
         setVisible(false);
@@ -28,10 +28,10 @@ class PopupMessage : public juce::Component, private juce::Timer {
     const juce::String &getText() { return messageText; }
 
     void paint(juce::Graphics &g) override {
-        g.setColour(theme->darkest.withAlpha(alpha));
+        g.setColour(theme.darkest.withAlpha(alpha));
         g.fillRoundedRectangle(getLocalBounds().toFloat(), 10.0f);
 
-        g.setColour(theme->brightest);
+        g.setColour(theme.brightest);
         g.setFont(Theme::big);
         g.drawText(messageText, getLocalBounds(), juce::Justification::centred, false);
     }
@@ -47,7 +47,7 @@ class PopupMessage : public juce::Component, private juce::Timer {
     }
 
   private:
-    Theme *theme;
+    Theme &theme;
     int displayTimeMs;
     juce::String messageText = "";
     float alpha; ///< opacity

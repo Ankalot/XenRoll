@@ -2,7 +2,7 @@
 #include "XenRoll/editor/PluginEditor.h"
 
 namespace audio_plugin {
-VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor)
+VocalToMelodyMenu::VocalToMelodyMenu(Parameters &params, AudioPluginAudioProcessorEditor &editor)
     : params(params), editor(editor) {
     setWantsKeyboardFocus(false);
     setVisible(false);
@@ -15,22 +15,22 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
     addAndMakeVisible(vocalToMelodyGenCurveLabel.get());
 
     vocalToMelodyGenCurveCheckbox = std::make_unique<juce::ToggleButton>();
-    vocalToMelodyGenCurveCheckbox->setToggleState(params->vocalToMelodyGenCurve,
+    vocalToMelodyGenCurveCheckbox->setToggleState(params.vocalToMelodyGenCurve,
                                                   juce::dontSendNotification);
-    vocalToMelodyGenCurveCheckbox->onStateChange = [this, params]() {
+    vocalToMelodyGenCurveCheckbox->onStateChange = [this, &params]() {
         bool newState = vocalToMelodyGenCurveCheckbox->getToggleState();
-        params->vocalToMelodyGenCurve = newState;
-        if (!newState && !params->vocalToMelodyGenNotes) {
-            params->vocalToMelodyGenNotes = true;
+        params.vocalToMelodyGenCurve = newState;
+        if (!newState && !params.vocalToMelodyGenNotes) {
+            params.vocalToMelodyGenNotes = true;
             vocalToMelodyGenNotesCheckbox->setToggleState(true, juce::dontSendNotification);
         }
     };
     addAndMakeVisible(vocalToMelodyGenCurveCheckbox.get());
 
     vocalToMelodyDeleteCurveButton = std::make_unique<juce::TextButton>("Delete pitch curve");
-    vocalToMelodyDeleteCurveButton->setLookAndFeel(editor->smallLF.get());
+    vocalToMelodyDeleteCurveButton->setLookAndFeel(editor.smallLF.get());
     vocalToMelodyDeleteCurveButton->setClickingTogglesState(false);
-    vocalToMelodyDeleteCurveButton->onClick = [this, editor]() { editor->clearPitchCurve(); };
+    vocalToMelodyDeleteCurveButton->onClick = [this, &editor]() { editor.clearPitchCurve(); };
     addAndMakeVisible(vocalToMelodyDeleteCurveButton.get());
 
     vocalToMelodyGenNotesLabel = std::make_unique<juce::Label>();
@@ -39,13 +39,13 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
     addAndMakeVisible(vocalToMelodyGenNotesLabel.get());
 
     vocalToMelodyGenNotesCheckbox = std::make_unique<juce::ToggleButton>();
-    vocalToMelodyGenNotesCheckbox->setToggleState(params->vocalToMelodyGenNotes,
+    vocalToMelodyGenNotesCheckbox->setToggleState(params.vocalToMelodyGenNotes,
                                                   juce::dontSendNotification);
-    vocalToMelodyGenNotesCheckbox->onStateChange = [this, params]() {
+    vocalToMelodyGenNotesCheckbox->onStateChange = [this, &params]() {
         bool newState = vocalToMelodyGenNotesCheckbox->getToggleState();
-        params->vocalToMelodyGenNotes = newState;
-        if (!newState && !params->vocalToMelodyGenCurve) {
-            params->vocalToMelodyGenCurve = true;
+        params.vocalToMelodyGenNotes = newState;
+        if (!newState && !params.vocalToMelodyGenCurve) {
+            params.vocalToMelodyGenCurve = true;
             vocalToMelodyGenCurveCheckbox->setToggleState(true, juce::dontSendNotification);
         }
     };
@@ -57,10 +57,10 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
     addAndMakeVisible(vocalToMelodyKeySnapLabel.get());
 
     vocalToMelodyKeySnapCheckbox = std::make_unique<juce::ToggleButton>();
-    vocalToMelodyKeySnapCheckbox->setToggleState(params->vocalToMelodyKeySnap,
+    vocalToMelodyKeySnapCheckbox->setToggleState(params.vocalToMelodyKeySnap,
                                                  juce::dontSendNotification);
-    vocalToMelodyKeySnapCheckbox->onStateChange = [this, params]() {
-        params->vocalToMelodyKeySnap = vocalToMelodyKeySnapCheckbox->getToggleState();
+    vocalToMelodyKeySnapCheckbox->onStateChange = [this, &params]() {
+        params.vocalToMelodyKeySnap = vocalToMelodyKeySnapCheckbox->getToggleState();
     };
     addAndMakeVisible(vocalToMelodyKeySnapCheckbox.get());
 
@@ -77,10 +77,10 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
         vocalToMelodyMinNoteDurationCombo->addItem("1/" + juce::String(i), i);
     }
     vocalToMelodyMinNoteDurationCombo->setSelectedId(
-        juce::roundToInt(1.0f / params->vocalToMelodyMinNoteDuration));
-    vocalToMelodyMinNoteDurationCombo->setLookAndFeel(editor->smallLF.get());
-    vocalToMelodyMinNoteDurationCombo->onChange = [this, params, editor]() {
-        params->vocalToMelodyMinNoteDuration =
+        juce::roundToInt(1.0f / params.vocalToMelodyMinNoteDuration));
+    vocalToMelodyMinNoteDurationCombo->setLookAndFeel(editor.smallLF.get());
+    vocalToMelodyMinNoteDurationCombo->onChange = [this, &params, &editor]() {
+        params.vocalToMelodyMinNoteDuration =
             1.0f / vocalToMelodyMinNoteDurationCombo->getSelectedId();
     };
     addAndMakeVisible(vocalToMelodyMinNoteDurationCombo.get());
@@ -92,14 +92,14 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
     addAndMakeVisible(vocalToMelodyDcentsLabel.get());
 
     vocalToMelodyDcentsSlider = std::make_unique<juce::Slider>();
-    vocalToMelodyDcentsSlider->setLookAndFeel(editor->smallLF.get());
-    vocalToMelodyDcentsSlider->setRange(params->min_vocalToMelodyDCents,
-                                        params->max_vocalToMelodyDcents, 1);
-    vocalToMelodyDcentsSlider->setValue(params->vocalToMelodyDCents);
+    vocalToMelodyDcentsSlider->setLookAndFeel(editor.smallLF.get());
+    vocalToMelodyDcentsSlider->setRange(params.min_vocalToMelodyDCents,
+                                        params.max_vocalToMelodyDcents, 1);
+    vocalToMelodyDcentsSlider->setValue(params.vocalToMelodyDCents);
     vocalToMelodyDcentsSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, rowHeight);
     vocalToMelodyDcentsSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    vocalToMelodyDcentsSlider->onDragEnd = [this, params, editor]() {
-        params->vocalToMelodyDCents = static_cast<int>(vocalToMelodyDcentsSlider->getValue());
+    vocalToMelodyDcentsSlider->onDragEnd = [this, &params, &editor]() {
+        params.vocalToMelodyDCents = static_cast<int>(vocalToMelodyDcentsSlider->getValue());
     };
     addAndMakeVisible(vocalToMelodyDcentsSlider.get());
 
@@ -109,10 +109,10 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
     addAndMakeVisible(vocalToMelodyKeySnapLabel.get());
 
     vocalToMelodyKeySnapCheckbox = std::make_unique<juce::ToggleButton>();
-    vocalToMelodyKeySnapCheckbox->setToggleState(params->vocalToMelodyKeySnap,
+    vocalToMelodyKeySnapCheckbox->setToggleState(params.vocalToMelodyKeySnap,
                                                  juce::dontSendNotification);
-    vocalToMelodyKeySnapCheckbox->onStateChange = [this, params]() {
-        params->vocalToMelodyKeySnap = vocalToMelodyKeySnapCheckbox->getToggleState();
+    vocalToMelodyKeySnapCheckbox->onStateChange = [this, &params]() {
+        params.vocalToMelodyKeySnap = vocalToMelodyKeySnapCheckbox->getToggleState();
     };
     addAndMakeVisible(vocalToMelodyKeySnapCheckbox.get());
 
@@ -122,10 +122,10 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
     addAndMakeVisible(vocalToMelodyMakeBendsLabel.get());
 
     vocalToMelodyMakeBendsCheckbox = std::make_unique<juce::ToggleButton>();
-    vocalToMelodyMakeBendsCheckbox->setToggleState(params->vocalToMelodyMakeBends,
+    vocalToMelodyMakeBendsCheckbox->setToggleState(params.vocalToMelodyMakeBends,
                                                    juce::dontSendNotification);
-    vocalToMelodyMakeBendsCheckbox->onStateChange = [this, params]() {
-        params->vocalToMelodyMakeBends = vocalToMelodyMakeBendsCheckbox->getToggleState();
+    vocalToMelodyMakeBendsCheckbox->onStateChange = [this, &params]() {
+        params.vocalToMelodyMakeBends = vocalToMelodyMakeBendsCheckbox->getToggleState();
     };
     addAndMakeVisible(vocalToMelodyMakeBendsCheckbox.get());
 
@@ -136,7 +136,7 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters *params, AudioPluginAudioProcess
     addAndMakeVisible(micGain_dBLabel.get());
 
     micGain_dBSlider = std::make_unique<juce::Slider>();
-    micGain_dBSlider->setLookAndFeel(editor->smallLF.get());
+    micGain_dBSlider->setLookAndFeel(editor.smallLF.get());
     micGain_dBSlider->setRange(GlobalSettings::getInstance().min_micGain_dB,
                                GlobalSettings::getInstance().max_micGain_dB, 0.1);
     micGain_dBSlider->setValue(GlobalSettings::getInstance().getMicGain_dB());

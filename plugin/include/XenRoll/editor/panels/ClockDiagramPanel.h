@@ -9,7 +9,7 @@ class AudioPluginAudioProcessorEditor;
 
 class ClockDiagramPanel : public juce::Component {
   public:
-    ClockDiagramPanel(Parameters *params, AudioPluginAudioProcessorEditor *editor,
+    ClockDiagramPanel(Parameters &params, AudioPluginAudioProcessorEditor &editor,
                       const std::vector<Note> &notes);
 
     void setTime(float newTime) {
@@ -22,8 +22,8 @@ class ClockDiagramPanel : public juce::Component {
     void paint(juce::Graphics &g) override;
 
   private:
-    Parameters *params;
-    AudioPluginAudioProcessorEditor *editor;
+    Parameters &params;
+    AudioPluginAudioProcessorEditor &editor;
     const std::vector<Note> &notes;
     float time = 0.0f;
 

@@ -2,7 +2,7 @@
 #include "BinaryData.h"
 
 namespace audio_plugin {
-DissonancePanel::DissonancePanel(Parameters *params,
+DissonancePanel::DissonancePanel(Parameters &params,
                                  std::shared_ptr<DissonanceMeter> dissonanceMeter)
     : params(params), dissonanceMeter(dissonanceMeter) {
     setVisible(false);
@@ -13,7 +13,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
         "*.txt");
 
     // Create plots
-    partialsPlot = std::make_unique<PartialsPlot>(params, params->plotPartialsInterp);
+    partialsPlot = std::make_unique<PartialsPlot>(params, params.plotPartialsInterp);
     addAndMakeVisible(partialsPlot.get());
 
     dissonancePlot = std::make_unique<DissonancePlot>(params, dissonanceMeter);
@@ -21,20 +21,20 @@ DissonancePanel::DissonancePanel(Parameters *params,
 
     // Create components that control partials plot
     plotPartialsInterpButton = std::make_unique<SVGButton>(
-        &params->theme, BinaryData::Transpose_svg, BinaryData::Transpose_svgSize, true,
-        params->plotPartialsInterp,
+        params.theme, BinaryData::Transpose_svg, BinaryData::Transpose_svgSize, true,
+        params.plotPartialsInterp,
         std::string("Plot partials for all pitches. If some pitch has no partials calculated, ") +
             "it will use the transposed partials of the closest recorded pitch");
     addAndMakeVisible(plotPartialsInterpButton.get());
-    plotPartialsInterpButton->onClick = [this, params](const juce::MouseEvent &) {
-        params->plotPartialsInterp = !params->plotPartialsInterp;
-        partialsPlot->setInterpMode(params->plotPartialsInterp);
+    plotPartialsInterpButton->onClick = [this, &params](const juce::MouseEvent &) {
+        params.plotPartialsInterp = !params.plotPartialsInterp;
+        partialsPlot->setInterpMode(params.plotPartialsInterp);
         return true;
     };
 
     plotPartialsOctaveInput = std::make_unique<IntegerInput>(
-        &params->theme, params->plotPartialsTotalCents / 1200, 0, params->num_octaves);
-    plotPartialsOctaveInput->onValueChanged = [this, params](int newValue) {
+        params.theme, params.plotPartialsTotalCents / 1200, 0, params.num_octaves);
+    plotPartialsOctaveInput->onValueChanged = [this, &params](int newValue) {
         if (!ignoreUpdatePartials)
             updatePartialsPlotTotalCents(newValue * 1200 + plotPartialsCentsInput->getValue(), 1);
     };
@@ -48,8 +48,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
     addAndMakeVisible(plotPartialsOctaveLabel.get());
 
     plotPartialsCentsInput = std::make_unique<IntegerInput>(
-        &params->theme, params->plotPartialsTotalCents % 1200, 0, 1199);
-    plotPartialsCentsInput->onValueChanged = [this, params](int newValue) {
+        params.theme, params.plotPartialsTotalCents % 1200, 0, 1199);
+    plotPartialsCentsInput->onValueChanged = [this, &params](int newValue) {
         if (!ignoreUpdatePartials)
             updatePartialsPlotTotalCents(plotPartialsOctaveInput->getValue() * 1200 + newValue, 2);
     };
@@ -61,12 +61,12 @@ DissonancePanel::DissonancePanel(Parameters *params,
     addAndMakeVisible(plotPartialsCentsLabel.get());
 
     plotPartialsTotalCentsSlider = std::make_unique<juce::Slider>();
-    plotPartialsTotalCentsSlider->setRange(params->min_plotPartialsTotalCents,
-                                           params->max_plotPartialsTotalCents, 1.0);
-    plotPartialsTotalCentsSlider->setValue(params->plotPartialsTotalCents);
+    plotPartialsTotalCentsSlider->setRange(params.min_plotPartialsTotalCents,
+                                           params.max_plotPartialsTotalCents, 1.0);
+    plotPartialsTotalCentsSlider->setValue(params.plotPartialsTotalCents);
     plotPartialsTotalCentsSlider->setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
     plotPartialsTotalCentsSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    plotPartialsTotalCentsSlider->onValueChange = [this, params]() {
+    plotPartialsTotalCentsSlider->onValueChange = [this, &params]() {
         if (!ignoreUpdatePartials)
             updatePartialsPlotTotalCents(static_cast<int>(plotPartialsTotalCentsSlider->getValue()),
                                          3);
@@ -74,17 +74,17 @@ DissonancePanel::DissonancePanel(Parameters *params,
     addAndMakeVisible(plotPartialsTotalCentsSlider.get());
 
     removePartialsButton = std::make_unique<SVGButton>(
-        &params->theme, BinaryData::Broom_svg, BinaryData::Broom_svgSize, false, false,
+        params.theme, BinaryData::Broom_svg, BinaryData::Broom_svgSize, false, false,
         std::string("Remove partials of tone with specified octave and cents"));
     addAndMakeVisible(removePartialsButton.get());
-    removePartialsButton->onClick = [this, params](const juce::MouseEvent &) {
-        bool removed = params->remove_partials(params->plotPartialsTotalCents);
+    removePartialsButton->onClick = [this, &params](const juce::MouseEvent &) {
+        bool removed = params.remove_partials(params.plotPartialsTotalCents);
         if (removed) {
             partialsVec partials = {};
             int partialsTotalCents = 5700;
-            if (!params->get_tonesPartials().empty()) {
-                partials = params->get_tonesPartials().begin()->second;
-                partialsTotalCents = params->get_tonesPartials().begin()->first;
+            if (!params.get_tonesPartials().empty()) {
+                partials = params.get_tonesPartials().begin()->second;
+                partialsTotalCents = params.get_tonesPartials().begin()->first;
             }
             this->dissonanceMeter->setPartials(partials, partialsTotalCents);
             partialsPlot->updateTonesPartials();
@@ -93,17 +93,17 @@ DissonancePanel::DissonancePanel(Parameters *params,
         return false;
     };
 
-    trashButton = std::make_unique<SVGButton>(&params->theme, BinaryData::Trash_svg,
-                                              BinaryData::Trash_svgSize, false, false,
-                                              std::string("Delete partials from all tones"));
+    trashButton =
+        std::make_unique<SVGButton>(params.theme, BinaryData::Trash_svg, BinaryData::Trash_svgSize,
+                                    false, false, std::string("Delete partials from all tones"));
     addAndMakeVisible(trashButton.get());
-    trashButton->onClick = [this, params](const juce::MouseEvent &) {
+    trashButton->onClick = [this, &params](const juce::MouseEvent &) {
         juce::NativeMessageBox::showOkCancelBox(
             juce::AlertWindow::WarningIcon, "Delete All Partials?",
             "This will permanently remove all partials data from every tone.", this,
-            juce::ModalCallbackFunction::create([this, params](int result) {
+            juce::ModalCallbackFunction::create([this, &params](int result) {
                 if (result) { // OK clicked
-                    params->set_tonesPartials({});
+                    params.set_tonesPartials({});
                     this->dissonanceMeter->setPartials({}, 5700);
                     partialsPlot->updateTonesPartials();
                     dissonancePlot->updateDissonanceCurve();
@@ -113,7 +113,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
     };
 
     importPartialsButton = std::make_unique<SVGButton>(
-        &params->theme, BinaryData::Import_partials_svg, BinaryData::Import_partials_svgSize, false,
+        params.theme, BinaryData::Import_partials_svg, BinaryData::Import_partials_svgSize, false,
         false,
         std::string("Import .txt file with partials data.\n"
                     "Example: {{5700, {{440.0, 1.0}}}} (This example contains one tone with pitch "
@@ -121,7 +121,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
                     "and 1.0 amplitude (linear)\n"
                     "totalCents = octave*1200 + cents; 4oct 900¢ = A4 note.\n"));
     addAndMakeVisible(importPartialsButton.get());
-    importPartialsButton->onClick = [this, params](const juce::MouseEvent &) {
+    importPartialsButton->onClick = [this, &params](const juce::MouseEvent &) {
         partialsFileChooser.get()->launchAsync(
             juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
             [this](const juce::FileChooser &fc) {
@@ -203,7 +203,7 @@ DissonancePanel::DissonancePanel(Parameters *params,
                     }
                 }
 
-                this->params->set_tonesPartials(parsedPartials);
+                this->params.set_tonesPartials(parsedPartials);
                 partialsVec partials = {};
                 int partialsTotalCents = 5700;
                 if (!parsedPartials.empty()) {
@@ -218,14 +218,14 @@ DissonancePanel::DissonancePanel(Parameters *params,
     };
 
     exportPartialsButton = std::make_unique<SVGButton>(
-        &params->theme, BinaryData::Export_partials_svg, BinaryData::Export_partials_svgSize, false,
+        params.theme, BinaryData::Export_partials_svg, BinaryData::Export_partials_svgSize, false,
         false, std::string("Export partials to a .txt file"));
     addAndMakeVisible(exportPartialsButton.get());
-    params->get_tonesPartials();
-    exportPartialsButton->onClick = [this, params](const juce::MouseEvent &) {
+    params.get_tonesPartials();
+    exportPartialsButton->onClick = [this, &params](const juce::MouseEvent &) {
         partialsFileChooser.get()->launchAsync(
             juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
-            [allPartials = params->get_tonesPartials()](const juce::FileChooser &fc) {
+            [allPartials = params.get_tonesPartials()](const juce::FileChooser &fc) {
                 juce::File txtFile = fc.getResult();
                 txtFile.deleteFile();
 
@@ -273,8 +273,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
 
     // Create components that control dissonance plot
     plotDissonanceOctaveInput = std::make_unique<IntegerInput>(
-        &params->theme, params->plotDissonanceTotalCents / 1200, 0, params->num_octaves - 1);
-    plotDissonanceOctaveInput->onValueChanged = [this, params](int newValue) {
+        params.theme, params.plotDissonanceTotalCents / 1200, 0, params.num_octaves - 1);
+    plotDissonanceOctaveInput->onValueChanged = [this, &params](int newValue) {
         if (!ignoreUpdateDissonance)
             updateDissonancePlotTotalCents(newValue * 1200 + plotDissonanceCentsInput->getValue(),
                                            1);
@@ -287,8 +287,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
     addAndMakeVisible(plotDissonanceOctaveLabel.get());
 
     plotDissonanceCentsInput = std::make_unique<IntegerInput>(
-        &params->theme, params->plotDissonanceTotalCents % 1200, 0, 1199);
-    plotDissonanceCentsInput->onValueChanged = [this, params](int newValue) {
+        params.theme, params.plotDissonanceTotalCents % 1200, 0, 1199);
+    plotDissonanceCentsInput->onValueChanged = [this, &params](int newValue) {
         if (!ignoreUpdateDissonance)
             updateDissonancePlotTotalCents(plotDissonanceOctaveInput->getValue() * 1200 + newValue,
                                            2);
@@ -301,12 +301,12 @@ DissonancePanel::DissonancePanel(Parameters *params,
     addAndMakeVisible(plotDissonanceCentsLabel.get());
 
     plotDissonanceTotalCentsSlider = std::make_unique<juce::Slider>();
-    plotDissonanceTotalCentsSlider->setRange(params->min_plotDissonanceTotalCents,
-                                             params->max_plotDissonanceTotalCents, 1.0);
-    plotDissonanceTotalCentsSlider->setValue(params->plotDissonanceTotalCents);
+    plotDissonanceTotalCentsSlider->setRange(params.min_plotDissonanceTotalCents,
+                                             params.max_plotDissonanceTotalCents, 1.0);
+    plotDissonanceTotalCentsSlider->setValue(params.plotDissonanceTotalCents);
     plotDissonanceTotalCentsSlider->setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
     plotDissonanceTotalCentsSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    plotDissonanceTotalCentsSlider->onValueChange = [this, params]() {
+    plotDissonanceTotalCentsSlider->onValueChange = [this, &params]() {
         if (!ignoreUpdateDissonance)
             updateDissonancePlotTotalCents(
                 static_cast<int>(plotDissonanceTotalCentsSlider->getValue()), 3);
@@ -319,14 +319,14 @@ DissonancePanel::DissonancePanel(Parameters *params,
     addAndMakeVisible(compactnessLabel.get());
 
     roughCompactFracSlider = std::make_unique<juce::Slider>();
-    roughCompactFracSlider->setRange(params->min_roughCompactFrac, params->max_roughCompactFrac,
+    roughCompactFracSlider->setRange(params.min_roughCompactFrac, params.max_roughCompactFrac,
                                      0.01);
-    roughCompactFracSlider->setValue(params->roughCompactFrac);
+    roughCompactFracSlider->setValue(params.roughCompactFrac);
     roughCompactFracSlider->setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
     roughCompactFracSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    roughCompactFracSlider->onValueChange = [this, params]() {
-        params->roughCompactFrac = static_cast<float>(roughCompactFracSlider->getValue());
-        this->dissonanceMeter->setAlpha(params->roughCompactFrac);
+    roughCompactFracSlider->onValueChange = [this, &params]() {
+        params.roughCompactFrac = static_cast<float>(roughCompactFracSlider->getValue());
+        this->dissonanceMeter->setAlpha(params.roughCompactFrac);
         dissonancePlot->updateDissonanceCurve();
     };
     addAndMakeVisible(roughCompactFracSlider.get());
@@ -342,29 +342,29 @@ DissonancePanel::DissonancePanel(Parameters *params,
     addAndMakeVisible(dissonancePowLabel.get());
 
     dissonancePowSlider = std::make_unique<juce::Slider>();
-    dissonancePowSlider->setRange(params->min_dissonancePow, params->max_dissonancePow, 0.1);
-    dissonancePowSlider->setValue(params->dissonancePow);
+    dissonancePowSlider->setRange(params.min_dissonancePow, params.max_dissonancePow, 0.1);
+    dissonancePowSlider->setValue(params.dissonancePow);
     dissonancePowSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, sliderTextBoxWidth,
                                          lowComponentHeight);
     dissonancePowSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    dissonancePowSlider->onValueChange = [this, params]() {
-        params->dissonancePow = static_cast<float>(dissonancePowSlider->getValue());
-        this->dissonanceMeter->setBeta(params->dissonancePow);
+    dissonancePowSlider->onValueChange = [this, &params]() {
+        params.dissonancePow = static_cast<float>(dissonancePowSlider->getValue());
+        this->dissonanceMeter->setBeta(params.dissonancePow);
         dissonancePlot->updateDissonanceCurve();
     };
     addAndMakeVisible(dissonancePowSlider.get());
 
     // Create components that control finding partials
-    refreshButton = std::make_unique<SVGButton>(&params->theme, BinaryData::Refresh_svg,
+    refreshButton = std::make_unique<SVGButton>(params.theme, BinaryData::Refresh_svg,
                                                 BinaryData::Refresh_svgSize, false, false,
                                                 std::string("Refresh plots"));
     addAndMakeVisible(refreshButton.get());
-    refreshButton->onClick = [this, params](const juce::MouseEvent &) {
+    refreshButton->onClick = [this, &params](const juce::MouseEvent &) {
         partialsVec partials = {};
         int partialsTotalCents = 5700;
-        if (!params->get_tonesPartials().empty()) {
-            partials = params->get_tonesPartials().begin()->second;
-            partialsTotalCents = params->get_tonesPartials().begin()->first;
+        if (!params.get_tonesPartials().empty()) {
+            partials = params.get_tonesPartials().begin()->second;
+            partialsTotalCents = params.get_tonesPartials().begin()->first;
         }
         this->dissonanceMeter->setPartials(partials, partialsTotalCents);
         partialsPlot->updateTonesPartials();
@@ -373,8 +373,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
     };
 
     switchFindPartialsModeButton = std::make_unique<SVGButton>(
-        &params->theme, BinaryData::Turn_on_svg, BinaryData::Turn_on_svgSize, true,
-        params->findPartialsMode.load(),
+        params.theme, BinaryData::Turn_on_svg, BinaryData::Turn_on_svgSize, true,
+        params.findPartialsMode.load(),
         std::string(
             "1. Place this plugin at the end of the fx chain. ENABLE MIDI PASSING THROUGH IN EACH "
             "PLUGIN IN FX CHAIN OR ROUTE MIDI INPUT FROM TRACK TO THIS PLUGIN IN DAW.\n") +
@@ -387,8 +387,8 @@ DissonancePanel::DissonancePanel(Parameters *params,
             "For example, if there are no partials or very few of them, then start by reducing dB "
             "threadshold.\n");
     addAndMakeVisible(switchFindPartialsModeButton.get());
-    switchFindPartialsModeButton->onClick = [this, params](const juce::MouseEvent &) {
-        params->findPartialsMode.store(!params->findPartialsMode.load());
+    switchFindPartialsModeButton->onClick = [this, &params](const juce::MouseEvent &) {
+        params.findPartialsMode.store(!params.findPartialsMode.load());
         return true;
     };
 
@@ -398,14 +398,14 @@ DissonancePanel::DissonancePanel(Parameters *params,
     addAndMakeVisible(dBThresholdLabel.get());
 
     dBThresholdSlider = std::make_unique<juce::Slider>();
-    dBThresholdSlider->setRange(params->min_findPartialsdBThreshold,
-                                params->max_findPartialsdBThreshold, 1.0);
-    dBThresholdSlider->setValue(params->findPartialsdBThreshold.load());
+    dBThresholdSlider->setRange(params.min_findPartialsdBThreshold,
+                                params.max_findPartialsdBThreshold, 1.0);
+    dBThresholdSlider->setValue(params.findPartialsdBThreshold.load());
     dBThresholdSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, sliderTextBoxWidth,
                                        lowComponentHeight);
     dBThresholdSlider->setSliderStyle(juce::Slider::LinearHorizontal);
-    dBThresholdSlider->onValueChange = [this, params]() {
-        params->findPartialsdBThreshold.store(static_cast<float>(dBThresholdSlider->getValue()));
+    dBThresholdSlider->onValueChange = [this, &params]() {
+        params.findPartialsdBThreshold.store(static_cast<float>(dBThresholdSlider->getValue()));
     };
     addAndMakeVisible(dBThresholdSlider.get());
 
@@ -425,9 +425,9 @@ DissonancePanel::DissonancePanel(Parameters *params,
                               static_cast<int>(PartialsFindPosStrat::minRMSfluct));
     strategyComboBox->addItem("Peak sample (percussive tones)",
                               static_cast<int>(PartialsFindPosStrat::peakSample));
-    strategyComboBox->setSelectedId(static_cast<int>(params->findPartialsStrat.load()));
-    strategyComboBox->onChange = [this, params]() {
-        params->findPartialsStrat.store(
+    strategyComboBox->setSelectedId(static_cast<int>(params.findPartialsStrat.load()));
+    strategyComboBox->onChange = [this, &params]() {
+        params.findPartialsStrat.store(
             static_cast<PartialsFindPosStrat>(strategyComboBox->getSelectedId()));
     };
     addAndMakeVisible(strategyComboBox.get());
@@ -441,9 +441,9 @@ DissonancePanel::DissonancePanel(Parameters *params,
     fftSizeComboBox->addItem("4096", 4096);
     fftSizeComboBox->addItem("8192", 8192);
     fftSizeComboBox->addItem("16384", 16384);
-    fftSizeComboBox->setSelectedId(static_cast<int>(params->findPartialsFFTSize.load()));
-    fftSizeComboBox->onChange = [this, params]() {
-        params->findPartialsFFTSize.store(fftSizeComboBox->getSelectedId());
+    fftSizeComboBox->setSelectedId(static_cast<int>(params.findPartialsFFTSize.load()));
+    fftSizeComboBox->onChange = [this, &params]() {
+        params.findPartialsFFTSize.store(fftSizeComboBox->getSelectedId());
     };
     addAndMakeVisible(fftSizeComboBox.get());
 }
@@ -458,7 +458,7 @@ void DissonancePanel::updateDissonancePlotTotalCents(int newTotalCents, int ind)
         plotDissonanceOctaveInput->setValue(newTotalCents / 1200);
         plotDissonanceCentsInput->setValue(newTotalCents % 1200);
     }
-    params->plotDissonanceTotalCents = newTotalCents;
+    params.plotDissonanceTotalCents = newTotalCents;
     ignoreUpdateDissonance = false;
 
     dissonancePlot->updateTotalCents();
@@ -472,7 +472,7 @@ void DissonancePanel::updatePartialsPlotTotalCents(int newTotalCents, int ind) {
         plotPartialsOctaveInput->setValue(newTotalCents / 1200);
         plotPartialsCentsInput->setValue(newTotalCents % 1200);
     }
-    params->plotPartialsTotalCents = newTotalCents;
+    params.plotPartialsTotalCents = newTotalCents;
     ignoreUpdatePartials = false;
 
     partialsPlot->updateTotalCents();
@@ -592,13 +592,13 @@ void DissonancePanel::resized() {
 }
 
 void DissonancePanel::paint(juce::Graphics &g) {
-    g.fillAll(params->theme.darker);
+    g.fillAll(params.theme.darker);
 
     int width = getWidth();
     int height = getHeight();
     float lineThickness = Theme::wider;
 
-    g.setColour(params->theme.darkest);
+    g.setColour(params.theme.darkest);
     g.drawLine(width / 2.0f, static_cast<float>(padding), width / 2.0f,
                static_cast<float>(height - 2 * padding - lowComponentHeight), lineThickness);
     g.drawLine(static_cast<float>(padding), height - lineThickness / 2,

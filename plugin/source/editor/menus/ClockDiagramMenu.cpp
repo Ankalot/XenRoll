@@ -2,7 +2,7 @@
 #include "XenRoll/editor/PluginEditor.h"
 
 namespace audio_plugin {
-ClockDiagramMenu::ClockDiagramMenu(Parameters *params, AudioPluginAudioProcessorEditor *editor)
+ClockDiagramMenu::ClockDiagramMenu(Parameters &params, AudioPluginAudioProcessorEditor &editor)
     : params(params), editor(editor) {
     setWantsKeyboardFocus(false);
     setVisible(false);
@@ -21,12 +21,12 @@ ClockDiagramMenu::ClockDiagramMenu(Parameters *params, AudioPluginAudioProcessor
         maxChordDtimeClockDiagramCombo->addItem("1/" + juce::String(i), i);
     }
     maxChordDtimeClockDiagramCombo->setSelectedId(
-        juce::roundToInt(1.0f / params->maxChordDtimeClockDiagram));
-    maxChordDtimeClockDiagramCombo->setLookAndFeel(editor->smallLF.get());
-    maxChordDtimeClockDiagramCombo->onChange = [this, params, editor]() {
-        params->maxChordDtimeClockDiagram = 1.0f / maxChordDtimeClockDiagramCombo->getSelectedId();
-        if (params->showClockDiagram) {
-            editor->refreshClockDiagramPanel();
+        juce::roundToInt(1.0f / params.maxChordDtimeClockDiagram));
+    maxChordDtimeClockDiagramCombo->setLookAndFeel(editor.smallLF.get());
+    maxChordDtimeClockDiagramCombo->onChange = [this, &params, &editor]() {
+        params.maxChordDtimeClockDiagram = 1.0f / maxChordDtimeClockDiagramCombo->getSelectedId();
+        if (params.showClockDiagram) {
+            editor.refreshClockDiagramPanel();
         }
     };
     addAndMakeVisible(maxChordDtimeClockDiagramCombo.get());
