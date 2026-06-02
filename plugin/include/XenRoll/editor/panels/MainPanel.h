@@ -354,6 +354,10 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     void restoreState();
 
+    bool wasDebugOverlayVisible = false;
+    double minFps = std::numeric_limits<double>::max();
+    juce::String pluginNameAndVersion;
+
     static const juce::PathStrokeType outlineStroke;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainPanel)

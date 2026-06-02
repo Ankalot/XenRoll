@@ -6,9 +6,22 @@
 #include <functional>
 #include <random>
 
+#ifdef __INTELLISENSE__ // for VS Code
+#ifndef JucePlugin_Name
+#define JucePlugin_Name "XenRoll"
+#endif
+#ifndef JucePlugin_VersionString
+#define JucePlugin_VersionString "0.0.0"
+#endif
+#endif
+
 namespace audio_plugin {
 MainPanel::MainPanel(AudioPluginAudioProcessorEditor *editor, Parameters *params)
     : editor(editor), params(params) {
+    juce::String appName = JucePlugin_Name;
+    juce::String appVersion = JucePlugin_VersionString;
+    pluginNameAndVersion = appName + " v" + appVersion;
+
     octave_height_px = params->octave_height_px;
     bar_width_px = params->bar_width_px;
     init_octave_height_px = params->init_octave_height_px;
@@ -632,14 +645,24 @@ void MainPanel::paint(juce::Graphics &g) {
         const auto endTime = juce::Time::getMillisecondCounterHiRes();
         const double elapsed = endTime - startTime;
         const double fps = 1000.0 / elapsed;
+        
+        if (!wasDebugOverlayVisible) {
+            minFps = fps;
+            wasDebugOverlayVisible = true;
+        } else {
+            if (fps < minFps) {
+                minFps = fps;
+            }
+        }
 
         juce::Rectangle<float> overlayRect = clip.translated(-4, 4).toFloat();
 
         g.setColour(params->theme.activated);
         g.setFont(Theme::small_);
 
-        // FPS & time
-        juce::String fpsText = juce::String::formatted("%.1f FPS (%.1f ms)", fps, elapsed);
+        // 1. FPS & Min FPS & time 
+        juce::String fpsText = juce::String::formatted("%.1f FPS (min: %.1f) | %.1f ms", 
+                                                       fps, minFps, elapsed);
         g.drawText(fpsText, overlayRect.removeFromTop(Theme::small_), juce::Justification::topRight,
                    false);
 
@@ -658,7 +681,13 @@ void MainPanel::paint(juce::Graphics &g) {
         else if (contextType.contains("CoreGraphics"))
             rendererName = "CoreGraphics (CPU-bound, Mac)";
         juce::String rendererText = "Renderer: " + rendererName;
-        g.drawText(rendererText, overlayRect, juce::Justification::topRight, false);
+        g.drawText(rendererText, overlayRect.removeFromTop(Theme::small_), 
+                   juce::Justification::topRight, false);
+
+        // Plugin Name & Version
+        g.drawText(pluginNameAndVersion, overlayRect, juce::Justification::topRight, false);
+    } else {
+        wasDebugOverlayVisible = false;
     }
 }
 
