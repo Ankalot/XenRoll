@@ -239,6 +239,7 @@ void MainPanel::paint(juce::Graphics &g) {
     // for debug overlay
     const auto startTime = juce::Time::getMillisecondCounterHiRes();
     int numDrawnNotes = 0;
+    int numDrawnRatioMarks = 0;
 
     juce::Rectangle<int> clip = viewport->getViewArea();
     int clipWidth = clip.getWidth();
@@ -666,6 +667,8 @@ void MainPanel::paint(juce::Graphics &g) {
                                                   100, fontSizeError),
                            juce::Justification::centredLeft);
             }
+
+            numDrawnRatioMarks++;
         }
     }
 
@@ -704,6 +707,11 @@ void MainPanel::paint(juce::Graphics &g) {
         // Num of drawn notes
         juce::String notesText = juce::String::formatted("Drawn notes: %d", numDrawnNotes);
         g.drawText(notesText, overlayRect.removeFromTop(Theme::small_),
+                   juce::Justification::topRight, false);
+
+        // Num of drawn ratio marks
+        juce::String ratioMarksText = juce::String::formatted("Drawn ratio marks: %d", numDrawnRatioMarks);
+        g.drawText(ratioMarksText, overlayRect.removeFromTop(Theme::small_),
                    juce::Justification::topRight, false);
 
         // Renderer name
