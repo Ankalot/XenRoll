@@ -8,9 +8,7 @@ namespace audio_plugin {
 
 class HelpPanel : public juce::Component {
   public:
-    HelpPanel(Theme &theme) : theme(theme) {
-        setVisible(false);
-    }
+    HelpPanel(Theme &theme) : theme(theme) { setVisible(false); }
 
     void paint(juce::Graphics &g) override {
         g.fillAll(theme.darker);
@@ -48,8 +46,8 @@ class HelpPanel : public juce::Component {
              {"Alt + Ctrl + Scroll", "Snap-bend selected notes to nearest keys"},
              // Mini subheader
              {"Ratio Marks Editing Mode", ""},
-             {"LClick + empty space", "Create ratio mark"},
-             {"LDrag + ratio mark", "Move ratio mark"},
+             {"LDrag", "Create ratio mark (attaches to keys/notes)"},
+             {"LDrag + ratio mark", "Move ratio mark horizontally"},
              {"RClick/RDrag", "Delete ratio marks"}});
 
         drawSubHeader(g, leftColumn, "Top Panel (with time)");
@@ -71,7 +69,7 @@ class HelpPanel : public juce::Component {
         drawTable(g, rightColumn,
                   {{"Z/X/C...A/S/D...Q/W/E...", "Play keys"},
                    {"Del", "Delete selected notes"},
-                   {"Esc", "Deselect all notes"},
+                   {"Esc", "Deselect all notes, cancel ratio mark drawing"},
                    {"Ctrl/Cmd + A", "Select all notes"},
                    {"Ctrl/Cmd + C", "Copy selected notes"},
                    {"Ctrl/Cmd + V", "Paste copied notes"},
@@ -99,7 +97,7 @@ class HelpPanel : public juce::Component {
               "Toggle time snapping"},
              {"Alt + " + keyToString(Parameters::hotkeys::keySnap_withAlt), "Toggle key snapping"},
              {"Alt + " + keyToString(Parameters::hotkeys::editRatiosMarks_withAlt),
-              "Toggle ratios marks editing"},
+              "Toggle ratio marks editing"},
              {"Alt + " + keyToString(Parameters::hotkeys::pitchMemory_withAlt),
               "Toggle harmonicity display"}});
 

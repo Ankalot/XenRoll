@@ -38,6 +38,8 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     ///< For use in mouseMove and in mouseUp
     void updateMouseCursor(const juce::MouseEvent &event);
 
+    void drawDoubleArrow(juce::Graphics &g, juce::Point<float> p1, juce::Point<float> p2,
+                         float arrowWidth);
     void drawOutlinedText(juce::Graphics &g, const juce::String &text, juce::Rectangle<float> area,
                           const juce::Font &font);
     void paint(juce::Graphics &g) override;
@@ -58,7 +60,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     void createNotesFromGhostNotes();
     /**
      * If remaking keys was caused just by pitch transposition, set dcents!
-     * Contains reattachRatiosMarks method!
+     * Contains reattachRatiosMarks method! So use it before saveState()
      */
     void remakeKeys(int dcents = 0);
 
@@ -98,7 +100,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     /**
      * @brief Trying to attach ratio marks that lost their keys
      * @param dcents If there was just pitch transposition, set dcents!
-     * @note Should be called after pitchCorrectRatioMarksBasedOnSelNotes()
+     * @note Should be called after correctRatioMarksBasedOnSelNotes()
      */
     void reattachRatiosMarks(int dcents = 0);
     void updateRatiosMarks();
@@ -115,7 +117,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     const std::vector<Note> &getNotes() { return notes; }
 
-    // Don't forget: call it after changes with ratios marks
+    // Don't forget: call it after changes with ratio marks (corrections/reattachments, etc)
     void saveState() {
         params.stateHistory.push(State(params.get_num_bars(), notes, params.ratiosMarks));
     }
@@ -139,6 +141,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool isDrawingRatioMark = false;
     bool isMovingRatioMark = false;
     bool wasMovingRatioMark = false;
+    bool isDeletingRatioMarks = false;
     ///< for bending not up to keys! no "bend key snap"
     bool wasBending = false;
     ///< for changing velocity using mouse scroll
@@ -346,9 +349,12 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     bool pointOnRatioMark(const RatioMark &ratioMark, const juce::Point<int> &point);
     bool lineIntersectsRatioMark(const RatioMark &ratioMark, const juce::Line<int> &line);
 
-    ///< Should be called before reattachRatiosMarks()
-    void pitchCorrectRatioMarksBasedOnSelNotes();
-    void timeCorrectRatioMarksBasedOnSelNotes(float dtime);
+    /**
+     * Set dtime if selected notes were moved horizontally!
+     * Selected only notes - because only they have changed.
+     * Better to call before reattachRatiosMarks()
+     */
+    void correctRatioMarksBasedOnSelNotes(float dtime = 0.0f);
 
     float totalCentsToY(int totalCents);
 

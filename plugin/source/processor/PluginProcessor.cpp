@@ -1294,11 +1294,17 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
     auto ratiosTree = paramsTree.getOrCreateChildWithName("RatioMarks", nullptr);
     for (const auto &rm : params.ratiosMarks) {
         juce::ValueTree rmNode("RatioMark");
-        rmNode.setProperty("lowerKeyTotalCents", rm.getLowerKeyTotalCents(), nullptr);
-        rmNode.setProperty("higherKeyTotalCents", rm.getHigherKeyTotalCents(), nullptr);
-        rmNode.setProperty("time", rm.time, nullptr);
-        rmNode.setProperty("lowerNoteIndex", rm.getLowerNoteIndex(), nullptr);
-        rmNode.setProperty("higherNoteIndex", rm.getHigherNoteIndex(), nullptr);
+        auto [lowerPitch, higherPitch] = rm.getPitches();
+        auto [lowerPitchNoteInd, higherPitchNoteInd] = rm.getNoteInds();
+        if (lowerPitch > higherPitch) {          
+            std::swap(lowerPitch, higherPitch);
+            std::swap(lowerPitchNoteInd, higherPitchNoteInd);
+        }
+        rmNode.setProperty("lowerKeyTotalCents", lowerPitch, nullptr);
+        rmNode.setProperty("higherKeyTotalCents", higherPitch, nullptr);
+        rmNode.setProperty("time", rm.getTime(), nullptr);
+        rmNode.setProperty("lowerNoteIndex", lowerPitchNoteInd, nullptr);
+        rmNode.setProperty("higherNoteIndex", higherPitchNoteInd, nullptr);
         ratiosTree.appendChild(rmNode, nullptr);
     }
 

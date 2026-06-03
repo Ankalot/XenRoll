@@ -26,7 +26,7 @@ MoreToolsMenu::MoreToolsMenu(AudioPluginAudioProcessorEditor &editor, Theme &the
     randSelNotesVelButton->onClick = [this, &editor]() { editor.randomizeSelectedNotesVelocity(); };
     addAndMakeVisible(randSelNotesVelButton.get());
 
-    deleteAllRatiosMarksButton = std::make_unique<juce::TextButton>("Delete all ratios marks");
+    deleteAllRatiosMarksButton = std::make_unique<juce::TextButton>("Delete all ratio marks");
     deleteAllRatiosMarksButton->setLookAndFeel(editor.smallLF.get());
     deleteAllRatiosMarksButton->setClickingTogglesState(false);
     deleteAllRatiosMarksButton->onClick = [this, &editor]() { editor.deleteAllRatiosMarks(); };

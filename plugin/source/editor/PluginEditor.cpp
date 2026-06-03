@@ -189,8 +189,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(topViewport.get());
 
     mainPanel = std::make_unique<MainPanel>(*this, processorRef.params);
-    mainViewport =
-        std::make_unique<MainViewport>(processorRef.params, *leftViewport.get(), *topViewport.get());
+    mainViewport = std::make_unique<MainViewport>(processorRef.params, *leftViewport.get(),
+                                                  *topViewport.get());
     mainViewport->setUpdateCallback([this]() { this->updateMainViewportSize(); });
     mainViewport->setScrollBarsShown(true, true);
     mainViewport->setViewedComponent(mainPanel.get(), false);
@@ -414,8 +414,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     numBeatsLabel->setFont(currentFont);
     addAndMakeVisible(numBeatsLabel.get());
     numBeatsInput = std::make_unique<IntegerInput>(
-        processorRef.params.theme, processorRef.params.num_beats,
-        processorRef.params.min_num_beats, processorRef.params.max_num_beats);
+        processorRef.params.theme, processorRef.params.num_beats, processorRef.params.min_num_beats,
+        processorRef.params.max_num_beats);
     numBeatsInput->onValueChanged = [this](int newValue) {
         processorRef.params.num_beats = newValue;
         mainPanel->repaint();
@@ -484,8 +484,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     editRatiosMarksButton = std::make_unique<SVGButton>(
         processorRef.params.theme, BinaryData::Edit_ratios_marks_svg,
         BinaryData::Edit_ratios_marks_svgSize, true, processorRef.params.editRatiosMarks,
-        "Create, move (click, drag LMB) and delete (click/drag RMB) "
-        "ratios marks between keys in a certain place on the canvas.\n(RMB to open "
+        "Create, move (LDrag) and delete (RClick / RDrag) "
+        "ratio marks between keys/notes in a certain place on the canvas.\n(RMB to open "
         "settings)\nHOTKEY: ALT+D");
 
     editRatiosMarksButton->onClick = [this](const juce::MouseEvent &me) {
@@ -500,8 +500,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(editRatiosMarksButton.get());
 
     hideCentsButton = std::make_unique<SVGButton>(
-        processorRef.params.theme, BinaryData::Hide_cents_svg, BinaryData::Hide_cents_svgSize,
-        true, processorRef.params.hideCents, "The less you know, the better you compose.");
+        processorRef.params.theme, BinaryData::Hide_cents_svg, BinaryData::Hide_cents_svgSize, true,
+        processorRef.params.hideCents, "The less you know, the better you compose.");
     hideCentsButton->onClick = [this](const juce::MouseEvent &me) {
         processorRef.params.hideCents = !processorRef.params.hideCents;
         this->leftPanel->repaint();
@@ -642,8 +642,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     clockDiagramMenu->setVisible(false);
 
     clockDiagramButton = std::make_unique<SVGButton>(
-        processorRef.params.theme, BinaryData::Clock_diagram_svg,
-        BinaryData::Clock_diagram_svgSize, true, processorRef.params.showClockDiagram,
+        processorRef.params.theme, BinaryData::Clock_diagram_svg, BinaryData::Clock_diagram_svgSize,
+        true, processorRef.params.showClockDiagram,
         "Enable/disable clock diagram.\n(RMB to open settings)");
 
     clockDiagramButton->onClick = [this](const juce::MouseEvent &me) {
@@ -1253,7 +1253,7 @@ void AudioPluginAudioProcessorEditor::parseMidiSclFiles(const juce::File &midiFi
         }
     }
 
-    //this->numBarsInput.get()->onValueChanged(totalBars);
+    // this->numBarsInput.get()->onValueChanged(totalBars);
     processorRef.params.set_num_bars(totalBars);
     mainPanel->numBarsChanged(false);
     topPanel->numBarsChanged();
@@ -1484,7 +1484,7 @@ void AudioPluginAudioProcessorEditor::parseNotesFile(const juce::File &notesFile
         notes[i].bend = inputStream.readInt();
     }
 
-    //this->numBarsInput.get()->onValueChanged(numBars);
+    // this->numBarsInput.get()->onValueChanged(numBars);
     processorRef.params.set_num_bars(numBars);
     mainPanel->numBarsChanged(false);
     topPanel->numBarsChanged();

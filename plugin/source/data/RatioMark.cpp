@@ -1,12 +1,63 @@
 #include "XenRoll/data/RatioMark.h"
 #include "XenRoll/data/Parameters.h"
 #include <cmath>
+#include <juce_core/juce_core.h>
 #include <numeric>
 
 namespace audio_plugin {
+void RatioMark::updatePitchesBasedOnNotes(const std::vector<Note> &notes) {
+    bool changed = false;
+
+    if ((noteInd1 > -1) && (noteInd1 < notes.size())) {
+        const Note &note = notes[noteInd1];
+        int newPitch1 = note.octave * 1200 + note.cents;
+        if (notes[noteInd1].bend != 0) {
+            if (time > (note.time + note.duration)) {
+                newPitch1 += note.bend;
+            } else if (time > note.time) {
+                newPitch1 += juce::roundToInt(note.bend * (time - note.time) / note.duration);
+            }
+        }
+        if (newPitch1 != pitch1) {
+            pitch1 = newPitch1;
+            changed = true;
+        }
+    }
+
+    if ((noteInd2 > -1) && (noteInd2 < notes.size())) {
+        const Note &note = notes[noteInd2];
+        int newPitch2 = note.octave * 1200 + note.cents;
+        if (notes[noteInd2].bend != 0) {
+            if (time > (note.time + note.duration)) {
+                newPitch2 += note.bend;
+            } else if (time > note.time) {
+                newPitch2 += juce::roundToInt(note.bend * (time - note.time) / note.duration);
+            }
+        }
+        if (newPitch2 != pitch2) {
+            pitch2 = newPitch2;
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        calculateRatioAndError();
+    }
+}
+
+void RatioMark::setNoteInds(int newNoteInd1, int newNoteInd2, const std::vector<Note> &notes) {
+    noteInd1 = newNoteInd1;
+    noteInd2 = newNoteInd2;
+    updatePitchesBasedOnNotes(notes);
+}
+
+void RatioMark::setTime(float t, const std::vector<Note> &notes) {
+    time = t;
+    updatePitchesBasedOnNotes(notes);
+}
+
 void RatioMark::calculateRatioAndError() {
-    // just in case there are bugs, it's better to have an abs here
-    int dcents = std::abs(higherKeyTotalCents - lowerKeyTotalCents);
+    int dcents = std::abs(pitch1 - pitch2);
     float ratio = std::pow(2.0f, dcents / 1200.0f);
 
     float bestError = 1e6f;
@@ -39,4 +90,4 @@ void RatioMark::calculateRatioAndError() {
     den = bestDen / gcd;
     err = static_cast<int>(std::round(bestError));
 }
-}
+} // namespace audio_plugin
