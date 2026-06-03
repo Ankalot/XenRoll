@@ -22,7 +22,7 @@ class NotePathManager {
     ///< Is used to scale duration in CacheKey
     static constexpr float MAX_PX_SCALE = 4.0f;
     ///< Minimum rounding radius
-    static constexpr float TOL_RADIUS = 1.8f;
+    static constexpr float TOL_RADIUS = 1.5f;
     ///< If arc has angle < 90° and sagitta less than this, then just draw a line instead
     static constexpr float MAX_VISUAL_DEVIATION = 0.4f;
 
@@ -61,9 +61,15 @@ class NotePathManager {
      */
     juce::Path buildCanonicalPath(float w, float dy, float h, float noteRoundCoef) const;
 
+    ///< Add arc (as cubic Bezier) or line (depends on sagitta)
     void addConditionalArc(juce::Path &path, float centreX, float centreY, float radius,
-                           float fromRadians, float toRadians,
-                           bool startAsNewSubPath = false) const;
+                           float fromRadians, float toRadians, bool startAsNewSubPath = false,
+                           bool lineToStart = true) const;
+
+    ///< Add arc as cubic Bezier(s)
+    void addArcAsCubic(juce::Path &path, float centreX, float centreY, float radius,
+                       float fromRadians, float toRadians, bool startAsNewSubPath = false,
+                       bool lineToStart = true) const;
 };
 
 } // namespace audio_plugin
