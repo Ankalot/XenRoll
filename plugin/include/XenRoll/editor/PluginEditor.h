@@ -47,7 +47,10 @@ class FontLookAndFeel : public juce::LookAndFeel_V4 {
 
 class CustomLookAndFeel : public juce::LookAndFeel_V4 {
   public:
-    CustomLookAndFeel(Theme &theme) : theme(theme) { updateColors(); }
+    CustomLookAndFeel(Theme &theme, int scrollbar_thickness)
+        : theme(theme), scrollbar_thickness(scrollbar_thickness) {
+        updateColors();
+    }
 
     // Partly fixes freeze when opening ComboBox menu (on windows 10)
     int getMenuWindowFlags() override { return 0; }
@@ -116,10 +119,13 @@ class CustomLookAndFeel : public juce::LookAndFeel_V4 {
         return LookAndFeel_V4::getPopupMenuFont().withHeight(Theme::medium);
     }
 
+    int getDefaultScrollbarWidth() override { return scrollbar_thickness; }
+
   private:
     Theme &theme;
     const int padding_x = 6;
     const int padding_y = 2;
+    const int scrollbar_thickness;
 };
 
 class SmallLookAndFeel : public juce::LookAndFeel_V4 {
@@ -494,7 +500,7 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
     const int leftPanel_width_px = 150;
     const int topPanel_height_px = 48;
-    const int slider_width_px = 8;
+    const int scrollbar_thickness = 8;
     const int bottom_x = 14;
     const int bottom_height_px = 28;
     const int buttons_gap_width_px = 12;

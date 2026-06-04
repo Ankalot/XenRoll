@@ -9,7 +9,7 @@ class AudioPluginAudioProcessorEditor;
 
 class SettingsViewport : public juce::Viewport {
   public:
-    SettingsViewport(Theme &theme) : theme(theme) {
+    SettingsViewport() {
         setScrollBarsShown(true, false);
         setViewportIgnoreDragFlag(true);
     }
@@ -20,11 +20,6 @@ class SettingsViewport : public juce::Viewport {
             settingsPanel->visibilityChanged();
         }
     }
-
-    void paint(juce::Graphics &g) override { g.fillAll(theme.darker); }
-
-  private:
-    Theme &theme;
 };
 
 class SettingsPanel : public juce::Component {

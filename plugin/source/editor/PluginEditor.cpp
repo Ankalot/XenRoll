@@ -153,7 +153,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
 
     fontLF = std::make_unique<FontLookAndFeel>();
     juce::LookAndFeel_V4::setDefaultLookAndFeel(fontLF.get());
-    customLF = std::make_unique<CustomLookAndFeel>(processorRef.params.theme);
+    customLF = std::make_unique<CustomLookAndFeel>(processorRef.params.theme, scrollbar_thickness);
     setLookAndFeel(customLF.get());
 
     smallLF = std::make_shared<SmallLookAndFeel>(processorRef.params.theme);
@@ -241,7 +241,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     helpViewport->setVisible(false);
 
     settingsPanel = std::make_unique<SettingsPanel>(processorRef.params, *this);
-    settingsViewport = std::make_unique<SettingsViewport>(processorRef.params.theme);
+    settingsViewport = std::make_unique<SettingsViewport>();
     settingsViewport->setViewedComponent(settingsPanel.get(), false);
     addAndMakeVisible(settingsViewport.get());
     settingsViewport->setVisible(false);
@@ -750,10 +750,10 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics &g) {
 
     const int width = getWidth();
     const int height = getHeight();
-    const int leftView_height_px =
-        height - topPanel_height_px - 2 * bottom_gap_height_px - bottom_height_px - slider_width_px;
+    const int leftView_height_px = height - topPanel_height_px - 2 * bottom_gap_height_px -
+                                   bottom_height_px - scrollbar_thickness;
     const int bottom_y =
-        topPanel_height_px + leftView_height_px + slider_width_px + bottom_gap_height_px;
+        topPanel_height_px + leftView_height_px + scrollbar_thickness + bottom_gap_height_px;
 
     juce::String text = indexLabel->getText();
     juce::Font font = indexLabel->getFont();
@@ -797,13 +797,14 @@ void AudioPluginAudioProcessorEditor::resized() {
     const int width = getWidth();
     const int height = getHeight();
 
-    const int leftView_height_px =
-        height - topPanel_height_px - 2 * bottom_gap_height_px - bottom_height_px - slider_width_px;
-    const int topView_width_px = width - leftPanel_width_px - slider_width_px;
+    const int leftView_height_px = height - topPanel_height_px - 2 * bottom_gap_height_px -
+                                   bottom_height_px - scrollbar_thickness;
+    const int topView_width_px = width - leftPanel_width_px - scrollbar_thickness;
     const int bottom_y = height - bottom_gap_height_px - bottom_height_px;
 
+    const float allBesidesBottomHeight = height - bottom_height_px - 2 * bottom_gap_height_px;
     const juce::Rectangle<int> allBesidesBottomRect =
-        juce::Rectangle<int>(0, 0, width, height - bottom_height_px - 2 * bottom_gap_height_px);
+        juce::Rectangle<int>(0, 0, width, allBesidesBottomHeight);
 
     leftViewport->setSize(leftPanel_width_px, leftView_height_px);
     topViewport->setSize(topView_width_px, topPanel_height_px);
@@ -834,10 +835,20 @@ void AudioPluginAudioProcessorEditor::resized() {
                                 dnd_popup_width_px, dnd_popup_height_px);
 
     helpViewport->setBounds(allBesidesBottomRect);
-    helpPanel->setSize(width - slider_width_px, helpPanel->getRequiredHeight());
+    const float helpPanelReqHeight = helpPanel->getRequiredHeight();
+    if (helpPanelReqHeight > allBesidesBottomHeight) {
+        helpPanel->setSize(width - scrollbar_thickness, helpPanelReqHeight);
+    } else {
+        helpPanel->setSize(width, allBesidesBottomHeight);
+    }
 
     settingsViewport->setBounds(allBesidesBottomRect);
-    settingsPanel->setSize(width - slider_width_px, settingsPanel->getRequiredHeight());
+    const float settingsPanelReqHeight = settingsPanel->getRequiredHeight();
+    if (settingsPanelReqHeight > allBesidesBottomHeight) {
+        settingsPanel->setSize(width - scrollbar_thickness, settingsPanelReqHeight);
+    } else {
+        settingsPanel->setSize(width, allBesidesBottomHeight);
+    }
 
     dissonancePanel->setBounds(allBesidesBottomRect);
     pitchMemorySettingsPanel->setBounds(allBesidesBottomRect);
@@ -1802,9 +1813,9 @@ void AudioPluginAudioProcessorEditor::updateMainViewportSize() {
     const int width = getWidth();
     const int height = getHeight();
 
-    const int leftView_height_px =
-        height - topPanel_height_px - 2 * bottom_gap_height_px - bottom_height_px - slider_width_px;
-    const int topView_width_px = width - leftPanel_width_px - slider_width_px;
+    const int leftView_height_px = height - topPanel_height_px - 2 * bottom_gap_height_px -
+                                   bottom_height_px - scrollbar_thickness;
+    const int topView_width_px = width - leftPanel_width_px - scrollbar_thickness;
 
     // Get current scrollbar visibility
     bool vScrollVisible = mainViewport->isVerticalScrollBarVisible();
@@ -1828,10 +1839,10 @@ void AudioPluginAudioProcessorEditor::updateMainViewportSize() {
     int actualMainViewHeight = leftView_height_px;
 
     if (contentNeedsVScroll) {
-        actualMainViewWidth += slider_width_px;
+        actualMainViewWidth += scrollbar_thickness;
     }
     if (contentNeedsHScroll) {
-        actualMainViewHeight += slider_width_px;
+        actualMainViewHeight += scrollbar_thickness;
     }
 
     // Only update if size has changed
