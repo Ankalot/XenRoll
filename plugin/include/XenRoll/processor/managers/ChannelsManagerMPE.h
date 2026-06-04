@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <vector>
 
 namespace audio_plugin {
@@ -75,7 +76,7 @@ class ChannelsManagerMPE {
      * If false: Each note must have is't own midi channel, so max number in channelsNumMPE
      *           is 1.
      */
-    bool economyMode = false;
+    std::atomic<bool> economyMode = false;
     /**
      * Value represents midi pitch bend (0-16383) for midi channel (2-16) that is currently
      * used. Value -1 means that this midi channel has note with bend, so other notes should

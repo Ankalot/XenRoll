@@ -51,29 +51,32 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor() {}
 
 void AudioPluginAudioProcessor::changeInstanceSync(Parameters::TuningType newTuningType) {
-    suspendProcessing(true);
-    if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
-        pluginInstanceManager.reset();
-        params.channelIndex = -1;
-    } else if (params.getTuningType() == Parameters::TuningType::MPE) {
-        notesSharingMPE.reset();
-        params.instanceId = -1;
-    }
-    isActive = false;
+    // 1. Make processBlock not execute
+    std::scoped_lock lock(changeInstanceSyncMutex);
 
-    params.setTuningType(newTuningType);
-    params.applyGlobalTuningType();
-
-    if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
+    // 2. Prepare new manager
+    if (newTuningType == Parameters::TuningType::MTS_ESP) {
         pluginInstanceManager = std::make_unique<PluginInstanceManager>();
         isActive = pluginInstanceManager->getIsActive();
         params.channelIndex = pluginInstanceManager->getChannelIndex();
-    } else if (params.getTuningType() == Parameters::TuningType::MPE) {
+    } else if (newTuningType == Parameters::TuningType::MPE) {
         notesSharingMPE = std::make_unique<NotesSharingMPE>(params.instanceId);
         isActive = notesSharingMPE->getIsActive();
         params.instanceId = notesSharingMPE->getInstanceId();
     }
-    suspendProcessing(false);
+
+    // 3. Managers are ready, so now can set new tuning type
+    params.setTuningType(newTuningType);
+    params.applyGlobalTuningType();
+
+    // 4. Clean up the manager that's no longer needed (opposite of newTuningType)
+    if (newTuningType == Parameters::TuningType::MTS_ESP) {
+        notesSharingMPE.reset();
+        params.instanceId = -1;
+    } else if (newTuningType == Parameters::TuningType::MPE) {
+        pluginInstanceManager.reset();
+        params.channelIndex = -1;
+    }
 }
 
 const juce::String AudioPluginAudioProcessor::getName() const {
@@ -528,6 +531,11 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
     if (!isActive)
         return;
 
+    std::unique_lock lock(changeInstanceSyncMutex, std::try_to_lock);
+    if (!lock.owns_lock()) {
+        return;
+    }
+
     // =========================== PARTIALS FINDING ===========================
     // Track active midi notes
     for (const auto metadata : midiMessages) {
@@ -604,12 +612,13 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
         if (positionInfo.hasValue()) {
             auto timeSig = positionInfo->getTimeSignature().orFallback(
                 juce::AudioPlayHead::TimeSignature{4, 4});
-            double beatsPerBar =
-                static_cast<double>(timeSig.numerator) / (timeSig.denominator / 4.0);
+            numerator = timeSig.numerator;
+            denominator = timeSig.denominator;
+            double beatsPerBar = static_cast<double>(numerator) / (denominator / 4.0);
             double ppqPosition = positionInfo->getPpqPosition().orFallback(0.0);
             playHeadTime = ppqPosition / beatsPerBar;
 
-            double bpm = positionInfo->getBpm().orFallback(120.0);
+            bpm = positionInfo->getBpm().orFallback(120.0);
             double secondsPerBeat = 60.0 / bpm;
             double samplesPerBeat = secondsPerBeat * sampleRate;
             double beatsInBlock = numSamples / samplesPerBeat;
@@ -655,143 +664,236 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 // Taking into account A4 freq (default is 440 Hz)
                 corrTotalCentsMPE = 1200 * log2(params.A4Freq / 440.0);
 
-                // Stop playing unexisting notes (manually played)
-                for (auto it = manPlNoteToChAndMidiNoteMPE.begin();
-                     it != manPlNoteToChAndMidiNoteMPE.end();) {
-                    const auto &[totalCents, chAndMidiNote] = *it;
-                    if (!manuallyPlayedNotes.contains(totalCents)) {
-                        juce::MidiMessage noteOff =
-                            juce::MidiMessage::noteOff(chAndMidiNote.first, chAndMidiNote.second);
-                        midiMessages.addEvent(noteOff, 0);
-                        channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
-                        it = manPlNoteToChAndMidiNoteMPE.erase(it);
-                    } else {
-                        ++it;
-                    }
-                }
-
-                // Stop playing unexisting notes (from piano roll)
-                if (isPlaying) {
-                    for (auto it = noteToChAndMidiNoteMPE.begin();
-                         it != noteToChAndMidiNoteMPE.end();) {
-                        const auto &[key, chAndMidiNote] = *it;
-                        int i = key.first;
-                        int totalCents = key.second;
-                        bool stopPlayingThisNote = false;
-
-                        if (i >= notes.size()) {
-                            stopPlayingThisNote = true;
-                        } else {
-                            const Note &note = notes[i];
-                            if (note.octave * 1200 + note.cents != totalCents) {
-                                stopPlayingThisNote = true;
-                            } else {
-                                stopPlayingThisNote = (playHeadTime < note.time ||
-                                                       playHeadTime > note.time + note.duration);
-                            }
-                        }
-
-                        if (stopPlayingThisNote) {
+                {
+                    std::scoped_lock lock(manPlNotesMutex);
+                    // Stop playing unexisting notes (manually played)
+                    for (auto it = manPlNoteToChAndMidiNoteMPE.begin();
+                         it != manPlNoteToChAndMidiNoteMPE.end();) {
+                        const auto &[totalCents, chAndMidiNote] = *it;
+                        if (!manuallyPlayedNotes.contains(totalCents)) {
                             juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
                                 chAndMidiNote.first, chAndMidiNote.second);
                             midiMessages.addEvent(noteOff, 0);
-                            delCurrPlayedNotesTotalCentsMPE(totalCents);
                             channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
-                            it = noteToChAndMidiNoteMPE.erase(it);
+                            it = manPlNoteToChAndMidiNoteMPE.erase(it);
                         } else {
                             ++it;
                         }
                     }
-                } else if (wasPlaying) {
-                    for (const auto &[key, chAndMidiNote] : noteToChAndMidiNoteMPE) {
-                        juce::MidiMessage noteOff =
-                            juce::MidiMessage::noteOff(chAndMidiNote.first, chAndMidiNote.second);
-                        midiMessages.addEvent(noteOff, 0);
-                        delCurrPlayedNotesTotalCentsMPE(key.second);
-                        channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
-                    }
-                    noteToChAndMidiNoteMPE.clear();
                 }
 
-                // Stop playing auditioning notes from piano roll
-                if (isAuditioning) {
-                    for (auto it = auditionNoteToChAndMidiNoteMPE.begin();
-                         it != auditionNoteToChAndMidiNoteMPE.end();) {
-                        const auto &[key, chAndMidiNote] = *it;
-                        int i = key.first;
-                        int totalCents = key.second;
-                        bool stopPlayingThisNote = false;
+                {
+                    // TODO: if it will cause audio glitches, 
+                    //       change the approach to an intermediate buffer for notes
+                    std::scoped_lock lock(notesMutex);
+                    // Stop playing unexisting notes (from piano roll)
+                    if (isPlaying) {
+                        for (auto it = noteToChAndMidiNoteMPE.begin();
+                             it != noteToChAndMidiNoteMPE.end();) {
+                            const auto &[key, chAndMidiNote] = *it;
+                            int i = key.first;
+                            int totalCents = key.second;
+                            bool stopPlayingThisNote = false;
 
-                        if (i >= notes.size()) {
-                            stopPlayingThisNote = true;
-                        } else {
-                            const Note &note = notes[i];
-                            if (note.octave * 1200 + note.cents != totalCents) {
+                            if (i >= notes.size()) {
                                 stopPlayingThisNote = true;
                             } else {
-                                stopPlayingThisNote = (auditionTime < note.time ||
-                                                       auditionTime >= note.time + note.duration);
-                            }
-                        }
-
-                        if (stopPlayingThisNote) {
-                            juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
-                                chAndMidiNote.first, chAndMidiNote.second);
-                            midiMessages.addEvent(noteOff, 0);
-                            delCurrPlayedNotesTotalCentsMPE(totalCents);
-                            channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
-                            it = auditionNoteToChAndMidiNoteMPE.erase(it);
-                        } else {
-                            ++it;
-                        }
-                    }
-                } else if (stopAuditioning) {
-                    for (const auto &[key, chAndMidiNote] : auditionNoteToChAndMidiNoteMPE) {
-                        juce::MidiMessage noteOff =
-                            juce::MidiMessage::noteOff(chAndMidiNote.first, chAndMidiNote.second);
-                        midiMessages.addEvent(noteOff, 0);
-                        delCurrPlayedNotesTotalCentsMPE(key.second);
-                        channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
-                    }
-                    auditionNoteToChAndMidiNoteMPE.clear();
-                    stopAuditioning = false;
-                }
-
-                int midiNote, bendMPE;
-
-                // Play auditioning notes from piano roll
-                if (isAuditioning && auditionChanged) {
-                    // Note bend
-                    for (const auto &[noteIndAndTotCents, chAndMidiNote] :
-                         auditionNoteToChAndMidiNoteMPE) {
-                        bendMPE = calcBendMPE(notes[noteIndAndTotCents.first], auditionTime);
-                        juce::MidiMessage pitchBend =
-                            juce::MidiMessage::pitchWheel(chAndMidiNote.first, bendMPE);
-                        midiMessages.addEvent(pitchBend, 0);
-                    }
-
-                    // Note on
-                    for (int i = 0; i < notes.size(); ++i) {
-                        const Note &note = notes[i];
-                        if ((note.time <= auditionTime) &&
-                            (auditionTime < note.time + note.duration)) {
-                            int totalCents = note.octave * 1200 + note.cents;
-                            if (!auditionNoteToChAndMidiNoteMPE.contains({i, totalCents})) {
-                                std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
-                                if (note.bend != 0) {
-                                    bendMPE = calcBendMPE(note, auditionTime);
+                                const Note &note = notes[i];
+                                if (note.octave * 1200 + note.cents != totalCents) {
+                                    stopPlayingThisNote = true;
+                                } else {
+                                    stopPlayingThisNote =
+                                        (playHeadTime < note.time ||
+                                         playHeadTime > note.time + note.duration);
                                 }
+                            }
+
+                            if (stopPlayingThisNote) {
+                                juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
+                                    chAndMidiNote.first, chAndMidiNote.second);
+                                midiMessages.addEvent(noteOff, 0);
+                                delCurrPlayedNotesTotalCentsMPE(totalCents);
+                                channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
+                                it = noteToChAndMidiNoteMPE.erase(it);
+                            } else {
+                                ++it;
+                            }
+                        }
+                    } else if (wasPlaying) {
+                        for (const auto &[key, chAndMidiNote] : noteToChAndMidiNoteMPE) {
+                            juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
+                                chAndMidiNote.first, chAndMidiNote.second);
+                            midiMessages.addEvent(noteOff, 0);
+                            delCurrPlayedNotesTotalCentsMPE(key.second);
+                            channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
+                        }
+                        noteToChAndMidiNoteMPE.clear();
+                    }
+
+                    // Stop playing auditioning notes from piano roll
+                    if (isAuditioning) {
+                        for (auto it = auditionNoteToChAndMidiNoteMPE.begin();
+                             it != auditionNoteToChAndMidiNoteMPE.end();) {
+                            const auto &[key, chAndMidiNote] = *it;
+                            int i = key.first;
+                            int totalCents = key.second;
+                            bool stopPlayingThisNote = false;
+
+                            if (i >= notes.size()) {
+                                stopPlayingThisNote = true;
+                            } else {
+                                const Note &note = notes[i];
+                                if (note.octave * 1200 + note.cents != totalCents) {
+                                    stopPlayingThisNote = true;
+                                } else {
+                                    stopPlayingThisNote =
+                                        (auditionTime < note.time ||
+                                         auditionTime >= note.time + note.duration);
+                                }
+                            }
+
+                            if (stopPlayingThisNote) {
+                                juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
+                                    chAndMidiNote.first, chAndMidiNote.second);
+                                midiMessages.addEvent(noteOff, 0);
+                                delCurrPlayedNotesTotalCentsMPE(totalCents);
+                                channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
+                                it = auditionNoteToChAndMidiNoteMPE.erase(it);
+                            } else {
+                                ++it;
+                            }
+                        }
+                    } else if (stopAuditioning) {
+                        for (const auto &[key, chAndMidiNote] : auditionNoteToChAndMidiNoteMPE) {
+                            juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
+                                chAndMidiNote.first, chAndMidiNote.second);
+                            midiMessages.addEvent(noteOff, 0);
+                            delCurrPlayedNotesTotalCentsMPE(key.second);
+                            channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
+                        }
+                        auditionNoteToChAndMidiNoteMPE.clear();
+                        stopAuditioning = false;
+                    }
+
+                    int midiNote, bendMPE;
+
+                    // Play auditioning notes from piano roll
+                    if (isAuditioning && auditionChanged) {
+                        // Note bend
+                        for (const auto &[noteIndAndTotCents, chAndMidiNote] :
+                             auditionNoteToChAndMidiNoteMPE) {
+                            bendMPE = calcBendMPE(notes[noteIndAndTotCents.first], auditionTime);
+                            juce::MidiMessage pitchBend =
+                                juce::MidiMessage::pitchWheel(chAndMidiNote.first, bendMPE);
+                            midiMessages.addEvent(pitchBend, 0);
+                        }
+
+                        // Note on
+                        for (int i = 0; i < notes.size(); ++i) {
+                            const Note &note = notes[i];
+                            if ((note.time <= auditionTime) &&
+                                (auditionTime < note.time + note.duration)) {
+                                int totalCents = note.octave * 1200 + note.cents;
+                                if (!auditionNoteToChAndMidiNoteMPE.contains({i, totalCents})) {
+                                    std::tie(midiNote, bendMPE) =
+                                        calcMidiNoteAndBendMPE(totalCents);
+                                    if (note.bend != 0) {
+                                        bendMPE = calcBendMPE(note, auditionTime);
+                                    }
+                                    int ch = channelsManagerMPE->allocateChannelMPE(bendMPE,
+                                                                                    note.bend != 0);
+                                    if (ch != -1) {
+                                        pitchesOverflow = false;
+                                        juce::MidiMessage pitchBend =
+                                            juce::MidiMessage::pitchWheel(ch, bendMPE);
+                                        midiMessages.addEvent(pitchBend, 0);
+                                        juce::MidiMessage noteOn =
+                                            juce::MidiMessage::noteOn(ch, midiNote, note.velocity);
+                                        midiMessages.addEvent(noteOn, 0);
+                                        auditionNoteToChAndMidiNoteMPE[{i, totalCents}] =
+                                            std::make_pair(ch, midiNote);
+                                        addCurrPlayedNotesTotalCentsMPE(totalCents);
+                                    } else {
+                                        pitchesOverflow = true;
+                                    }
+                                }
+                            }
+                        }
+                        auditionChanged = false;
+                    }
+
+                    // Play notes from piano roll
+                    if (isPlaying) {
+                        // ===================== Note off =====================
+                        for (int i = 0; i < notes.size(); ++i) {
+                            const Note &note = notes[i];
+                            if ((note.time + note.duration >= playHeadTime) &&
+                                (note.time + note.duration < playHeadTime + barsInBlock)) {
+                                int totalCents = note.octave * 1200 + note.cents;
+                                const auto &itNote = noteToChAndMidiNoteMPE.find({i, totalCents});
+                                if (itNote != noteToChAndMidiNoteMPE.end()) {
+                                    int noteOffSample = static_cast<int>(floor(
+                                        numSamples * (note.time + note.duration - playHeadTime) /
+                                        barsInBlock));
+                                    const auto &chAndMidiNote = itNote->second;
+                                    juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
+                                        chAndMidiNote.first, chAndMidiNote.second);
+                                    midiMessages.addEvent(noteOff, noteOffSample);
+                                    delCurrPlayedNotesTotalCentsMPE(totalCents);
+
+                                    if (params.resetPitchBendOnNoteOff && (note.bend != 0)) {
+                                        std::tie(midiNote, bendMPE) =
+                                            calcMidiNoteAndBendMPE(totalCents);
+                                        juce::MidiMessage pitchBend = juce::MidiMessage::pitchWheel(
+                                            chAndMidiNote.first, bendMPE);
+                                        midiMessages.addEvent(pitchBend, noteOffSample);
+                                    }
+
+                                    channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
+                                    noteToChAndMidiNoteMPE.erase(itNote);
+                                }
+                            }
+                        }
+                        // ===================== Note bend =====================
+                        for (int i = 0; i < notes.size(); ++i) {
+                            const Note &note = notes[i];
+                            if ((note.bend != 0) && (note.time < playHeadTime) &&
+                                (playHeadTime <= note.time + note.duration)) {
+                                int totalCents = note.octave * 1200 + note.cents;
+                                const auto &itNote = noteToChAndMidiNoteMPE.find({i, totalCents});
+                                if (itNote != noteToChAndMidiNoteMPE.end()) {
+                                    const auto &chAndMidiNote = itNote->second;
+                                    int bendMPE = calcBendMPE(note, playHeadTime);
+                                    juce::MidiMessage pitchBend =
+                                        juce::MidiMessage::pitchWheel(chAndMidiNote.first, bendMPE);
+                                    midiMessages.addEvent(pitchBend, 0);
+                                }
+                            }
+                        }
+                        // ===================== Note on =====================
+                        for (int i = 0; i < notes.size(); ++i) {
+                            const Note &note = notes[i];
+                            int totalCents = note.octave * 1200 + note.cents;
+                            if ((note.time >= playHeadTime) &&
+                                (note.time < playHeadTime + barsInBlock) &&
+                                // need to check it so there will be no bug when you turn on/off
+                                // playback so fast that you can't catch the moment isPlaying=false
+                                // to make noteOff (so just don't make unnecassry noteOn)
+                                (!noteToChAndMidiNoteMPE.contains({i, totalCents}))) {
+                                std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
                                 int ch =
                                     channelsManagerMPE->allocateChannelMPE(bendMPE, note.bend != 0);
                                 if (ch != -1) {
                                     pitchesOverflow = false;
+                                    int noteOnSample = static_cast<int>(ceil(
+                                        numSamples * (note.time - playHeadTime) / barsInBlock));
                                     juce::MidiMessage pitchBend =
                                         juce::MidiMessage::pitchWheel(ch, bendMPE);
-                                    midiMessages.addEvent(pitchBend, 0);
+                                    midiMessages.addEvent(pitchBend, noteOnSample);
                                     juce::MidiMessage noteOn =
                                         juce::MidiMessage::noteOn(ch, midiNote, note.velocity);
-                                    midiMessages.addEvent(noteOn, 0);
-                                    auditionNoteToChAndMidiNoteMPE[{i, totalCents}] =
+                                    midiMessages.addEvent(noteOn, noteOnSample);
+                                    noteToChAndMidiNoteMPE[{i, totalCents}] =
                                         std::make_pair(ch, midiNote);
                                     addCurrPlayedNotesTotalCentsMPE(totalCents);
                                 } else {
@@ -800,93 +902,12 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                             }
                         }
                     }
-                    auditionChanged = false;
-                }
-
-                // Play notes from piano roll
-                if (isPlaying) {
-                    // ===================== Note off =====================
-                    for (int i = 0; i < notes.size(); ++i) {
-                        const Note &note = notes[i];
-                        if ((note.time + note.duration >= playHeadTime) &&
-                            (note.time + note.duration < playHeadTime + barsInBlock)) {
-                            int totalCents = note.octave * 1200 + note.cents;
-                            const auto &itNote = noteToChAndMidiNoteMPE.find({i, totalCents});
-                            if (itNote != noteToChAndMidiNoteMPE.end()) {
-                                int noteOffSample = static_cast<int>(
-                                    floor(numSamples * (note.time + note.duration - playHeadTime) /
-                                          barsInBlock));
-                                const auto &chAndMidiNote = itNote->second;
-                                juce::MidiMessage noteOff = juce::MidiMessage::noteOff(
-                                    chAndMidiNote.first, chAndMidiNote.second);
-                                midiMessages.addEvent(noteOff, noteOffSample);
-                                delCurrPlayedNotesTotalCentsMPE(totalCents);
-
-                                if (params.resetPitchBendOnNoteOff && (note.bend != 0)) {
-                                    std::tie(midiNote, bendMPE) =
-                                        calcMidiNoteAndBendMPE(totalCents);
-                                    juce::MidiMessage pitchBend =
-                                        juce::MidiMessage::pitchWheel(chAndMidiNote.first, bendMPE);
-                                    midiMessages.addEvent(pitchBend, noteOffSample);
-                                }
-
-                                channelsManagerMPE->noteReleasedMPE(chAndMidiNote.first);
-                                noteToChAndMidiNoteMPE.erase(itNote);
-                            }
-                        }
-                    }
-                    // ===================== Note bend =====================
-                    for (int i = 0; i < notes.size(); ++i) {
-                        const Note &note = notes[i];
-                        if ((note.bend != 0) && (note.time < playHeadTime) &&
-                            (playHeadTime <= note.time + note.duration)) {
-                            int totalCents = note.octave * 1200 + note.cents;
-                            const auto &itNote = noteToChAndMidiNoteMPE.find({i, totalCents});
-                            if (itNote != noteToChAndMidiNoteMPE.end()) {
-                                const auto &chAndMidiNote = itNote->second;
-                                int bendMPE = calcBendMPE(note, playHeadTime);
-                                juce::MidiMessage pitchBend =
-                                    juce::MidiMessage::pitchWheel(chAndMidiNote.first, bendMPE);
-                                midiMessages.addEvent(pitchBend, 0);
-                            }
-                        }
-                    }
-                    // ===================== Note on =====================
-                    for (int i = 0; i < notes.size(); ++i) {
-                        const Note &note = notes[i];
-                        int totalCents = note.octave * 1200 + note.cents;
-                        if ((note.time >= playHeadTime) &&
-                            (note.time < playHeadTime + barsInBlock) &&
-                            // need to check it so there will be no bug when you turn on/off
-                            // playback so fast that you can't catch the moment isPlaying=false
-                            // to make noteOff (so just don't make unnecassry noteOn)
-                            (!noteToChAndMidiNoteMPE.contains({i, totalCents}))) {
-                            std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
-                            int ch =
-                                channelsManagerMPE->allocateChannelMPE(bendMPE, note.bend != 0);
-                            if (ch != -1) {
-                                pitchesOverflow = false;
-                                int noteOnSample = static_cast<int>(
-                                    ceil(numSamples * (note.time - playHeadTime) / barsInBlock));
-                                juce::MidiMessage pitchBend =
-                                    juce::MidiMessage::pitchWheel(ch, bendMPE);
-                                midiMessages.addEvent(pitchBend, noteOnSample);
-                                juce::MidiMessage noteOn =
-                                    juce::MidiMessage::noteOn(ch, midiNote, note.velocity);
-                                midiMessages.addEvent(noteOn, noteOnSample);
-                                noteToChAndMidiNoteMPE[{i, totalCents}] =
-                                    std::make_pair(ch, midiNote);
-                                addCurrPlayedNotesTotalCentsMPE(totalCents);
-                            } else {
-                                pitchesOverflow = true;
-                            }
-                        }
-                    }
                 }
 
                 // Start playing manually played notes
                 {
                     std::scoped_lock lock(manPlNotesMutex);
+                    int midiNote, bendMPE;
                     for (const auto &[totalCents, velocity] : manuallyPlayedNotes) {
                         if (!manPlNoteToChAndMidiNoteMPE.contains(totalCents)) {
                             std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
@@ -914,6 +935,12 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 // ================================================================================
                 // =                                USING MTS-ESP                                 =
                 // ================================================================================
+
+                // TODO: if it causes glitches, 
+                //       change the approach to an intermediate buffers for things that are 
+                //       changed in prepareToPlay(). Also then use buffers for notes and 
+                //       manPlNotes, so all data  will be consistent
+                std::scoped_lock lock(prepareNotesMutex);
 
                 {
                     std::scoped_lock lock(manPlNotesMutex);
@@ -947,232 +974,237 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                     }
                 }
 
-                // Stop playing auditioning notes from piano roll
-                if (isAuditioning) {
-                    for (auto it = auditionNoteToMidiNoteMTS.begin();
-                         it != auditionNoteToMidiNoteMTS.end();) {
-                        int i = it->first.first;
-                        int totalCents = it->first.second;
-                        bool stopPlayingThisNote = true;
-                        if (i < notes.size()) {
-                            const Note &note = notes[i];
-                            int noteTotalCents = note.octave * 1200 + note.cents;
-                            if ((noteTotalCents == totalCents) && (auditionTime >= note.time) &&
-                                (auditionTime < note.time + note.duration)) {
-                                stopPlayingThisNote = false;
+                {
+                    std::scoped_lock lock(notesMutex);
+                    // Stop playing auditioning notes from piano roll
+                    if (isAuditioning) {
+                        for (auto it = auditionNoteToMidiNoteMTS.begin();
+                             it != auditionNoteToMidiNoteMTS.end();) {
+                            int i = it->first.first;
+                            int totalCents = it->first.second;
+                            bool stopPlayingThisNote = true;
+                            if (i < notes.size()) {
+                                const Note &note = notes[i];
+                                int noteTotalCents = note.octave * 1200 + note.cents;
+                                if ((noteTotalCents == totalCents) && (auditionTime >= note.time) &&
+                                    (auditionTime < note.time + note.duration)) {
+                                    stopPlayingThisNote = false;
+                                }
+                            }
+                            if (stopPlayingThisNote) {
+                                int noteInd = it->second;
+                                juce::MidiMessage noteOff =
+                                    juce::MidiMessage::noteOff(params.channelIndex + 1, noteInd);
+                                midiMessages.addEvent(noteOff, 0);
+                                currPlayedNotesIndexes.erase(noteInd);
+                                currPlayedNotesTotalCents.erase(totalCents);
+                                it = auditionNoteToMidiNoteMTS.erase(it);
+                            } else {
+                                ++it;
                             }
                         }
-                        if (stopPlayingThisNote) {
-                            int noteInd = it->second;
+                    } else if (stopAuditioning) {
+                        for (const auto &[noteIndAndTotCents, noteInd] :
+                             auditionNoteToMidiNoteMTS) {
                             juce::MidiMessage noteOff =
                                 juce::MidiMessage::noteOff(params.channelIndex + 1, noteInd);
                             midiMessages.addEvent(noteOff, 0);
                             currPlayedNotesIndexes.erase(noteInd);
-                            currPlayedNotesTotalCents.erase(totalCents);
-                            it = auditionNoteToMidiNoteMTS.erase(it);
-                        } else {
-                            ++it;
+                            currPlayedNotesTotalCents.erase(noteIndAndTotCents.second);
                         }
+                        auditionNoteToMidiNoteMTS.clear();
+                        stopAuditioning = false;
                     }
-                } else if (stopAuditioning) {
-                    for (const auto &[noteIndAndTotCents, noteInd] : auditionNoteToMidiNoteMTS) {
-                        juce::MidiMessage noteOff =
-                            juce::MidiMessage::noteOff(params.channelIndex + 1, noteInd);
-                        midiMessages.addEvent(noteOff, 0);
-                        currPlayedNotesIndexes.erase(noteInd);
-                        currPlayedNotesTotalCents.erase(noteIndAndTotCents.second);
-                    }
-                    auditionNoteToMidiNoteMTS.clear();
-                    stopAuditioning = false;
-                }
 
-                // Play auditioning notes from piano roll
-                if (isAuditioning && auditionChanged) {
-                    bool needUpdateFreqs = false;
-                    for (int i = 0; i < notes.size(); ++i) {
-                        const Note &note = notes[i];
-                        if ((note.time <= auditionTime) &&
-                            (auditionTime < note.time + note.duration)) {
-                            int totalCents = note.octave * 1200 + note.cents;
-                            auto it = auditionNoteToMidiNoteMTS.find({i, totalCents});
-                            if (it == auditionNoteToMidiNoteMTS.end()) {
-                                int noteInd = notesIndexes[i];
-                                if (noteInd == -1)
-                                    continue;
-                                juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
-                                    params.channelIndex + 1, noteInd, note.velocity);
-                                midiMessages.addEvent(noteOn, 0);
-                                currPlayedNotesIndexes.insert(noteInd);
-                                currPlayedNotesTotalCents.insert(totalCents);
-                                auditionNoteToMidiNoteMTS[{i, totalCents}] = noteInd;
-                                if (note.bend != 0) {
-                                    freqs[noteInd] = getNoteFreqAtTime(note, auditionTime);
-                                    needUpdateFreqs = true;
-                                }
-                            } else if (note.bend != 0) {
-                                freqs[it->second] = getNoteFreqAtTime(note, auditionTime);
-                                needUpdateFreqs = true;
-                            }
-                        }
-                    }
-                    if (needUpdateFreqs) {
-                        pluginInstanceManager->updateFreqs(freqs);
-                    }
-                    auditionChanged = false;
-                }
-
-                // Play notes from piano roll
-                if (isPlaying) {
-                    // =======================================
-                    for (int i = 0; i < notes.size(); ++i) {
-                        const Note &note = notes[i];
-                        // Note off
-                        if ((note.time + note.duration >=
-                             playHeadTime) && /*currPlayedNotesTotalCents.contains(note.octave*1200+note.cents)*/
-                            (note.time + note.duration < playHeadTime + barsInBlock)) {
-                            const int noteInd = notesIndexes[i];
-                            juce::MidiMessage noteOff =
-                                juce::MidiMessage::noteOff(params.channelIndex + 1, noteInd);
-                            midiMessages.addEvent(
-                                noteOff,
-                                static_cast<int>(
-                                    floor(numSamples * (note.time + note.duration - playHeadTime) /
-                                          barsInBlock)));
-                            currPlayedNotesTotalCents.erase(note.octave * 1200 + note.cents);
-                        }
-                    }
-                    bool needUpdateFreqs = false;
-                    // =======================================
-                    for (int i = 0; i < notes.size(); ++i) {
-                        const Note &note = notes[i];
-                        // Note bend
-                        if ((note.bend != 0) && (note.time < playHeadTime) &&
-                            (playHeadTime <= note.time + note.duration)) {
-                            freqs[notesIndexes[i]] = getNoteFreq(note);
-                            needUpdateFreqs = true;
-                        }
-                    }
-                    // =======================================
-                    for (int i = 0; i < notes.size(); ++i) {
-                        const Note &note = notes[i];
-                        // PRE Note on
-                        if ((note.time >= playHeadTime) &&
-                            (note.time < playHeadTime + 2 * barsInBlock)) {
-                            // If note was bending - update frequency (and the start of
-                            // note will be without pitch leap)
-                            const int noteInd = notesIndexes[i];
-                            if (beforeBendTotalCents[noteInd] != -1) {
-                                freqs[noteInd] =
-                                    getFreqFromTotalCents(note.octave * 1200 + note.cents);
-                                needUpdateFreqs = true;
-                            }
-                        }
-                    }
-                    // =======================================
-                    for (int i = 0; i < notes.size(); ++i) {
-                        const Note &note = notes[i];
-                        // Note on
-                        if ((note.time >= playHeadTime) &&
-                            (note.time < playHeadTime + barsInBlock) &&
-                            // need to check it so there will be no bug when you turn on/off
-                            // playback so fast that you can't catch the moment isPlaying=false
-                            // to make noteOff (so just don't make unnecassry noteOn)
-                            !currPlayedNotesTotalCents.contains(note.octave * 1200 + note.cents)) {
-                            const int noteInd = notesIndexes[i];
-                            juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
-                                params.channelIndex + 1, noteInd, note.velocity);
-                            midiMessages.addEvent(
-                                noteOn,
-                                static_cast<int>(
-                                    ceil(numSamples * (note.time - playHeadTime) / barsInBlock)));
-                            currPlayedNotesTotalCents.insert(note.octave * 1200 + note.cents);
-                            currPlayedNotesIndexes.insert(noteInd);
-                            if (note.bend != 0) {
-                                beforeBendTotalCents[noteInd] = note.octave * 1200 + note.cents;
-                            } else {
-                                beforeBendTotalCents[noteInd] = -1;
-                            }
-                        }
-                    }
-                    if (needUpdateFreqs) {
-                        pluginInstanceManager->updateFreqs(freqs);
-                    }
-                } else {
-                    // IF THERE WERE NOTE BENDS AND NOTES DIDN'T END BEFORE WE STOPPED
-                    //    PLAYBACK (this isn't necessarily to do)
-                    if (wasPlaying) {
-                        bool wasBend = false;
-                        for (int i = 0; i < 128; ++i) {
-                            const int totCents = beforeBendTotalCents[i];
-                            if (totCents != -1) {
-                                freqs[i] = getFreqFromTotalCents(totCents);
-                                beforeBendTotalCents[i] = -1;
-                                wasBend = true;
-                            }
-                        }
-                        if (wasBend) {
-                            pluginInstanceManager->updateFreqs(freqs);
-                        }
-                    }
-                }
-                wasPlaying = isPlaying;
-
-                // Stop playing unexisting notes
-                for (auto it = currPlayedNotesIndexes.begin();
-                     it != currPlayedNotesIndexes.end();) {
-                    int ind = *it;
-                    bool thereStillExistsThisNote = false;
-                    if (isPlaying) {
+                    // Play auditioning notes from piano roll
+                    if (isAuditioning && auditionChanged) {
+                        bool needUpdateFreqs = false;
                         for (int i = 0; i < notes.size(); ++i) {
                             const Note &note = notes[i];
-                            if ((notesIndexes[i] == ind) &&
-                                (note.time < playHeadTime + barsInBlock) &&
-                                (note.time + note.duration >= playHeadTime + barsInBlock)) {
-                                // Check if the note's base pitch matches (without bend)
-                                int noteTotalCents = note.octave * 1200 + note.cents;
-                                int freqsTotalCents;
-                                if (beforeBendTotalCents[ind] != -1) {
-                                    freqsTotalCents = beforeBendTotalCents[ind];
-                                } else {
-                                    freqsTotalCents = getTotalCentsFromFreq(freqs[ind]);
+                            if ((note.time <= auditionTime) &&
+                                (auditionTime < note.time + note.duration)) {
+                                int totalCents = note.octave * 1200 + note.cents;
+                                auto it = auditionNoteToMidiNoteMTS.find({i, totalCents});
+                                if (it == auditionNoteToMidiNoteMTS.end()) {
+                                    int noteInd = notesIndexes[i];
+                                    if (noteInd == -1)
+                                        continue;
+                                    juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
+                                        params.channelIndex + 1, noteInd, note.velocity);
+                                    midiMessages.addEvent(noteOn, 0);
+                                    currPlayedNotesIndexes.insert(noteInd);
+                                    currPlayedNotesTotalCents.insert(totalCents);
+                                    auditionNoteToMidiNoteMTS[{i, totalCents}] = noteInd;
+                                    if (note.bend != 0) {
+                                        freqs[noteInd] = getNoteFreqAtTime(note, auditionTime);
+                                        needUpdateFreqs = true;
+                                    }
+                                } else if (note.bend != 0) {
+                                    freqs[it->second] = getNoteFreqAtTime(note, auditionTime);
+                                    needUpdateFreqs = true;
                                 }
-                                if (noteTotalCents == freqsTotalCents) {
+                            }
+                        }
+                        if (needUpdateFreqs) {
+                            pluginInstanceManager->updateFreqs(freqs);
+                        }
+                        auditionChanged = false;
+                    }
+
+                    // Play notes from piano roll
+                    if (isPlaying) {
+                        // =======================================
+                        for (int i = 0; i < notes.size(); ++i) {
+                            const Note &note = notes[i];
+                            // Note off
+                            if ((note.time + note.duration >=
+                                 playHeadTime) && /*currPlayedNotesTotalCents.contains(note.octave*1200+note.cents)*/
+                                (note.time + note.duration < playHeadTime + barsInBlock)) {
+                                const int noteInd = notesIndexes[i];
+                                juce::MidiMessage noteOff =
+                                    juce::MidiMessage::noteOff(params.channelIndex + 1, noteInd);
+                                midiMessages.addEvent(
+                                    noteOff,
+                                    static_cast<int>(floor(
+                                        numSamples * (note.time + note.duration - playHeadTime) /
+                                        barsInBlock)));
+                                currPlayedNotesTotalCents.erase(note.octave * 1200 + note.cents);
+                            }
+                        }
+                        bool needUpdateFreqs = false;
+                        // =======================================
+                        for (int i = 0; i < notes.size(); ++i) {
+                            const Note &note = notes[i];
+                            // Note bend
+                            if ((note.bend != 0) && (note.time < playHeadTime) &&
+                                (playHeadTime <= note.time + note.duration)) {
+                                freqs[notesIndexes[i]] = getNoteFreq(note);
+                                needUpdateFreqs = true;
+                            }
+                        }
+                        // =======================================
+                        for (int i = 0; i < notes.size(); ++i) {
+                            const Note &note = notes[i];
+                            // PRE Note on
+                            if ((note.time >= playHeadTime) &&
+                                (note.time < playHeadTime + 2 * barsInBlock)) {
+                                // If note was bending - update frequency (and the start of
+                                // note will be without pitch leap)
+                                const int noteInd = notesIndexes[i];
+                                if (beforeBendTotalCents[noteInd] != -1) {
+                                    freqs[noteInd] =
+                                        getFreqFromTotalCents(note.octave * 1200 + note.cents);
+                                    needUpdateFreqs = true;
+                                }
+                            }
+                        }
+                        // =======================================
+                        for (int i = 0; i < notes.size(); ++i) {
+                            const Note &note = notes[i];
+                            // Note on
+                            if ((note.time >= playHeadTime) &&
+                                (note.time < playHeadTime + barsInBlock) &&
+                                // need to check it so there will be no bug when you turn on/off
+                                // playback so fast that you can't catch the moment isPlaying=false
+                                // to make noteOff (so just don't make unnecassry noteOn)
+                                !currPlayedNotesTotalCents.contains(note.octave * 1200 +
+                                                                    note.cents)) {
+                                const int noteInd = notesIndexes[i];
+                                juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
+                                    params.channelIndex + 1, noteInd, note.velocity);
+                                midiMessages.addEvent(
+                                    noteOn,
+                                    static_cast<int>(ceil(numSamples * (note.time - playHeadTime) /
+                                                          barsInBlock)));
+                                currPlayedNotesTotalCents.insert(note.octave * 1200 + note.cents);
+                                currPlayedNotesIndexes.insert(noteInd);
+                                if (note.bend != 0) {
+                                    beforeBendTotalCents[noteInd] = note.octave * 1200 + note.cents;
+                                } else {
+                                    beforeBendTotalCents[noteInd] = -1;
+                                }
+                            }
+                        }
+                        if (needUpdateFreqs) {
+                            pluginInstanceManager->updateFreqs(freqs);
+                        }
+                    } else {
+                        // IF THERE WERE NOTE BENDS AND NOTES DIDN'T END BEFORE WE STOPPED
+                        //    PLAYBACK (this isn't necessarily to do)
+                        if (wasPlaying) {
+                            bool wasBend = false;
+                            for (int i = 0; i < 128; ++i) {
+                                const int totCents = beforeBendTotalCents[i];
+                                if (totCents != -1) {
+                                    freqs[i] = getFreqFromTotalCents(totCents);
+                                    beforeBendTotalCents[i] = -1;
+                                    wasBend = true;
+                                }
+                            }
+                            if (wasBend) {
+                                pluginInstanceManager->updateFreqs(freqs);
+                            }
+                        }
+                    }
+                    wasPlaying = isPlaying;
+
+                    // Stop playing unexisting notes
+                    for (auto it = currPlayedNotesIndexes.begin();
+                         it != currPlayedNotesIndexes.end();) {
+                        int ind = *it;
+                        bool thereStillExistsThisNote = false;
+                        if (isPlaying) {
+                            for (int i = 0; i < notes.size(); ++i) {
+                                const Note &note = notes[i];
+                                if ((notesIndexes[i] == ind) &&
+                                    (note.time < playHeadTime + barsInBlock) &&
+                                    (note.time + note.duration >= playHeadTime + barsInBlock)) {
+                                    // Check if the note's base pitch matches (without bend)
+                                    int noteTotalCents = note.octave * 1200 + note.cents;
+                                    int freqsTotalCents;
+                                    if (beforeBendTotalCents[ind] != -1) {
+                                        freqsTotalCents = beforeBendTotalCents[ind];
+                                    } else {
+                                        freqsTotalCents = getTotalCentsFromFreq(freqs[ind]);
+                                    }
+                                    if (noteTotalCents == freqsTotalCents) {
+                                        thereStillExistsThisNote = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (!thereStillExistsThisNote) {
+                            for (const auto &[_, midiNoteInd] : manPlNoteToMidiNoteMTS) {
+                                if (midiNoteInd == ind) {
                                     thereStillExistsThisNote = true;
                                     break;
                                 }
                             }
                         }
-                    }
-                    if (!thereStillExistsThisNote) {
-                        for (const auto &[_, midiNoteInd] : manPlNoteToMidiNoteMTS) {
-                            if (midiNoteInd == ind) {
-                                thereStillExistsThisNote = true;
-                                break;
+                        if (!thereStillExistsThisNote) {
+                            for (const auto &[key, midiNoteInd] : auditionNoteToMidiNoteMTS) {
+                                if (midiNoteInd == ind) {
+                                    thereStillExistsThisNote = true;
+                                    break;
+                                }
                             }
                         }
-                    }
-                    if (!thereStillExistsThisNote) {
-                        for (const auto &[key, midiNoteInd] : auditionNoteToMidiNoteMTS) {
-                            if (midiNoteInd == ind) {
-                                thereStillExistsThisNote = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (thereStillExistsThisNote) {
-                        ++it;
-                    } else {
-                        juce::MidiMessage noteOff =
-                            juce::MidiMessage::noteOff(params.channelIndex + 1, ind);
-                        midiMessages.addEvent(noteOff, 0);
-                        int totalCents;
-                        if (beforeBendTotalCents[ind] != -1) {
-                            totalCents = beforeBendTotalCents[ind];
+                        if (thereStillExistsThisNote) {
+                            ++it;
                         } else {
-                            totalCents = getTotalCentsFromFreq(freqs[ind]);
+                            juce::MidiMessage noteOff =
+                                juce::MidiMessage::noteOff(params.channelIndex + 1, ind);
+                            midiMessages.addEvent(noteOff, 0);
+                            int totalCents;
+                            if (beforeBendTotalCents[ind] != -1) {
+                                totalCents = beforeBendTotalCents[ind];
+                            } else {
+                                totalCents = getTotalCentsFromFreq(freqs[ind]);
+                            }
+                            currPlayedNotesTotalCents.erase(totalCents);
+                            it = currPlayedNotesIndexes.erase(it);
                         }
-                        currPlayedNotesTotalCents.erase(totalCents);
-                        it = currPlayedNotesIndexes.erase(it);
                     }
                 }
             }
@@ -1190,6 +1222,8 @@ juce::AudioProcessorEditor *AudioPluginAudioProcessor::createEditor() {
     return new AudioPluginAudioProcessorEditor(*this);
 }
 
+// TODO: THERE IS NO MUTEX IN PARAMETERS AND NOT ALL FIELDS IN PARAMETERS ARE ATOMIC,
+//       SO THIS METHOD CAN CAUSE DATA RACE IF RUNS NOT IN MESSAGE THREAD!
 void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData) {
     juce::ValueTree state("XenRollState");
     state.setProperty("version", 1, nullptr);
@@ -1217,8 +1251,9 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
         idNode.setProperty("v", id, nullptr);
         ghostInstTree.appendChild(idNode, nullptr);
     }
-    paramsTree.setProperty("resetPitchBendOnNoteOff", params.resetPitchBendOnNoteOff, nullptr);
-    paramsTree.setProperty("semiBendRangeMPE", params.semiBendRangeMPE, nullptr);
+    paramsTree.setProperty("resetPitchBendOnNoteOff", params.resetPitchBendOnNoteOff.load(),
+                           nullptr);
+    paramsTree.setProperty("semiBendRangeMPE", params.semiBendRangeMPE.load(), nullptr);
     paramsTree.setProperty("channelsEconomyModeMPE", params.channelsEconomyModeMPE, nullptr);
 
     // For MTS-ESP:
@@ -1274,16 +1309,19 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
 
     // Notes
     auto notesTree = state.getOrCreateChildWithName("Notes", nullptr);
-    for (const auto &note : notes) {
-        juce::ValueTree noteNode("Note");
-        noteNode.setProperty("octave", note.octave, nullptr);
-        noteNode.setProperty("cents", note.cents, nullptr);
-        noteNode.setProperty("time", note.time, nullptr);
-        noteNode.setProperty("isSelected", note.isSelected, nullptr);
-        noteNode.setProperty("duration", note.duration, nullptr);
-        noteNode.setProperty("velocity", note.velocity, nullptr);
-        noteNode.setProperty("bend", note.bend, nullptr);
-        notesTree.appendChild(noteNode, nullptr);
+    {
+        std::scoped_lock lock(notesMutex);
+        for (const auto &note : notes) {
+            juce::ValueTree noteNode("Note");
+            noteNode.setProperty("octave", note.octave, nullptr);
+            noteNode.setProperty("cents", note.cents, nullptr);
+            noteNode.setProperty("time", note.time, nullptr);
+            noteNode.setProperty("isSelected", note.isSelected, nullptr);
+            noteNode.setProperty("duration", note.duration, nullptr);
+            noteNode.setProperty("velocity", note.velocity, nullptr);
+            noteNode.setProperty("bend", note.bend, nullptr);
+            notesTree.appendChild(noteNode, nullptr);
+        }
     }
 
     // RatioMarks
@@ -1296,7 +1334,7 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
         juce::ValueTree rmNode("RatioMark");
         auto [lowerPitch, higherPitch] = rm.getPitches();
         auto [lowerPitchNoteInd, higherPitchNoteInd] = rm.getNoteInds();
-        if (lowerPitch > higherPitch) {          
+        if (lowerPitch > higherPitch) {
             std::swap(lowerPitch, higherPitch);
             std::swap(lowerPitchNoteInd, higherPitchNoteInd);
         }
@@ -1334,8 +1372,11 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
     state.writeToStream(stream);
 }
 
+// TODO: THERE IS NO MUTEX IN PARAMETERS AND NOT ALL FIELDS IN PARAMETERS ARE ATOMIC,
+//       SO THIS METHOD CAN CAUSE DATA RACE IF RUNS NOT IN MESSAGE THREAD!
 void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeInBytes) {
     if (data == nullptr || sizeInBytes <= 0) {
+        std::scoped_lock lock(notesMutex);
         notes.clear();
         return;
     }
@@ -1358,6 +1399,7 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
 
     auto paramsTree = state.getChildWithName("Parameters");
     if (!paramsTree.isValid()) {
+        std::scoped_lock lock(notesMutex);
         notes.clear();
         return;
     }
@@ -1401,9 +1443,9 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         }
     }
     params.resetPitchBendOnNoteOff = static_cast<bool>(
-        paramsTree.getProperty("resetPitchBendOnNoteOff", params.resetPitchBendOnNoteOff));
-    params.semiBendRangeMPE =
-        static_cast<int>(paramsTree.getProperty("semiBendRangeMPE", params.semiBendRangeMPE));
+        paramsTree.getProperty("resetPitchBendOnNoteOff", params.resetPitchBendOnNoteOff.load()));
+    params.semiBendRangeMPE = static_cast<int>(
+        paramsTree.getProperty("semiBendRangeMPE", params.semiBendRangeMPE.load()));
     params.channelsEconomyModeMPE = static_cast<bool>(
         paramsTree.getProperty("channelsEconomyModeMPE", params.channelsEconomyModeMPE));
     channelsManagerMPE->setEconomyMode(params.channelsEconomyModeMPE);
@@ -1489,20 +1531,23 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
 
     // Notes
     auto notesTree = state.getChildWithName("Notes");
-    notes.clear();
-    if (notesTree.isValid()) {
-        for (auto noteNode : notesTree) {
-            if (noteNode.hasType("Note")) {
-                Note note;
-                note.octave = noteNode.getProperty("octave", 0);
-                note.cents = noteNode.getProperty("cents", 0);
-                note.time = static_cast<float>(noteNode.getProperty("time", 0.0f));
-                note.isSelected = static_cast<bool>(noteNode.getProperty("isSelected", false));
-                note.duration = static_cast<float>(noteNode.getProperty("duration", 1.0f));
-                note.velocity = static_cast<float>(
-                    noteNode.getProperty("velocity", Parameters::defaultVelocity));
-                note.bend = noteNode.getProperty("bend", 0);
-                notes.push_back(note);
+    {
+        std::scoped_lock lock(notesMutex);
+        notes.clear();
+        if (notesTree.isValid()) {
+            for (auto noteNode : notesTree) {
+                if (noteNode.hasType("Note")) {
+                    Note note;
+                    note.octave = noteNode.getProperty("octave", 0);
+                    note.cents = noteNode.getProperty("cents", 0);
+                    note.time = static_cast<float>(noteNode.getProperty("time", 0.0f));
+                    note.isSelected = static_cast<bool>(noteNode.getProperty("isSelected", false));
+                    note.duration = static_cast<float>(noteNode.getProperty("duration", 1.0f));
+                    note.velocity = static_cast<float>(
+                        noteNode.getProperty("velocity", Parameters::defaultVelocity));
+                    note.bend = noteNode.getProperty("bend", 0);
+                    notes.push_back(note);
+                }
             }
         }
     }
@@ -1563,7 +1608,10 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
         static_cast<bool>(paramsTree.getProperty("showGhostNotesKeys", params.showGhostNotesKeys));
 
     // UPDATE NOTES
-    params.stateHistory.push(State(numBars, notes, params.ratiosMarks));
+    {
+        std::scoped_lock lock(notesMutex);
+        params.stateHistory.push(State(numBars, notes, params.ratiosMarks));
+    }
     prepareNotes();
     if (params.getTuningType() == Parameters::TuningType::MPE) {
         notesSharingMPE->updateNotes(notes);
@@ -1574,6 +1622,7 @@ void AudioPluginAudioProcessor::setStateInformation(const void *data, int sizeIn
 
 void AudioPluginAudioProcessor::legacySetStateInformation(const void *data, int sizeInBytes) {
     if (data == nullptr || sizeInBytes <= 0) {
+        std::scoped_lock lock(notesMutex);
         notes.clear();
         return;
     }
@@ -1662,22 +1711,25 @@ void AudioPluginAudioProcessor::legacySetStateInformation(const void *data, int 
     params.theme.setTheme(params.themeType);
 
     // Read notes
-    notes.clear();
-    int numNotes = stream.readInt();
-    if ((numNotes < 0) || (numNotes > 1e6)) {
-        return;
-    }
-    notes.reserve(numNotes);
-    for (int i = 0; i < numNotes; ++i) {
-        Note note;
-        note.octave = stream.readInt();
-        note.cents = stream.readInt();
-        note.time = stream.readFloat();
-        note.isSelected = stream.readBool();
-        note.duration = stream.readFloat();
-        note.velocity = stream.readFloat();
-        note.bend = stream.readInt();
-        notes.push_back(note);
+    {
+        std::scoped_lock lock(notesMutex);
+        notes.clear();
+        int numNotes = stream.readInt();
+        if ((numNotes < 0) || (numNotes > 1e6)) {
+            return;
+        }
+        notes.reserve(numNotes);
+        for (int i = 0; i < numNotes; ++i) {
+            Note note;
+            note.octave = stream.readInt();
+            note.cents = stream.readInt();
+            note.time = stream.readFloat();
+            note.isSelected = stream.readBool();
+            note.duration = stream.readFloat();
+            note.velocity = stream.readFloat();
+            note.bend = stream.readInt();
+            notes.push_back(note);
+        }
     }
 
     // Read other things
@@ -1791,11 +1843,14 @@ void AudioPluginAudioProcessor::legacySetStateInformation(const void *data, int 
 }
 
 void AudioPluginAudioProcessor::updateNotes(const std::vector<Note> &new_notes) {
-    suspendProcessing(true);
-    notes = new_notes;
+    // suspendProcessing(true);
+    {
+        std::scoped_lock lock(notesMutex);
+        notes = new_notes;
+    }
     prepareNotes();
     auditionChanged = true;
-    suspendProcessing(false);
+    // suspendProcessing(false);
     if (params.getTuningType() == Parameters::TuningType::MPE) {
         notesSharingMPE->updateNotes(notes);
     } else if (params.getTuningType() == Parameters::MTS_ESP) {
@@ -1804,15 +1859,17 @@ void AudioPluginAudioProcessor::updateNotes(const std::vector<Note> &new_notes) 
 }
 
 void AudioPluginAudioProcessor::rePrepareNotes() {
-    suspendProcessing(true);
+    // suspendProcessing(true);
     prepareNotes();
-    suspendProcessing(false);
+    // suspendProcessing(false);
 }
 
 void AudioPluginAudioProcessor::setManuallyPlayedNotes(
     const std::map<int, float> newManuallyPlayedNotes) {
-    std::scoped_lock lock(manPlNotesMutex);
-    manuallyPlayedNotes = newManuallyPlayedNotes;
+    {
+        std::scoped_lock lock(manPlNotesMutex);
+        manuallyPlayedNotes = newManuallyPlayedNotes;
+    }
     if (params.getTuningType() == Parameters::TuningType::MTS_ESP) {
         rePrepareNotes();
     }
@@ -1858,6 +1915,7 @@ int AudioPluginAudioProcessor::getTotalCentsFromFreq(double freq) {
 }
 
 void AudioPluginAudioProcessor::prepareNotes() {
+    std::scoped_lock lock(prepareNotesMutex);
     pitchesOverflow = false;
     editorKnowsAboutOverflow = false;
 
@@ -1878,31 +1936,37 @@ void AudioPluginAudioProcessor::prepareNotes() {
 
     // set midi notes (indexes) for notes from piano roll
     int noteIndNew = 0;
-    for (int i = 0; i < notes.size(); ++i) {
-        const Note &note = notes[i];
-        double noteFreq = getNoteFreq(note);
-        int noteInd = findFreqInd(noteFreq);
-        if (noteInd == -1) {
-            if (numUsedFreqs >= 128) {
-                pitchesOverflow = true;
-                return;
+    {
+        std::scoped_lock lock(notesMutex);
+        for (int i = 0; i < notes.size(); ++i) {
+            const Note &note = notes[i];
+            double noteFreq = getNoteFreq(note);
+            int noteInd = findFreqInd(noteFreq);
+            if (noteInd == -1) {
+                if (numUsedFreqs >= 128) {
+                    pitchesOverflow = true;
+                    return;
+                }
+                while (freqs[noteIndNew] != noFreq)
+                    noteIndNew++;
+                noteInd = noteIndNew;
+                freqs[noteInd] = noteFreq;
+                numUsedFreqs++;
             }
-            while (freqs[noteIndNew] != noFreq)
-                noteIndNew++;
-            noteInd = noteIndNew;
-            freqs[noteInd] = noteFreq;
-            numUsedFreqs++;
+            notesIndexes[i] = noteInd;
         }
-        notesIndexes[i] = noteInd;
     }
 
     // Manually played notes
     // make notes from manuallyPlayedNotes, that are not in piano roll, relevant
-    for (const auto &[totalCents, _] : manuallyPlayedNotes) {
-        double noteFreq = getFreqFromTotalCents(totalCents);
-        int noteInd = findFreqInd(noteFreq);
-        if (noteInd == -1) {
-            manPlNotesTotCentsHistory.add(noteFreq);
+    {
+        std::scoped_lock lock(manPlNotesMutex);
+        for (const auto &[totalCents, _] : manuallyPlayedNotes) {
+            double noteFreq = getFreqFromTotalCents(totalCents);
+            int noteInd = findFreqInd(noteFreq);
+            if (noteInd == -1) {
+                manPlNotesTotCentsHistory.add(noteFreq);
+            }
         }
     }
     // add to freqs[128] mostly relevant manually played notes that are not in freqs[128] array
@@ -1924,17 +1988,7 @@ void AudioPluginAudioProcessor::prepareNotes() {
 }
 
 std::tuple<float, int, int> AudioPluginAudioProcessor::getBpmNumDenom() {
-    auto playhead = getPlayHead();
-    if (playhead != nullptr) {
-        auto posInfo = playhead->getPosition();
-        if (posInfo.hasValue()) {
-            auto timeSig =
-                posInfo->getTimeSignature().orFallback(juce::AudioPlayHead::TimeSignature{4, 4});
-            auto bpm = posInfo->getBpm().orFallback(120.0);
-            return std::make_tuple(static_cast<float>(bpm), timeSig.numerator, timeSig.denominator);
-        }
-    }
-    return std::make_tuple(120.0f, 4, 4);
+    return std::make_tuple(static_cast<float>(bpm.load()), numerator.load(), denominator.load());
 }
 
 bool AudioPluginAudioProcessor::thereIsPitchOverflow() {

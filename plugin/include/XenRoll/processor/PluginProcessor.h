@@ -53,6 +53,8 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
      */
     void setManuallyPlayedNotes(const std::map<int, float> newManuallyPlayedNotes);
 
+    // This method is called by editor on startup so i think that it is safe to do this
+    //      without any mutexes, by reference
     const std::vector<Note> &getNotes();
     std::vector<Note> getOtherInstancesNotes();
 
@@ -187,9 +189,11 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
 
     // ====================================== INSTANCES SYNC ======================================
     std::unique_ptr<PluginInstanceManager> pluginInstanceManager; ///< For MTS-ESP
-    bool isActive = false;
+    // atomic because changeInstanceSync is called from setStateInformation
+    std::atomic<bool> isActive = false;
     std::unique_ptr<NotesSharingMPE> notesSharingMPE; ///< For MPE
 
+    ///< Should be called only from constructor or setStateInformation!
     void changeInstanceSync(Parameters::TuningType newTuningType);
     // ============================================================================================
 
@@ -269,6 +273,11 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     // ========================================== GENERAL =========================================
     // INFO: totalCents = octave*1200 + cents
 
+    std::atomic<double> bpm = 120.0;
+    // time signature
+    std::atomic<int> numerator = 4;
+    std::atomic<int> denominator = 4;
+
     /**
      *              If using MPE tuning:
      * Maximum 15 pitches can be played simultaneously (they occupy channels 2-16)
@@ -285,6 +294,8 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
      *      Prepare notes for playback (assign MIDI note numbers and calculate frequencies)
      * If using MPE tuning:
      *      Just set editorKnowsAboutOverflow and pitchesOverflow to false
+     * @note Uses prepareNotesMutex, and in MTS-ESP: notesMutex & manPlNotesMutex.
+     *       SO DON'T USE ANY MUTEX FOR THIS METHOD!
      */
     void prepareNotes();
 
@@ -294,7 +305,16 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
 
     ///< {totalCents -> velocity} of notes(keys) that are currently played manually
     std::map<int, float> manuallyPlayedNotes;
-    std::mutex manPlNotesMutex;
+    std::mutex manPlNotesMutex; ///< For operations with manually played notes
+    std::mutex notesMutex;      ///< For operations with notes
+    /**
+     * For prepareNotes(), mostly needed for MTS-ESP.
+     * While prepareNotesMutex is locked, manPlNotesMutex and notesMutex can be locked too, not
+     *    vice versa!
+     */
+    std::mutex prepareNotesMutex;
+    ///< if for some reason setStateInformation() was called not on plugin startup
+    std::mutex changeInstanceSyncMutex;
 
     std::atomic<double> playHeadTime = 0.0; ///< in bars
 
