@@ -464,7 +464,7 @@ void MainPanel::paint(juce::Graphics &g) {
         for (const Note &note : editor.getRecordedManuallyPlayedNotes()) {
             auto noteBounds = getNoteBounds(note);
             if (noteBounds.intersects(clipFloat)) {
-                drawNote(g, recNote, noteBounds, strokeType, recordedNoteColour, false);
+                drawNote(g, note, noteBounds, strokeType, recordedNoteColour, false);
                 numDrawnNotes++;
             }
         }
@@ -710,7 +710,8 @@ void MainPanel::paint(juce::Graphics &g) {
                    juce::Justification::topRight, false);
 
         // Num of drawn ratio marks
-        juce::String ratioMarksText = juce::String::formatted("Drawn ratio marks: %d", numDrawnRatioMarks);
+        juce::String ratioMarksText =
+            juce::String::formatted("Drawn ratio marks: %d", numDrawnRatioMarks);
         g.drawText(ratioMarksText, overlayRect.removeFromTop(Theme::small_),
                    juce::Justification::topRight, false);
 

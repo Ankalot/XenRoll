@@ -1734,11 +1734,13 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
                 }
             }
             wasPlayingRMPN = true;
+            mainPanelNeedsRepaint = true;
         } else if (wasPlayingRMPN) {
             for (auto &note : recordedManuallyPlayedNotes) {
                 note.isSelected = true;
             }
             wasPlayingRMPN = false;
+            mainPanelNeedsRepaint = true;
         }
     }
 
