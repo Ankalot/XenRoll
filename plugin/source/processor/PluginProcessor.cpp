@@ -15,6 +15,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 #endif
                          ),
       manPlNotesTotCentsHistory(128), params() {
+    setLatencySamples(0);
 
     // INSTANCES SYNC (params.getTuningType() IS DEFAULT HERE, BECAUSE IT ONLY WILL
     //                 BE READ IN setStateInformation)

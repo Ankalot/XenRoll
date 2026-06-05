@@ -39,9 +39,10 @@ Go to the Releases tab and download the corresponding archive. Instructions are 
 [^2]: In `MIDI channels economy mode` (can be enabled in XenRoll settings), simultaneously playing non-bent notes that have the same {pitch mod 100¢} will occupy the same MIDI channel. But if the synth/sampler does not support polyphony on each channel individually in MPE mode, there will be errors!  
 [^3]: Don't forget to sync this value with the synth/sampler!  
 [^4]: Whether two or more notes with the same pitch (the pitch of a bent note equals its initial pitch) can be played simultaneously.
-
-<br>
-
+  
+### Timing
+&emsp;&emsp;If you experience input lag, such as delays when auditioning notes, playing via keyboard, or recording, or notice the playhead rushing ahead, this is caused by the host's 'Anticipative FX processing' feature. If it bothers you, disable the setting or reduce its value in your DAW's preferences (it defaults to 200ms in REAPER).  
+  
 ### List of synths/samplers that definitely work with XenRoll:
 | Type | Name | Developer | MPE mode, setup | MTS-ESP mode, setup |
 |-|-|-|-|-|
