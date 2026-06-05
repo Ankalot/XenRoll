@@ -22,6 +22,15 @@ class GlobalSettings {
         propsFile->saveIfNeeded();
     } // =========================================
 
+    //  ============ chaseMIDINotes ============
+    static constexpr bool chaseMIDINotes_default = true;
+    bool getChaseMIDINotes() const { return chaseMIDINotes_.load(std::memory_order_relaxed); }
+    void setChaseMIDINotes(bool chaseMIDINotes) {
+        chaseMIDINotes_.store(chaseMIDINotes, std::memory_order_relaxed);
+        propsFile->setValue("chaseMIDINotes", chaseMIDINotes);
+        propsFile->saveIfNeeded();
+    } // =========================================
+
     //  ============ horZoomOnCursor ============
     static constexpr bool horZoomOnCursor_default = true;
     bool getHorZoomOnCursor() const { return horZoomOnCursor_.load(std::memory_order_relaxed); }
@@ -88,9 +97,11 @@ class GlobalSettings {
             propsFile->getBoolValue("playDraggedNotes", playDraggedNotes_default),
             std::memory_order_relaxed);
 
-        horZoomOnCursor_.store(
-            propsFile->getBoolValue("horZoomOnCursor", horZoomOnCursor_default),
-            std::memory_order_relaxed);
+        chaseMIDINotes_.store(propsFile->getBoolValue("chaseMIDINotes", chaseMIDINotes_default),
+                              std::memory_order_relaxed);
+
+        horZoomOnCursor_.store(propsFile->getBoolValue("horZoomOnCursor", horZoomOnCursor_default),
+                               std::memory_order_relaxed);
 
         double db = propsFile->getDoubleValue("micGain_dB", micGain_dB_default);
         micGain_dB_.store(db, std::memory_order_relaxed);
@@ -105,6 +116,7 @@ class GlobalSettings {
 
     //  ============ Cached values (atomic, lock-free) ============
     std::atomic<bool> playDraggedNotes_;
+    std::atomic<bool> chaseMIDINotes_;
     std::atomic<bool> horZoomOnCursor_;
     std::atomic<double> micGain_dB_;
     std::atomic<float> micGainLinear_;

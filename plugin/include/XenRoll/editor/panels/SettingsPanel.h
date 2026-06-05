@@ -15,7 +15,7 @@ class SettingsViewport : public juce::Viewport {
     }
 
     void visibilityChanged() override {
-        auto* settingsPanel = getViewedComponent();
+        auto *settingsPanel = getViewedComponent();
         if (settingsPanel) {
             settingsPanel->visibilityChanged();
         }
@@ -33,6 +33,8 @@ class SettingsPanel : public juce::Component {
         if (isVisible()) {
             playDraggedNotesCheckbox->setToggleState(
                 GlobalSettings::getInstance().getPlayDraggedNotes(), juce::dontSendNotification);
+            chaseMIDINotesCheckbox->setToggleState(
+                GlobalSettings::getInstance().getChaseMIDINotes(), juce::dontSendNotification);
             horZoomOnCursorCheckbox->setToggleState(
                 GlobalSettings::getInstance().getHorZoomOnCursor(), juce::dontSendNotification);
             noteRectRoundingSlider->setValue(GlobalSettings::getInstance().getNoteRectRounding(),
@@ -59,6 +61,9 @@ class SettingsPanel : public juce::Component {
 
     std::unique_ptr<juce::Label> playDraggedNotesLabel;
     std::unique_ptr<juce::ToggleButton> playDraggedNotesCheckbox;
+
+    std::unique_ptr<juce::Label> chaseMIDINotesLabel;
+    std::unique_ptr<juce::ToggleButton> chaseMIDINotesCheckbox;
 
     std::unique_ptr<juce::Label> horZoomOnCursorLabel;
     std::unique_ptr<juce::ToggleButton> horZoomOnCursorCheckbox;

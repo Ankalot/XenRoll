@@ -68,6 +68,23 @@ SettingsPanel::SettingsPanel(Parameters &params, AudioPluginAudioProcessorEditor
     playDraggedNotesCheckbox->setSize(rowHeight, rowHeight);
     addAndMakeVisible(playDraggedNotesCheckbox.get());
 
+    chaseMIDINotesLabel = std::make_unique<juce::Label>();
+    chaseMIDINotesLabel->setText("Chase MIDI notes:", juce::dontSendNotification);
+    chaseMIDINotesLabel->setFont(settingFont);
+    chaseMIDINotesLabel->setTooltip(
+        "Notes will be played even if you start playback in the middle of them");
+    addAndMakeVisible(chaseMIDINotesLabel.get());
+
+    chaseMIDINotesCheckbox = std::make_unique<juce::ToggleButton>();
+    chaseMIDINotesLabel->attachToComponent(chaseMIDINotesCheckbox.get(), true);
+    chaseMIDINotesCheckbox->setToggleState(GlobalSettings::getInstance().getChaseMIDINotes(),
+                                           juce::dontSendNotification);
+    chaseMIDINotesCheckbox->onStateChange = [this]() {
+        GlobalSettings::getInstance().setChaseMIDINotes(chaseMIDINotesCheckbox->getToggleState());
+    };
+    chaseMIDINotesCheckbox->setSize(rowHeight, rowHeight);
+    addAndMakeVisible(chaseMIDINotesCheckbox.get());
+
     horZoomOnCursorLabel = std::make_unique<juce::Label>();
     horZoomOnCursorLabel->setText("Horizontal zoom on cursor:", juce::dontSendNotification);
     horZoomOnCursorLabel->setFont(settingFont);
@@ -145,8 +162,7 @@ SettingsPanel::SettingsPanel(Parameters &params, AudioPluginAudioProcessorEditor
 
     heightCoefSlider = std::make_unique<juce::Slider>();
     heightCoefLabel->attachToComponent(heightCoefSlider.get(), true);
-    heightCoefSlider->setRange(params.min_noteRectHeightCoef, params.max_noteRectHeightCoef,
-                               0.001);
+    heightCoefSlider->setRange(params.min_noteRectHeightCoef, params.max_noteRectHeightCoef, 0.001);
     heightCoefSlider->setValue(params.noteRectHeightCoef);
     heightCoefSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, rowHeight);
     heightCoefSlider->setSliderStyle(juce::Slider::LinearHorizontal);
@@ -259,6 +275,10 @@ void SettingsPanel::resized() {
     playDraggedNotesCheckbox->setBounds(playRow.withTrimmedLeft(labelWidth));
     area.removeFromTop(padding);
 
+    auto noteTrigRow = area.removeFromTop(rowHeight);
+    chaseMIDINotesCheckbox->setBounds(noteTrigRow.withTrimmedLeft(labelWidth));
+    area.removeFromTop(padding);
+
     auto horZoomRow = area.removeFromTop(rowHeight);
     horZoomOnCursorCheckbox->setBounds(horZoomRow.withTrimmedLeft(labelWidth));
     area.removeFromTop(padding + sectionSpacing);
@@ -303,7 +323,7 @@ void SettingsPanel::resized() {
 
 int SettingsPanel::getRequiredHeight() const {
     return padding + // top padding
-           headerRowHeight + padding + 4 * (rowHeight + padding) +
+           headerRowHeight + padding + 5 * (rowHeight + padding) +
            sectionSpacing + // Basic Settings
            headerRowHeight + padding + 4 * (rowHeight + padding) +
            sectionSpacing +                                       // Visual Settings

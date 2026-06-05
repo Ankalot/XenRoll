@@ -683,7 +683,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 }
 
                 {
-                    // TODO: if it will cause audio glitches, 
+                    // TODO: if it will cause audio glitches,
                     //       change the approach to an intermediate buffer for notes
                     std::scoped_lock lock(notesMutex);
                     // Stop playing unexisting notes (from piano roll)
@@ -854,6 +854,42 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                 }
                             }
                         }
+                        // ===================== Note on =====================
+                        const bool chaseMIDINotes =
+                            GlobalSettings::getInstance().getChaseMIDINotes();
+                        for (int i = 0; i < notes.size(); ++i) {
+                            const Note &note = notes[i];
+                            int totalCents = note.octave * 1200 + note.cents;
+                            bool rightBorderCond =
+                                chaseMIDINotes
+                                    ? playHeadTime <= note.time + note.duration - barsInBlock
+                                    : playHeadTime <= note.time;
+                            if ((note.time - barsInBlock < playHeadTime) && rightBorderCond &&
+                                (!noteToChAndMidiNoteMPE.contains({i, totalCents}))) {
+                                std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
+                                int ch =
+                                    channelsManagerMPE->allocateChannelMPE(bendMPE, note.bend != 0);
+                                if (ch != -1) {
+                                    pitchesOverflow = false;
+                                    int noteOnSample = 0;
+                                    if (playHeadTime < note.time) {
+                                        noteOnSample = static_cast<int>(ceil(
+                                            numSamples * (note.time - playHeadTime) / barsInBlock));
+                                    }
+                                    juce::MidiMessage pitchBend =
+                                        juce::MidiMessage::pitchWheel(ch, bendMPE);
+                                    midiMessages.addEvent(pitchBend, noteOnSample);
+                                    juce::MidiMessage noteOn =
+                                        juce::MidiMessage::noteOn(ch, midiNote, note.velocity);
+                                    midiMessages.addEvent(noteOn, noteOnSample);
+                                    noteToChAndMidiNoteMPE[{i, totalCents}] =
+                                        std::make_pair(ch, midiNote);
+                                    addCurrPlayedNotesTotalCentsMPE(totalCents);
+                                } else {
+                                    pitchesOverflow = true;
+                                }
+                            }
+                        }
                         // ===================== Note bend =====================
                         for (int i = 0; i < notes.size(); ++i) {
                             const Note &note = notes[i];
@@ -867,37 +903,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                     juce::MidiMessage pitchBend =
                                         juce::MidiMessage::pitchWheel(chAndMidiNote.first, bendMPE);
                                     midiMessages.addEvent(pitchBend, 0);
-                                }
-                            }
-                        }
-                        // ===================== Note on =====================
-                        for (int i = 0; i < notes.size(); ++i) {
-                            const Note &note = notes[i];
-                            int totalCents = note.octave * 1200 + note.cents;
-                            if ((note.time >= playHeadTime) &&
-                                (note.time < playHeadTime + barsInBlock) &&
-                                // need to check it so there will be no bug when you turn on/off
-                                // playback so fast that you can't catch the moment isPlaying=false
-                                // to make noteOff (so just don't make unnecassry noteOn)
-                                (!noteToChAndMidiNoteMPE.contains({i, totalCents}))) {
-                                std::tie(midiNote, bendMPE) = calcMidiNoteAndBendMPE(totalCents);
-                                int ch =
-                                    channelsManagerMPE->allocateChannelMPE(bendMPE, note.bend != 0);
-                                if (ch != -1) {
-                                    pitchesOverflow = false;
-                                    int noteOnSample = static_cast<int>(ceil(
-                                        numSamples * (note.time - playHeadTime) / barsInBlock));
-                                    juce::MidiMessage pitchBend =
-                                        juce::MidiMessage::pitchWheel(ch, bendMPE);
-                                    midiMessages.addEvent(pitchBend, noteOnSample);
-                                    juce::MidiMessage noteOn =
-                                        juce::MidiMessage::noteOn(ch, midiNote, note.velocity);
-                                    midiMessages.addEvent(noteOn, noteOnSample);
-                                    noteToChAndMidiNoteMPE[{i, totalCents}] =
-                                        std::make_pair(ch, midiNote);
-                                    addCurrPlayedNotesTotalCentsMPE(totalCents);
-                                } else {
-                                    pitchesOverflow = true;
                                 }
                             }
                         }
@@ -936,9 +941,9 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                 // =                                USING MTS-ESP                                 =
                 // ================================================================================
 
-                // TODO: if it causes glitches, 
-                //       change the approach to an intermediate buffers for things that are 
-                //       changed in prepareToPlay(). Also then use buffers for notes and 
+                // TODO: if it causes glitches,
+                //       change the approach to an intermediate buffers for things that are
+                //       changed in prepareToPlay(). Also then use buffers for notes and
                 //       manPlNotes, so all data  will be consistent
                 std::scoped_lock lock(prepareNotesMutex);
 
@@ -1075,16 +1080,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                         // =======================================
                         for (int i = 0; i < notes.size(); ++i) {
                             const Note &note = notes[i];
-                            // Note bend
-                            if ((note.bend != 0) && (note.time < playHeadTime) &&
-                                (playHeadTime <= note.time + note.duration)) {
-                                freqs[notesIndexes[i]] = getNoteFreq(note);
-                                needUpdateFreqs = true;
-                            }
-                        }
-                        // =======================================
-                        for (int i = 0; i < notes.size(); ++i) {
-                            const Note &note = notes[i];
                             // PRE Note on
                             if ((note.time >= playHeadTime) &&
                                 (note.time < playHeadTime + 2 * barsInBlock)) {
@@ -1099,23 +1094,27 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                             }
                         }
                         // =======================================
+                        const bool chaseMIDINotes =
+                            GlobalSettings::getInstance().getChaseMIDINotes();
                         for (int i = 0; i < notes.size(); ++i) {
                             const Note &note = notes[i];
                             // Note on
-                            if ((note.time >= playHeadTime) &&
-                                (note.time < playHeadTime + barsInBlock) &&
-                                // need to check it so there will be no bug when you turn on/off
-                                // playback so fast that you can't catch the moment isPlaying=false
-                                // to make noteOff (so just don't make unnecassry noteOn)
+                            bool rightBorderCond =
+                                chaseMIDINotes
+                                    ? playHeadTime <= note.time + note.duration - barsInBlock
+                                    : playHeadTime <= note.time;
+                            if ((note.time - barsInBlock < playHeadTime) && rightBorderCond &&
                                 !currPlayedNotesTotalCents.contains(note.octave * 1200 +
                                                                     note.cents)) {
                                 const int noteInd = notesIndexes[i];
                                 juce::MidiMessage noteOn = juce::MidiMessage::noteOn(
                                     params.channelIndex + 1, noteInd, note.velocity);
-                                midiMessages.addEvent(
-                                    noteOn,
-                                    static_cast<int>(ceil(numSamples * (note.time - playHeadTime) /
-                                                          barsInBlock)));
+                                int noteOnSample = 0;
+                                if (playHeadTime < note.time) {
+                                    noteOnSample = static_cast<int>(ceil(
+                                        numSamples * (note.time - playHeadTime) / barsInBlock));
+                                }
+                                midiMessages.addEvent(noteOn, noteOnSample);
                                 currPlayedNotesTotalCents.insert(note.octave * 1200 + note.cents);
                                 currPlayedNotesIndexes.insert(noteInd);
                                 if (note.bend != 0) {
@@ -1123,6 +1122,16 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                                 } else {
                                     beforeBendTotalCents[noteInd] = -1;
                                 }
+                            }
+                        }
+                        // =======================================
+                        for (int i = 0; i < notes.size(); ++i) {
+                            const Note &note = notes[i];
+                            // Note bend
+                            if ((note.bend != 0) && (note.time < playHeadTime) &&
+                                (playHeadTime <= note.time + note.duration)) {
+                                freqs[notesIndexes[i]] = getNoteFreq(note);
+                                needUpdateFreqs = true;
                             }
                         }
                         if (needUpdateFreqs) {
