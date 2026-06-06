@@ -1109,6 +1109,9 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
     const float centerX = (params.lastViewPos.x + viewWidth / 2.0f) / oldWidth;
     const float centerY = (params.lastViewPos.y + viewHeight / 2.0f) / oldHeight;
 
+    const float cursorRatioX = static_cast<float>(event.position.x) / oldWidth;
+    const float mouseInViewX = event.position.x - params.lastViewPos.x;
+
     float stretchFactor = 1.0f + wheel.deltaY * 0.5f;
     if (event.mods.isCtrlDown()) {
         octave_height_px = octave_height_px * stretchFactor;
@@ -1123,6 +1126,7 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
         editor.changeBarWidthPx(bar_width_px);
     }
 
+    // Update width and height
     updateLayout();
 
     const int newWidth = getWidth();
@@ -1143,10 +1147,10 @@ void MainPanel::mouseWheelMove(const juce::MouseEvent &event,
                                    playHeadTime * bar_width_px - viewWidth / 2.0f);
         } else if (GlobalSettings::getInstance().getHorZoomOnCursor()) {
             // Zoom relative to mouse cursor position
-            float lastMouseX = event.eventComponent->getMouseXYRelative().getX();
-            float mouseX = lastMouseX * (static_cast<float>(newWidth) / oldWidth);
+            float newCursorPosition = cursorRatioX * newWidth;
+            targetX = newCursorPosition - mouseInViewX;
             targetX = juce::jlimit(0.0f, juce::jmax(0.0f, static_cast<float>(newWidth - viewWidth)),
-                                   mouseX - (lastMouseX - params.lastViewPos.x));
+                                   targetX);
         } else {
             // Zoom relative to view center
             targetX = juce::jlimit(0.0f, juce::jmax(0.0f, static_cast<float>(newWidth - viewWidth)),
