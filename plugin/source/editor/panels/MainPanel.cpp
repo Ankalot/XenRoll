@@ -3005,10 +3005,12 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             int octave = params.start_octave + keyInd / numKeys;
             int cents = *(std::next(keys.begin(), keyInd % numKeys));
             int totalCents = octave * 1200 + cents;
-            std::lock_guard<std::mutex> lock(mptcMtx);
-            keyboardManuallyPlayedKeys.insert({totalCents, params.defaultVelocity});
-            editor.setManuallyPlayedKeys(keyboardManuallyPlayedKeys, "keyboard");
-            wasKeyDown[keyChar] = totalCents;
+            if (totalCents < params.num_octaves * 1200) {
+                std::lock_guard<std::mutex> lock(mptcMtx);
+                keyboardManuallyPlayedKeys.insert({totalCents, params.defaultVelocity});
+                editor.setManuallyPlayedKeys(keyboardManuallyPlayedKeys, "keyboard");
+                wasKeyDown[keyChar] = totalCents;
+            }
         }
         return true;
     }
