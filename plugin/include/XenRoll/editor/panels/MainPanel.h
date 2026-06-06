@@ -240,11 +240,11 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     ///< This threshold will determine either user wants "drag action" or "click action"
     const int clickMoveThrPx = 2;
-    int clickVelPanelNoteInd = -1;
-    int clickDelNoteInd = -1;
-    int clickUnselAllNotesExcept = -1;
+    uint64_t clickVelPanelNoteId = INVALID_NOTE_ID;
+    uint64_t clickDelNoteId = INVALID_NOTE_ID;
+    uint64_t clickUnselAllNotesExceptId = INVALID_NOTE_ID;
     bool clickUnselAllNotesExcept_Ctrl = false;
-    int needToUnselectThisNote = -1;
+    uint64_t needToUnselectThisNoteId = INVALID_NOTE_ID;
     bool needToUnselectThisNote_Ctrl = false;
     float vertMoveSlowCoef = 0.2f;
 

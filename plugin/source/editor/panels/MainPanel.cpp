@@ -1239,7 +1239,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
             for (int i = static_cast<int>(notes.size() - 1); i >= 0; --i) {
                 if (pointOnNote(notes[i], point.toFloat())) {
                     // Show or hide velocity panel on mouseUp (if it is not panning)
-                    clickVelPanelNoteInd = i;
+                    clickVelPanelNoteId = notes[i].id;
                     break;
                 }
             }
@@ -1247,7 +1247,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
 
         // Is panning (dragging view)
         isPanning = true;
-        if (clickVelPanelNoteInd == -1) {
+        if (clickVelPanelNoteId == INVALID_NOTE_ID) {
             setMouseCursor(juce::MouseCursor::DraggingHandCursor);
         }
     }
@@ -1339,10 +1339,10 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
 
                 if (notes[i].isSelected) {
                     if (event.mods.isShiftDown()) {
-                        needToUnselectThisNote = i;
+                        needToUnselectThisNoteId = notes[i].id;
                         needToUnselectThisNote_Ctrl = event.mods.isCtrlDown();
                     } else {
-                        clickUnselAllNotesExcept = i;
+                        clickUnselAllNotesExceptId = notes[i].id;
                         clickUnselAllNotesExcept_Ctrl = event.mods.isCtrlDown();
                     }
                 } else {
@@ -1420,7 +1420,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         }
         int octave = totalCents / 1200;
         int cents = totalCents % 1200;
-        notes.push_back({octave, cents, time, false, duration, params.lastVelocity});
+        notes.push_back(Note(octave, cents, time, false, duration, params.lastVelocity));
         keysFromAllNotes.insert(cents);
         if (params.zones.isNoteInActiveZone(*(notes.rbegin()))) {
             auto [_, inserted] = keys.insert(cents);
@@ -1498,7 +1498,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         for (int i = numNotes - 1; i >= 0; --i) {
             if (pointOnNote(notes[i], point.toFloat())) {
                 // Delete note under cursor on mouseUp
-                clickDelNoteInd = i;
+                clickDelNoteId = notes[i].id;
                 break;
             }
         }
@@ -1562,9 +1562,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     // Panning (dragging view)
     if (isPanning) {
         bool processPanning = false;
-        if ((clickVelPanelNoteInd != -1)) {
+        if ((clickVelPanelNoteId != INVALID_NOTE_ID)) {
             if (currDragPos.getDistanceFrom(startDragPos) > clickMoveThrPx) {
-                clickVelPanelNoteInd = -1;
+                clickVelPanelNoteId = INVALID_NOTE_ID;
                 setMouseCursor(juce::MouseCursor::DraggingHandCursor);
                 processPanning = true;
             }
@@ -1741,9 +1741,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     // Moving selected notes
     if (isMoving) {
         bool processMoving = false;
-        if (clickUnselAllNotesExcept != -1) {
+        if (clickUnselAllNotesExceptId != -1) {
             if (currDragPos.getDistanceFrom(startDragPos) > clickMoveThrPx) {
-                clickUnselAllNotesExcept = -1;
+                clickUnselAllNotesExceptId = -1;
                 processMoving = true;
             }
         } else {
@@ -1892,9 +1892,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     // Is selecting
     if (isSelecting) {
         bool processSelecting = false;
-        if (clickDelNoteInd != -1) {
+        if (clickDelNoteId != INVALID_NOTE_ID) {
             if (currDragPos.getDistanceFrom(startDragPos) > clickMoveThrPx) {
-                clickDelNoteInd = -1;
+                clickDelNoteId = INVALID_NOTE_ID;
                 processSelecting = true;
             }
         } else {
@@ -2011,10 +2011,12 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
         saveState();
     }
 
-    if (clickVelPanelNoteInd != -1) {
-        if (clickVelPanelNoteInd < notes.size()) { // need check because user could press "del"
+    if (clickVelPanelNoteId != INVALID_NOTE_ID) {
+        auto it = std::find_if(notes.begin(), notes.end(),
+                               [this](const Note &n) { return n.id == clickVelPanelNoteId; });
+        if (it != notes.end()) { // need check because user could press "del"
             // Show or hide velocity panel
-            if (notes[clickVelPanelNoteInd].isSelected) {
+            if (it->isSelected) {
                 if (isShowingVelocityPanel) {
                     hideVelocityPanel();
                 } else {
@@ -2022,16 +2024,19 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
                 }
             } else {
                 unselectAllNotes();
-                notes[clickVelPanelNoteInd].isSelected = true;
+                it->isSelected = true;
                 showOrUpdateVelocityPanel();
             }
         }
-        clickVelPanelNoteInd = -1;
+        clickVelPanelNoteId = INVALID_NOTE_ID;
     }
 
-    if (clickDelNoteInd != -1) {
-        if (clickDelNoteInd < notes.size()) { // need check because user could press "del"
+    if (clickDelNoteId != INVALID_NOTE_ID) {
+        auto it = std::find_if(notes.begin(), notes.end(),
+                               [this](const Note &n) { return n.id == clickDelNoteId; });
+        if (it != notes.end()) { // need check because user could press "del"
             // Delete note
+            int clickDelNoteInd = static_cast<int>(std::distance(notes.begin(), it));
             deleteNote(clickDelNoteInd);
             saveState();
             editor.updateNotes(notes);
@@ -2043,7 +2048,7 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
                 }
             }
         }
-        clickDelNoteInd = -1;
+        clickDelNoteId = INVALID_NOTE_ID;
         isSelecting = false; // so no selection will be
     }
 
@@ -2062,39 +2067,42 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
     prevDcents = 0;
     prevTime = -1.0f;
 
-    if (clickUnselAllNotesExcept != -1) {
+    if (clickUnselAllNotesExceptId != -1) {
         unselectAllNotes();
-        // need to check because user could press "Del" while moving notes
-        if (clickUnselAllNotesExcept < notes.size()) {
+        auto it = std::find_if(notes.begin(), notes.end(), [this](const Note &n) {
+            return n.id == clickUnselAllNotesExceptId;
+        });
+        if (it != notes.end()) { // need check because user could press "del"
             if (clickUnselAllNotesExcept_Ctrl) {
-                int cents = notes[clickUnselAllNotesExcept].cents;
+                int cents = it->cents;
                 for (Note &note : notes) {
                     if ((note.cents == cents) && params.zones.isNoteInActiveZone(note)) {
                         note.isSelected = true;
                     }
                 }
             }
-            notes[clickUnselAllNotesExcept].isSelected = true;
+            it->isSelected = true;
         }
-        clickUnselAllNotesExcept = -1;
+        clickUnselAllNotesExceptId = -1;
         if (isShowingVelocityPanel) {
             showOrUpdateVelocityPanel();
         }
-    } else if (needToUnselectThisNote != -1) {
-        // need to check because user could press "Del" while moving notes
-        if (needToUnselectThisNote < notes.size()) {
+    } else if (needToUnselectThisNoteId != INVALID_NOTE_ID) {
+        auto it = std::find_if(notes.begin(), notes.end(),
+                               [this](const Note &n) { return n.id == needToUnselectThisNoteId; });
+        if (it != notes.end()) { // need check because user could press "del"
             if (needToUnselectThisNote_Ctrl) {
-                int cents = notes[needToUnselectThisNote].cents;
+                int cents = it->cents;
                 for (Note &note : notes) {
                     if (note.cents == cents) {
                         note.isSelected = false;
                     }
                 }
             } else {
-                notes[needToUnselectThisNote].isSelected = false;
+                it->isSelected = false;
             }
         }
-        needToUnselectThisNote = -1;
+        needToUnselectThisNoteId = INVALID_NOTE_ID;
         if (isShowingVelocityPanel) {
             if (thereAreSelectedNotes()) {
                 showOrUpdateVelocityPanel();
@@ -2636,6 +2644,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
         bool needGenNewKeys = false;
         bool needUpdateKeys = false;
         for (int i = 0; i < copiedNotes.size(); ++i) {
+            copiedNotes[i].id = Note::generateId(); // NEW Id FOR COPIED NOTES!
             notes.push_back(copiedNotes[i]);
             int cents = copiedNotes[i].cents;
             if (params.zones.isNoteInActiveZone(copiedNotes[i])) {

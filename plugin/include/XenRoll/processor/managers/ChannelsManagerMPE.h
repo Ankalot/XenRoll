@@ -69,6 +69,11 @@ class ChannelsManagerMPE {
         }
     }
 
+    int getNumNotesInChannel(int ch) {
+        int ind = ch - 2;
+        return channelsNumMPE[ind];
+    }
+
   private:
     ///< Value represents number of currently playing notes in midi channel (2-16)
     std::array<int, 15> channelsNumMPE;

@@ -325,12 +325,18 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     // ============================================================================================
 
     // ======================================= USING MTS-ESP ======================================
+    struct PlAudNoteDataMTS {
+        int totalCents;
+        bool hasBend;
+        int noteInd; // == midiNote
+    };
+
     ///< Contains midi note number (0-127) for each note from notes vector
     std::vector<int> notesIndexes;
     ///< Manually played note's totalCents -> midi note number (0-127)
     std::map<int, int> manPlNoteToMidiNoteMTS;
-    ///< Audition note's {index, totalCents} -> midi note number (0-127)
-    std::map<std::pair<int, int>, int> auditionNoteToMidiNoteMTS;
+    ///< Audition note's id -> PlAudNoteDataMTS
+    std::map<uint64_t, PlAudNoteDataMTS> auditioningNotesMTS;
     /**
      * Is used to indicate that this frequency is not being used. Freq in Hz.
      * And if it is still used for a veeery short period of time (by mistake?), then there will be
@@ -390,9 +396,15 @@ class AudioPluginAudioProcessor : public juce::AudioProcessor {
     ///< Is used to correct totalCents taking into account A4 freq. Is updated in processBlock().
     double corrTotalCentsMPE = 0;
 
-    ///< {note's index, note's totalCents} -> {midi channel (2-16), midi note number}
-    std::map<std::pair<int, int>, std::pair<int, int>> noteToChAndMidiNoteMPE,
-        auditionNoteToChAndMidiNoteMPE;
+    struct PlNoteDataMPE {
+        int totalCents;
+        bool hasBend;
+        int channel;
+        int midiNote;
+    };
+
+    ///< note's id -> PlNoteDataMPE
+    std::map<uint64_t, PlNoteDataMPE> playingNotesMPE, auditioningNotesMPE;
     ///< Manually played note's totalCents -> {midi channel (2-16), midi note number}
     std::map<int, std::pair<int, int>> manPlNoteToChAndMidiNoteMPE;
     std::unique_ptr<ChannelsManagerMPE> channelsManagerMPE;
