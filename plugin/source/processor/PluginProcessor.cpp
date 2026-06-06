@@ -747,7 +747,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                             if (noteIt != notes.end()) {
                                 stopPlayingThisNote =
                                     (auditionTime < noteIt->time ||
-                                     auditionTime > noteIt->time + noteIt->duration) ||
+                                     auditionTime >= noteIt->time + noteIt->duration) ||
                                     (totalCents != (noteIt->octave * 1200 + noteIt->cents));
                             }
 
@@ -1025,7 +1025,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
                             if (noteIt != notes.end()) {
                                 stopPlayingThisNote =
                                     (auditionTime < noteIt->time ||
-                                     auditionTime > noteIt->time + noteIt->duration) ||
+                                     auditionTime >= noteIt->time + noteIt->duration) ||
                                     (totalCents != (noteIt->octave * 1200 + noteIt->cents));
                             }
 
