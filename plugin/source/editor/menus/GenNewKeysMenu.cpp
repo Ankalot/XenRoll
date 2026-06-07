@@ -115,4 +115,11 @@ GenNewKeysMenu::GenNewKeysMenu(Parameters &params, AudioPluginAudioProcessorEdit
     const int totalHeight = y + vertPadding;
     setSize(width, totalHeight);
 }
+
+void GenNewKeysMenu::visibilityChanged() {
+    if (!isVisible()) {
+        editor.bringBackKeyboardFocus();
+    }
+}
+
 } // namespace audio_plugin

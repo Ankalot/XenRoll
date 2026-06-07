@@ -84,4 +84,11 @@ EditRatiosMarksMenu::EditRatiosMarksMenu(Parameters &params,
     const int totalHeight = y + vertPadding;
     setSize(width, totalHeight);
 }
+
+void EditRatiosMarksMenu::visibilityChanged() {
+    if (!isVisible()) {
+        editor.bringBackKeyboardFocus();
+    }
+}
+
 } // namespace audio_plugin

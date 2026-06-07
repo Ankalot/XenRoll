@@ -21,6 +21,8 @@ class ClockDiagramMenu : public juce::Component {
         g.drawRect(getLocalBounds().toFloat(), Theme::wider);
     }
 
+    void visibilityChanged() override;
+
   private:
     AudioPluginAudioProcessorEditor &editor;
     Parameters &params;

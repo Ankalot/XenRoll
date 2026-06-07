@@ -5,6 +5,8 @@ namespace audio_plugin {
 DissonancePanel::DissonancePanel(Parameters &params,
                                  std::shared_ptr<DissonanceMeter> dissonanceMeter)
     : params(params), dissonanceMeter(dissonanceMeter) {
+    // so InterInput won't receive focus when panel becomes focused
+    setWantsKeyboardFocus(true);
     setVisible(false);
 
     // Other

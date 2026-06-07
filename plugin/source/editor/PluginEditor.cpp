@@ -197,6 +197,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     mainPanel->initViewport();
     mainPanel->setPlayHeadTime(playHeadTime);
     addAndMakeVisible(mainViewport.get());
+    viewedPanel = mainPanel.get();
 
     clockDiagramPanel =
         std::make_unique<ClockDiagramPanel>(processorRef.params, *this, mainPanel->getNotes());
@@ -273,7 +274,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     addAndMakeVisible(pitchMemorySettingsButton.get());
 
     settingsButton->onClick = [this](const juce::MouseEvent &me) {
-        settingsViewport->setVisible(!settingsViewport->isVisible());
+        bool newVisible = !settingsViewport->isVisible();
+        settingsViewport->setVisible(newVisible); // viewport
+        if (newVisible) {
+            viewedPanel = settingsPanel.get();    // panel
+        } else {
+            viewedPanel = mainPanel.get();
+        }
+        bringBackKeyboardFocus();
 
         helpViewport->setVisible(false);
         dissonancePanel->setVisible(false);
@@ -283,7 +291,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         return false;
     };
     helpButton->onClick = [this](const juce::MouseEvent &me) {
-        helpViewport->setVisible(!helpViewport->isVisible());
+        bool newVisible = !helpViewport->isVisible();
+        helpViewport->setVisible(newVisible); // viewport
+        if (newVisible) {
+            viewedPanel = helpPanel.get();    // panel
+        } else {
+            viewedPanel = mainPanel.get();
+        }
+        bringBackKeyboardFocus();
 
         settingsViewport->setVisible(false);
         dissonancePanel->setVisible(false);
@@ -293,7 +308,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         return false;
     };
     dissonanceButton->onClick = [this](const juce::MouseEvent &me) {
-        dissonancePanel->setVisible(!dissonancePanel->isVisible());
+        bool newVisible = !dissonancePanel->isVisible();
+        dissonancePanel->setVisible(newVisible);
+        if (newVisible) {
+            viewedPanel = dissonancePanel.get();
+        } else {
+            viewedPanel = mainPanel.get();
+        }
+        bringBackKeyboardFocus();
 
         helpViewport->setVisible(false);
         settingsViewport->setVisible(false);
@@ -303,7 +325,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
         return false;
     };
     pitchMemorySettingsButton->onClick = [this](const juce::MouseEvent &me) {
-        pitchMemorySettingsPanel->setVisible(!pitchMemorySettingsPanel->isVisible());
+        bool newVisible = !pitchMemorySettingsPanel->isVisible();
+        pitchMemorySettingsPanel->setVisible(newVisible);
+        if (newVisible) {
+            viewedPanel = pitchMemorySettingsPanel.get();
+        } else {
+            viewedPanel = mainPanel.get();
+        }
+        bringBackKeyboardFocus();
 
         settingsViewport->setVisible(false);
         helpViewport->setVisible(false);

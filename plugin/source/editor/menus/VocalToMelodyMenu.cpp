@@ -193,4 +193,12 @@ VocalToMelodyMenu::VocalToMelodyMenu(Parameters &params, AudioPluginAudioProcess
     const int totalHeight = y + vertPadding;
     setSize(width, totalHeight);
 }
+
+void VocalToMelodyMenu::visibilityChanged() {
+    if (isVisible()) {
+        micGain_dBSlider->setValue(GlobalSettings::getInstance().getMicGain_dB());
+    } else {
+        editor.bringBackKeyboardFocus();
+    }
+}
 } // namespace audio_plugin

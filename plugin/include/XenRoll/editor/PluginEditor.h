@@ -367,9 +367,12 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
     void timerCallback();
 
     /**
-     * @brief Bring keyboard focus back to main panel
+     * @brief Bring keyboard focus back to viewed panel
      */
-    void bringBackKeyboardFocus() { mainPanel->grabKeyboardFocus(); }
+    void bringBackKeyboardFocus() {
+        if (viewedPanel) 
+            viewedPanel->grabKeyboardFocus();
+    }
 
     /**
      * @brief Called when A4 frequency changes
@@ -441,6 +444,8 @@ class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
 
   private:
     AudioPluginAudioProcessor &processorRef;
+
+    juce::Component* viewedPanel;
 
     std::shared_ptr<DissonanceMeter> dissonanceMeter;
 

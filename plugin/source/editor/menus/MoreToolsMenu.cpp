@@ -69,4 +69,10 @@ MoreToolsMenu::MoreToolsMenu(AudioPluginAudioProcessorEditor &editor, Theme &the
     const int totalHeight = y + vertPadding;
     setSize(width, totalHeight);
 }
+
+void MoreToolsMenu::visibilityChanged() {
+    if (!isVisible()) {
+        editor.bringBackKeyboardFocus();
+    }
+}
 } // namespace audio_plugin

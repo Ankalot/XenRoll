@@ -103,4 +103,16 @@ std::set<int> InstancesMenu::getPossibleInds() {
     return inds;
 }
 
+void InstancesMenu::visibilityChanged() {
+    if (isVisible()) {
+        std::set<int> mbNewPossibleInds = getPossibleInds();
+        if (mbNewPossibleInds != possibleInds) {
+            possibleInds = mbNewPossibleInds;
+            buildMenu();
+        }
+    } else {
+        editor.bringBackKeyboardFocus();
+    }
+}
+
 } // namespace audio_plugin

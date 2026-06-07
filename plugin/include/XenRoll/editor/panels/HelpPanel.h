@@ -8,7 +8,10 @@ namespace audio_plugin {
 
 class HelpPanel : public juce::Component {
   public:
-    HelpPanel(Theme &theme) : theme(theme) { setVisible(false); }
+    HelpPanel(Theme &theme) : theme(theme) {
+        setWantsKeyboardFocus(true);
+        setVisible(false);
+    }
 
     void paint(juce::Graphics &g) override {
         g.fillAll(theme.darker);

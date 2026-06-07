@@ -13,15 +13,7 @@ class InstancesMenu : public juce::Component {
 
     void buildMenu();
 
-    void visibilityChanged() override {
-        if (isVisible()) {
-            std::set<int> mbNewPossibleInds = getPossibleInds();
-            if (mbNewPossibleInds != possibleInds) {
-                possibleInds = mbNewPossibleInds;
-                buildMenu();
-            }
-        }
-    }
+    void visibilityChanged() override;
 
     void paint(juce::Graphics &g) override {
         g.fillAll(params.theme.darker);

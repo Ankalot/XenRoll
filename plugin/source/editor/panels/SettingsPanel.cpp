@@ -4,6 +4,7 @@
 namespace audio_plugin {
 SettingsPanel::SettingsPanel(Parameters &params, AudioPluginAudioProcessorEditor &editor)
     : params(params) {
+    setWantsKeyboardFocus(true);
     setVisible(false);
 
     // ==================== BASIC SETTINGS ====================

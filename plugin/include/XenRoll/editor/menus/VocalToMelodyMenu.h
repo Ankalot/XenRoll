@@ -32,11 +32,7 @@ class VocalToMelodyMenu : public juce::Component {
                    Theme::wider);
     }
 
-    void visibilityChanged() override {
-        if (isVisible()) {
-            micGain_dBSlider->setValue(GlobalSettings::getInstance().getMicGain_dB());
-        }
-    }
+    void visibilityChanged() override;
 
   private:
     AudioPluginAudioProcessorEditor &editor;

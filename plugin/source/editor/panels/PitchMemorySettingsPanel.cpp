@@ -5,6 +5,7 @@ namespace audio_plugin {
 PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters &params,
                                                    AudioPluginAudioProcessorEditor &editor)
     : params(params) {
+    setWantsKeyboardFocus(true);
     setVisible(false);
 
     const juce::String TV_0 = juce::String("TV") + juce::juce_wchar(0x2080);
