@@ -11,7 +11,7 @@ void NotePathManager::addArcAsCubic(juce::Path &path, float centreX, float centr
 
     // 1. Split into segments of maximum 90 degrees (pi / 2)
     const float maxSegmentAngle = juce::MathConstants<float>::halfPi;
-    int numSegments = std::ceil(std::abs(totalAngle) / maxSegmentAngle);
+    int numSegments = static_cast<int>(std::ceil(std::abs(totalAngle) / maxSegmentAngle));
     if (numSegments < 1)
         numSegments = 1;
 

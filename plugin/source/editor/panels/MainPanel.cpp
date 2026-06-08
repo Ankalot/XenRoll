@@ -1341,6 +1341,7 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                     return;
                 }
 
+                clickStartMoveNoteId = notes[i].id;
                 if (notes[i].isSelected) {
                     if (event.mods.isShiftDown()) {
                         needToUnselectThisNoteId = notes[i].id;
@@ -1368,14 +1369,9 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
                     repaint();
                 }
 
-                if (GlobalSettings::getInstance().getPlayDraggedNotes()) {
-                    std::lock_guard<std::mutex> lock(mptcMtx);
-                    for (const Note &note : notes) {
-                        if (note.isSelected) {
-                            dragManuallyPlayedKeys.insert(
-                                {note.cents + note.octave * 1200, note.velocity});
-                        }
-                    }
+                if (GlobalSettings::getInstance().getPlayDraggedNotes() && !editor.isPlaying()) {
+                    dragManuallyPlayedKeys.insert(
+                        {notes[i].cents + notes[i].octave * 1200, notes[i].velocity});
                     editor.setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
                 }
 
@@ -1440,28 +1436,26 @@ void MainPanel::mouseDown(const juce::MouseEvent &event) {
         editor.updateNotes(notes);
         repaint();
 
-        if (GlobalSettings::getInstance().getPlayDraggedNotes()) {
+        if (GlobalSettings::getInstance().getPlayDraggedNotes() && !editor.isPlaying()) {
             // play placed note
-            {
-                std::lock_guard<std::mutex> lock(mptcMtx);
-                // we need to do this for playing a key that is already been played
-                if (dragManuallyPlayedKeys.erase(totalCents) != 0) {
-                    editor.setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
-                }
-                dragManuallyPlayedKeys.insert({totalCents, params.lastVelocity});
+
+            // we need to do this for playing a key that is already been played
+            if (dragManuallyPlayedKeys.erase(totalCents) != 0) {
                 editor.setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
-                placedNoteKeyCounter[totalCents]++;
             }
+            dragManuallyPlayedKeys.insert({totalCents, params.lastVelocity});
+            editor.setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
+            placedNoteKeyCounter[totalCents]++;
 
             auto bpmNumDenom = editor.getBpmNumDenom();
             float durationSeconds = std::get<1>(bpmNumDenom) * (60.0f / std::get<0>(bpmNumDenom)) *
                                     (4.0f / std::get<2>(bpmNumDenom)) * duration;
 
             juce::Timer::callAfterDelay(
-                static_cast<int>(durationSeconds * 1000),
+                juce::jmin(juce::roundToInt(durationSeconds * 1000),
+                           params.maxCreatedNoteAuditionTime),
                 [totalCents, safeThis = SafePointer(this)]() {
                     if (safeThis != nullptr) {
-                        std::lock_guard<std::mutex> lock(safeThis->mptcMtx);
                         safeThis->placedNoteKeyCounter[totalCents]--;
                         if (safeThis->placedNoteKeyCounter[totalCents] == 0) {
                             safeThis->dragManuallyPlayedKeys.erase(totalCents);
@@ -1746,9 +1740,9 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
     // Moving selected notes
     if (isMoving) {
         bool processMoving = false;
-        if (clickUnselAllNotesExceptId != -1) {
+        if (clickUnselAllNotesExceptId != INVALID_NOTE_ID) {
             if (currDragPos.getDistanceFrom(startDragPos) > clickMoveThrPx) {
-                clickUnselAllNotesExceptId = -1;
+                clickUnselAllNotesExceptId = INVALID_NOTE_ID;
                 processMoving = true;
             }
         } else {
@@ -1847,21 +1841,69 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                 }
             }
 
-            bool updatedManuallyPlayedKeys = false;
-            if (changedPitch && GlobalSettings::getInstance().getPlayDraggedNotes()) {
-                // Play dragged vertically notes
-                std::lock_guard<std::mutex> lock(mptcMtx);
-                idx = 0;
-                for (int i = 0; i < notes.size(); ++i) {
-                    if (notes[i].isSelected) {
-                        dragManuallyPlayedKeys.erase(initialTotalCentsForDrag[idx] + prevDcents);
-                        dragManuallyPlayedKeys.insert(
-                            {notes[i].cents + notes[i].octave * 1200, notes[i].velocity});
-                        idx++;
-                    }
-                }
+            if (changedPitch && GlobalSettings::getInstance().getPlayDraggedNotes() &&
+                !editor.isPlaying()) {
+                // Play dragged vertcially note (only the note the user clicked on)
+                if (params.keySnap) {
+                    // Immediately
 
-                updatedManuallyPlayedKeys = true;
+                    idx = 0;
+                    for (int i = 0; i < notes.size(); ++i) {
+                        if (notes[i].id == clickStartMoveNoteId) {
+                            dragManuallyPlayedKeys.erase(initialTotalCentsForDrag[idx] +
+                                                            prevDcents);
+                            dragManuallyPlayedKeys.insert(
+                                {notes[i].cents + notes[i].octave * 1200, notes[i].velocity});
+                            editor.setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
+                            break;
+                        }
+                        if (notes[i].isSelected) {
+                            idx++;
+                        }
+                    }
+                } else {
+                    // With a delay (protection against rapid change)
+
+                    uint64_t currClickStartMoveNoteId = clickStartMoveNoteId;
+                    int currTotalCents = -1;
+                    idx = 0;
+                    for (int i = 0; i < notes.size(); ++i) {
+                        if (notes[i].id == clickStartMoveNoteId) {
+                            bool removed = dragManuallyPlayedKeys.erase(
+                                initialTotalCentsForDrag[idx] + prevDcents);
+                            currTotalCents = notes[i].cents + notes[i].octave * 1200;
+                            if (removed) {
+                                editor.setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
+                            }
+                            break;
+                        }
+                        if (notes[i].isSelected) {
+                            idx++;
+                        }
+                    }
+
+                    juce::Timer::callAfterDelay(
+                        params.noKeySnapPlDragNotesDelayTime,
+                        [currTotalCents, currClickStartMoveNoteId, safeThis = SafePointer(this)]() {
+                            if (safeThis == nullptr)
+                                return;
+                            if ((currClickStartMoveNoteId == safeThis->clickStartMoveNoteId) &&
+                                (safeThis->isMoving)) {
+                                for (int i = 0; i < safeThis->notes.size(); ++i) {
+                                    const Note &note = safeThis->notes[i];
+                                    if (note.id == currClickStartMoveNoteId) {
+                                        if ((note.octave * 1200 + note.cents) == currTotalCents) {
+                                            safeThis->dragManuallyPlayedKeys.insert(
+                                                {currTotalCents, note.velocity});
+                                            safeThis->editor.setManuallyPlayedKeys(
+                                                safeThis->dragManuallyPlayedKeys, "drag");
+                                        }
+                                        return;
+                                    }
+                                }
+                            }
+                        });
+                }
             }
 
             if (changedTime) {
@@ -1876,10 +1918,6 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                 repaint();
                 prevDtime = dtime;
                 prevDcents = dcents;
-            }
-            if (updatedManuallyPlayedKeys) {
-                std::lock_guard<std::mutex> lock(mptcMtx);
-                editor.setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
             }
         }
     }
@@ -2004,13 +2042,15 @@ void MainPanel::updateMouseCursor(const juce::MouseEvent &event) {
 
 void MainPanel::mouseUp(const juce::MouseEvent &event) {
     if (isMoving && GlobalSettings::getInstance().getPlayDraggedNotes()) {
-        std::lock_guard<std::mutex> lock(mptcMtx);
         for (const Note &note : notes) {
-            if (note.isSelected) {
-                dragManuallyPlayedKeys.erase(note.cents + note.octave * 1200);
+            if (note.id == clickStartMoveNoteId) {
+                bool erased = dragManuallyPlayedKeys.erase(note.cents + note.octave * 1200);
+                if (erased) {
+                    editor.setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
+                }
+                break;
             }
         }
-        editor.setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
     }
 
     if (wasResizing || wasMoving || wasTimeStretching || wasMovingRatioMark) {
@@ -2073,7 +2113,8 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
     prevDcents = 0;
     prevTime = -1.0f;
 
-    if (clickUnselAllNotesExceptId != -1) {
+    clickStartMoveNoteId = INVALID_NOTE_ID;
+    if (clickUnselAllNotesExceptId != INVALID_NOTE_ID) {
         unselectAllNotes();
         auto it = std::find_if(notes.begin(), notes.end(), [this](const Note &n) {
             return n.id == clickUnselAllNotesExceptId;
@@ -2089,7 +2130,7 @@ void MainPanel::mouseUp(const juce::MouseEvent &event) {
             }
             it->isSelected = true;
         }
-        clickUnselAllNotesExceptId = -1;
+        clickUnselAllNotesExceptId = INVALID_NOTE_ID;
         if (isShowingVelocityPanel) {
             showOrUpdateVelocityPanel();
         }
@@ -2970,7 +3011,7 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
     }
 
     // Show/hide debug overlay
-    if (key.getKeyCode() == 96) { // tilda (~)
+    if (key.getKeyCode() == 96) { // grave accent symbol (`)
         params.showDebugOverlay = !params.showDebugOverlay;
         repaint();
         return true;
@@ -3012,7 +3053,6 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
             int cents = *(std::next(keys.begin(), keyInd % numKeys));
             int totalCents = octave * 1200 + cents;
             if (totalCents < params.num_octaves * 1200) {
-                std::lock_guard<std::mutex> lock(mptcMtx);
                 keyboardManuallyPlayedKeys.insert({totalCents, params.defaultVelocity});
                 editor.setManuallyPlayedKeys(keyboardManuallyPlayedKeys, "keyboard");
                 wasKeyDown[keyChar] = totalCents;
@@ -3070,7 +3110,6 @@ bool MainPanel::keyStateChanged(bool isKeyDown) {
                 int cents = *(std::next(keys.begin(), i % numKeys));
                 int totalCents = octave * 1200 + cents;*/
                 int totalCents = wasKeyDown[keyChar];
-                std::lock_guard<std::mutex> lock(mptcMtx);
                 keyboardManuallyPlayedKeys.erase(totalCents);
                 editor.setManuallyPlayedKeys(keyboardManuallyPlayedKeys, "keyboard");
                 wasKeyDown.erase(keyChar);

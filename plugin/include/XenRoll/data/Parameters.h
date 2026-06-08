@@ -61,6 +61,9 @@ class Parameters {
     // ==========================
     static constexpr float defaultVelocity = 100.0f / 127;
     static constexpr float minNoteDuration = 1.0f / 256;
+    // ==== playDraggedNotes ====
+    static constexpr int maxCreatedNoteAuditionTime = 1500; ///< in milliseconds
+    static constexpr int noKeySnapPlDragNotesDelayTime = 70; ///< in milliseconds
     // ====== OSC Settings ======
     const juce::String oscHost = "127.0.0.1";
     static constexpr int oscPort = 8000;

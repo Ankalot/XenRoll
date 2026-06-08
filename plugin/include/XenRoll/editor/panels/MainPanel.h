@@ -161,6 +161,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     juce::Point<int> ratioMarkStartPoint;
     juce::Point<int> ratioMarkLastPoint;
 
+    // NOTE: should be careful with these three vectors... they store values by indexes  
     ///< Initial state of selected notes for moving, resizing and time-stretching: {time, duration}
     std::vector<std::pair<float, float>> initialStateForDrag;
     ///< Initial state of selected notes for moving: {totalCents}
@@ -197,7 +198,6 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     ///< is needed when placing a note with params.playDraggedNotes
     std::map<int, int> placedNoteKeyCounter;
-    std::mutex mptcMtx;
 
     juce::Font bendFont;
     std::unordered_map<size_t, juce::Path> outlinedTextPathCache;
@@ -242,6 +242,7 @@ class MainPanel : public juce::Component, public juce::KeyListener {
     const int clickMoveThrPx = 2;
     uint64_t clickVelPanelNoteId = INVALID_NOTE_ID;
     uint64_t clickDelNoteId = INVALID_NOTE_ID;
+    uint64_t clickStartMoveNoteId = INVALID_NOTE_ID; // for play dragged (moved) notes
     uint64_t clickUnselAllNotesExceptId = INVALID_NOTE_ID;
     bool clickUnselAllNotesExcept_Ctrl = false;
     uint64_t needToUnselectThisNoteId = INVALID_NOTE_ID;
