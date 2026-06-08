@@ -1851,7 +1851,7 @@ void MainPanel::mouseDrag(const juce::MouseEvent &event) {
                     for (int i = 0; i < notes.size(); ++i) {
                         if (notes[i].id == clickStartMoveNoteId) {
                             dragManuallyPlayedKeys.erase(initialTotalCentsForDrag[idx] +
-                                                            prevDcents);
+                                                         prevDcents);
                             dragManuallyPlayedKeys.insert(
                                 {notes[i].cents + notes[i].octave * 1200, notes[i].velocity});
                             editor.setManuallyPlayedKeys(dragManuallyPlayedKeys, "drag");
@@ -2633,42 +2633,51 @@ void MainPanel::correctRatioMarksBasedOnSelNotes(float dtime) {
 bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originatingComponent) {
     juce::ignoreUnused(originatingComponent);
 
+    // NOTE: DON'T ALLOW OPERATIONS THAT CHANGE SELECTED NOTES (DELETE/SELECT/UNSELECT) 
+    //       IF THERE IS DRAGGING THAT RELIES ON SELECTED NOTES IS GOING ON
+
     // select all notes
     if (key == juce::KeyPress('a', juce::ModifierKeys::commandModifier, 0)) {
-        selectAllNotes();
-        if (isShowingVelocityPanel) {
-            showOrUpdateVelocityPanel();
+        if (!isInDragNotesOperation()) {
+            selectAllNotes();
+            if (isShowingVelocityPanel) {
+                showOrUpdateVelocityPanel();
+            }
         }
         return true;
     }
 
     // unselect all notes
     if (key == juce::KeyPress::escapeKey) {
-        isDrawingRatioMark = false;
-        unselectAllNotes();
-        repaint();
-        hideVelocityPanel();
+        if (!isInDragNotesOperation()) {
+            isDrawingRatioMark = false;
+            unselectAllNotes();
+            repaint();
+            hideVelocityPanel();
+        }
         return true;
     }
 
     // delete selected notes
     if (key == juce::KeyPress::deleteKey) {
-        if (!thereAreSelectedNotes()) {
-            return true;
-        }
-
-        int numNotes = static_cast<int>(notes.size());
-        for (int i = 0; i < numNotes; ++i) {
-            if (notes[i].isSelected) {
-                deleteNote(i);
-                i--;
-                numNotes--;
+        if (!isInDragNotesOperation()) {
+            if (!thereAreSelectedNotes()) {
+                return true;
             }
+
+            int numNotes = static_cast<int>(notes.size());
+            for (int i = 0; i < numNotes; ++i) {
+                if (notes[i].isSelected) {
+                    deleteNote(i);
+                    i--;
+                    numNotes--;
+                }
+            }
+            saveState();
+            editor.updateNotes(notes);
+            hideVelocityPanel();
+            repaint();
         }
-        saveState();
-        editor.updateNotes(notes);
-        hideVelocityPanel();
-        repaint();
         return true;
     }
 
@@ -2686,54 +2695,60 @@ bool MainPanel::keyPressed(const juce::KeyPress &key, juce::Component *originati
 
     // paste copied notes
     if (key == juce::KeyPress('v', juce::ModifierKeys::commandModifier, 0)) {
-        unselectAllNotes();
-        hideVelocityPanel();
-        bool needGenNewKeys = false;
-        bool needUpdateKeys = false;
-        for (int i = 0; i < copiedNotes.size(); ++i) {
-            copiedNotes[i].id = Note::generateId(); // NEW Id FOR COPIED NOTES!
-            notes.push_back(copiedNotes[i]);
-            int cents = copiedNotes[i].cents;
-            if (params.zones.isNoteInActiveZone(copiedNotes[i])) {
-                auto [_, inserted] = keys.insert(cents);
-                if (inserted || keyIsGenNew[cents]) {
-                    keyIsGenNew[cents] = false;
-                    if (params.generateNewKeys) {
-                        needGenNewKeys = true;
+        if (!isInDragNotesOperation()) {
+            unselectAllNotes();
+            hideVelocityPanel();
+            bool needGenNewKeys = false;
+            bool needUpdateKeys = false;
+            for (int i = 0; i < copiedNotes.size(); ++i) {
+                copiedNotes[i].id = Note::generateId(); // NEW Id FOR COPIED NOTES!
+                notes.push_back(copiedNotes[i]);
+                int cents = copiedNotes[i].cents;
+                if (params.zones.isNoteInActiveZone(copiedNotes[i])) {
+                    auto [_, inserted] = keys.insert(cents);
+                    if (inserted || keyIsGenNew[cents]) {
+                        keyIsGenNew[cents] = false;
+                        if (params.generateNewKeys) {
+                            needGenNewKeys = true;
+                        }
+                        needUpdateKeys = true;
                     }
-                    needUpdateKeys = true;
                 }
+                keysFromAllNotes.insert(cents);
             }
-            keysFromAllNotes.insert(cents);
+            if (needGenNewKeys) {
+                generateNewKeys();
+            }
+            if (needUpdateKeys) {
+                editor.updateKeys(keys);
+            }
+            editor.showMessage(juce::String(copiedNotes.size()) + " note" +
+                               (copiedNotes.size() == 1 ? "" : "s") + " pasted!");
+            saveState();
+            editor.updateNotes(notes);
+            repaint();
         }
-        if (needGenNewKeys) {
-            generateNewKeys();
-        }
-        if (needUpdateKeys) {
-            editor.updateKeys(keys);
-        }
-        editor.showMessage(juce::String(copiedNotes.size()) + " note" +
-                           (copiedNotes.size() == 1 ? "" : "s") + " pasted!");
-        saveState();
-        editor.updateNotes(notes);
-        repaint();
         return true;
     }
 
     // Undo
     if (key == juce::KeyPress('z', juce::ModifierKeys::commandModifier, 0)) {
-        if (params.stateHistory.canUndo()) {
-            params.stateHistory.undo();
-            restoreState();
+        if (!isInDragNotesOperation()) {
+            if (params.stateHistory.canUndo()) {
+                params.stateHistory.undo();
+                restoreState();
+            }
         }
         return true;
     }
 
     // Redo
     if (key == juce::KeyPress('y', juce::ModifierKeys::commandModifier, 0)) {
-        if (params.stateHistory.canRedo()) {
-            params.stateHistory.redo();
-            restoreState();
+        if (!isInDragNotesOperation()) {
+            if (params.stateHistory.canRedo()) {
+                params.stateHistory.redo();
+                restoreState();
+            }
         }
         return true;
     }

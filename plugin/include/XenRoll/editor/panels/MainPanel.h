@@ -361,6 +361,11 @@ class MainPanel : public juce::Component, public juce::KeyListener {
 
     void restoreState();
 
+    ///< This checks drag operations that can break if set of selected notes will change
+    bool isInDragNotesOperation() const {
+        return isResizing || isMoving || isTimeStretching;
+    }
+
     bool wasDebugOverlayVisible = false;
     double minFps = std::numeric_limits<double>::max();
     juce::String pluginNameAndVersion;
