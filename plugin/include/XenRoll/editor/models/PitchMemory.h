@@ -32,7 +32,7 @@
 //            TV_i := 0
 //    2.4 For each existing trace (let's consider j-th trace):
 //        2.4.1 Update trace value
-//              TV_j = min(1.0, TV_j*2^(min(1.0, TV_i + b)*HV_i))
+//              TV_j = min(1.0, TV_j*2^(min(1.0, TV_i + b)*(-DV_ij)))
 //              if TV_j < c:
 //                  TV_j := 0
 //

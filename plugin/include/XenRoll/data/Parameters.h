@@ -163,7 +163,7 @@ class Parameters {
     std::atomic<float> findPartialsdBThreshold = -60.0f;
     std::atomic<PartialsFindPosStrat> findPartialsStrat = PartialsFindPosStrat::maxSpectralFlatness;
     float roughCompactFrac = 0.0f;
-    float dissonancePow = 1.0f;
+    float dissonancePow = 1.1f;
     // Pitch memory
     float pitchMemoryTVvalForZeroHV = 0.2f;
     float pitchMemoryTVaddInfluence = 0.3f;

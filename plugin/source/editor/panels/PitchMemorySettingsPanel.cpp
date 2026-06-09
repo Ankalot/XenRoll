@@ -138,7 +138,7 @@ PitchMemorySettingsPanel::PitchMemorySettingsPanel(Parameters &params,
     algoDescrText += "          if " + TV_i + " < " + TV_MIN + ":  " + TV_i + " := 0\n";
     algoDescrText += "   2.4 For each existing trace (let's consider j-th trace):\n";
     algoDescrText += "          " + TV_j + " = min(1.0, " + TV_j + "*2^(min(1.0, " + TV_i + " + " +
-                     TV_ADD + ")*" + HV_i + "))\n";
+                     TV_ADD + ")*(-" + DV_ij + ")))\n";
     algoDescrText += "          if " + TV_j + " < " + TV_MIN + ":  " + TV_j + " := 0";
     algoDescrLabel->setText(algoDescrText, juce::dontSendNotification);
 

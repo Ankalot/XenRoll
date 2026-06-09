@@ -107,7 +107,7 @@ std::optional<PitchMemoryResults> PitchMemory::findPitchTraces(const std::vector
             sum1 += tracesValues[i] * dissonanceValues[i];
             sum2 += tracesValues[i];
         }
-        float HV = 0;
+        float HV = 1.0f; // if sum2 == 0 => pitch memory is reset
         if (sum2 != 0) {
             HV = -sum1 / sum2;
         }
@@ -129,9 +129,9 @@ std::optional<PitchMemoryResults> PitchMemory::findPitchTraces(const std::vector
         for (int i = 0; i < numPitches; ++i) {
             const int traceTotalCents = pitchesTotalCents[i];
             if (traceTotalCents != totalCents) {
-                tracesValues[i] =
-                    std::min(1.0f, tracesValues[i] *
-                                       std::pow(2.0f, std::min(1.0f, TV + TV_add_influence) * HV));
+                tracesValues[i] = std::min(
+                    1.0f, tracesValues[i] * std::pow(2.0f, std::min(1.0f, TV + TV_add_influence) *
+                                                               (-dissonanceValues[i])));
                 if (tracesValues[i] < TV_min_nonzero) {
                     tracesValues[i] = 0.0f;
                 }
