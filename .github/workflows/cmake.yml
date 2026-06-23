@@ -73,7 +73,7 @@ jobs:
       run: cmake -S . -B ${{github.workspace}}/build 
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} 
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
-            -DVCPKG_TARGET_TRIPLET=arm64-osx-dynamic
+            -DVCPKG_TARGET_TRIPLET=arm64-osx
             -DCMAKE_CXX_FLAGS="-Wno-error"
 
     - name: Configure CMake (macOS x64)
@@ -81,7 +81,7 @@ jobs:
       run: cmake -S . -B ${{github.workspace}}/build 
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} 
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
-            -DVCPKG_TARGET_TRIPLET=x64-osx-dynamic
+            -DVCPKG_TARGET_TRIPLET=x64-osx
             -DCMAKE_CXX_FLAGS="-Wno-error"
 
     - name: Configure CMake (Linux)
@@ -101,6 +101,23 @@ jobs:
     - name: Build
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}
+
+    - name: Fix JUCE trailing commas
+      shell: bash # Forces Windows to use bash/sh-like behavior for python -c
+      run: |
+        python3 -c "
+        import os, re
+        for root, dirs, files in os.walk('${{ github.workspace }}/build'):
+            for file in files:
+                if file == 'moduleinfo.json':
+                    path = os.path.join(root, file)
+                    with open(path, 'r+') as f:
+                        text = f.read()
+                        fixed = re.sub(r',(\s*[\]}])', r'\1', text)
+                        f.seek(0)
+                        f.write(fixed)
+                        f.truncate()
+        "
 
     - name: Upload VST3 artifact
       uses: actions/upload-artifact@v4
