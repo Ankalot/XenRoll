@@ -20,7 +20,7 @@ jobs:
 
     steps:
     - name: List Xcode installations
-      if: runner.os == 'macOS'
+      if: matrix.os == 'macos-14' || matrix.os == 'macos-13'
       run: sudo ls -1 /Applications | grep "Xcode"
 
     - name: Select Xcode 16.2 (macOS 14 ARM)
@@ -74,37 +74,33 @@ jobs:
 
     - name: Configure CMake (macOS ARM64)
       if: matrix.os == 'macos-14'
-      run: |
-        cmake -S . -B ${{github.workspace}}/build \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
-          -DVCPKG_TARGET_TRIPLET=arm64-osx-dynamic \
-          -DCMAKE_CXX_FLAGS="-Wno-error"
+      run: cmake -S . -B ${{github.workspace}}/build 
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} 
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+            -DVCPKG_TARGET_TRIPLET=arm64-osx-dynamic
+            -DCMAKE_CXX_FLAGS="-Wno-error"
 
     - name: Configure CMake (macOS x64)
       if: matrix.os == 'macos-13'
-      run: |
-        cmake -S . -B ${{github.workspace}}/build \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
-          -DVCPKG_TARGET_TRIPLET=x64-osx-dynamic \
-          -DCMAKE_CXX_FLAGS="-Wno-error"
+      run: cmake -S . -B ${{github.workspace}}/build 
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} 
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+            -DVCPKG_TARGET_TRIPLET=x64-osx-dynamic
+            -DCMAKE_CXX_FLAGS="-Wno-error"
 
     - name: Configure CMake (Linux)
       if: matrix.os == 'ubuntu-latest'
-      run: |
-        cmake -S . -B ${{github.workspace}}/build \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
-          -DCMAKE_CXX_FLAGS="-Wno-error"
+      run: cmake -S . -B ${{github.workspace}}/build 
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} 
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+            -DCMAKE_CXX_FLAGS="-Wno-error"
 
     - name: Configure CMake (Windows)
       if: matrix.os == 'windows-latest'
-      run: |
-        cmake -S . -B ${{github.workspace}}/build \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
-          -DCMAKE_CXX_FLAGS="/WX-"
+      run: cmake -S . -B ${{github.workspace}}/build 
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} 
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+            -DCMAKE_CXX_FLAGS="/WX-"
 
     - name: Build
       # Build your program with the given configuration
